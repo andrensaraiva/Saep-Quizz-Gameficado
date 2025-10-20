@@ -1,0 +1,254 @@
+/**
+ * ╔═══════════════════════════════════════════════════════════╗
+ * ║  TEMPLATE PARA CRIAÇÃO DE QUESTÕES - QUIZ MULTI-CURSOS   ║
+ * ╚═══════════════════════════════════════════════════════════╝
+ * 
+ * Use este template para criar suas questões de forma padronizada
+ * 
+ * INSTRUÇÕES:
+ * 1. Copie o bloco de questão abaixo
+ * 2. Preencha todos os campos
+ * 3. Certifique-se de marcar APENAS UMA opção como correta
+ * 4. Adicione justificativas para as opções incorretas
+ * 5. Salve como arquivo .json
+ * 6. Importe via painel admin
+ */
+
+[
+  {
+    "id": "Q01",                          // ID ÚNICO da questão (ex: Q01, Q02, MAT01, etc)
+    "capacidade": "Compreensão",          // Capacidade avaliada (Compreensão, Análise, Aplicação, etc)
+    "context": "Texto opcional de contexto para a questão. Use este campo para fornecer informações necessárias antes da pergunta principal.",
+    "command": "Pergunta principal aqui?",  // A pergunta que será apresentada ao aluno
+    "options": [
+      {
+        "text": "Primeira opção de resposta (CORRETA)",
+        "correct": true                   // ⚠️ APENAS UMA opção deve ter este campo
+      },
+      {
+        "text": "Segunda opção de resposta (INCORRETA)",
+        "justification": "Explicação clara de por que esta resposta está incorreta. Ajuda o aluno a entender o erro."
+      },
+      {
+        "text": "Terceira opção de resposta (INCORRETA)",
+        "justification": "Outra explicação educativa sobre o erro."
+      },
+      {
+        "text": "Quarta opção de resposta (INCORRETA)",
+        "justification": "Mais uma justificativa didática."
+      }
+    ]
+  },
+
+  // ════════════════════════════════════════════════════════════
+  // EXEMPLO PRÁTICO - Questão de Programação
+  // ════════════════════════════════════════════════════════════
+
+  {
+    "id": "PROG01",
+    "capacidade": "Análise",
+    "context": "Em JavaScript, existem várias maneiras de declarar variáveis. Cada uma tem seu escopo e comportamento específicos.",
+    "command": "Qual palavra-chave deve ser usada para declarar uma variável com escopo de bloco que não pode ser reatribuída?",
+    "options": [
+      {
+        "text": "const",
+        "correct": true
+      },
+      {
+        "text": "var",
+        "justification": "var tem escopo de função e pode ser reatribuída, além de sofrer hoisting."
+      },
+      {
+        "text": "let",
+        "justification": "let tem escopo de bloco correto, mas permite reatribuição de valores."
+      },
+      {
+        "text": "static",
+        "justification": "static não é usado para declarar variáveis em JavaScript, mas sim para definir métodos estáticos em classes."
+      }
+    ]
+  },
+
+  // ════════════════════════════════════════════════════════════
+  // EXEMPLO PRÁTICO - Questão de Jogos
+  // ════════════════════════════════════════════════════════════
+
+  {
+    "id": "GAME01",
+    "capacidade": "Aplicação",
+    "context": "No desenvolvimento de jogos 2D, diferentes tipos de câmera podem ser implementados para melhorar a experiência do jogador.",
+    "command": "Qual tipo de câmera é mais adequado para um jogo de plataforma 2D onde o personagem precisa estar sempre visível?",
+    "options": [
+      {
+        "text": "Câmera que segue o personagem com lerp (smooth follow)",
+        "correct": true
+      },
+      {
+        "text": "Câmera fixa sem movimento",
+        "justification": "Uma câmera fixa limitaria o nível a uma única tela, inadequado para a maioria dos jogos de plataforma."
+      },
+      {
+        "text": "Câmera controlada manualmente pelo jogador",
+        "justification": "Exigiria controles adicionais e tiraria o foco da jogabilidade principal."
+      },
+      {
+        "text": "Câmera aleatória que muda de posição",
+        "justification": "Tornaria o jogo impossível de jogar, pois o jogador perderia a referência espacial."
+      }
+    ]
+  },
+
+  // ════════════════════════════════════════════════════════════
+  // EXEMPLO PRÁTICO - Questão sem contexto
+  // ════════════════════════════════════════════════════════════
+
+  {
+    "id": "ALG01",
+    "capacidade": "Compreensão",
+    "command": "Qual é a complexidade de tempo (Big O) de buscar um elemento em uma lista não ordenada?",
+    "options": [
+      {
+        "text": "O(n)",
+        "correct": true
+      },
+      {
+        "text": "O(1)",
+        "justification": "O(1) seria verdadeiro apenas se tivéssemos acesso direto ao índice do elemento."
+      },
+      {
+        "text": "O(log n)",
+        "justification": "O(log n) é característica de busca binária, que requer lista ordenada."
+      },
+      {
+        "text": "O(n²)",
+        "justification": "O(n²) indicaria operações aninhadas, não uma busca linear simples."
+      }
+    ]
+  },
+
+  // ════════════════════════════════════════════════════════════
+  // ADICIONE SUAS QUESTÕES ABAIXO
+  // ════════════════════════════════════════════════════════════
+
+  {
+    "id": "QXX",
+    "capacidade": "Sua Capacidade",
+    "context": "Seu contexto aqui (opcional)",
+    "command": "Sua pergunta aqui?",
+    "options": [
+      {
+        "text": "Resposta correta",
+        "correct": true
+      },
+      {
+        "text": "Resposta incorreta 1",
+        "justification": "Justificativa 1"
+      },
+      {
+        "text": "Resposta incorreta 2",
+        "justification": "Justificativa 2"
+      },
+      {
+        "text": "Resposta incorreta 3",
+        "justification": "Justificativa 3"
+      }
+    ]
+  }
+]
+
+/**
+ * ════════════════════════════════════════════════════════════
+ * REGRAS IMPORTANTES:
+ * ════════════════════════════════════════════════════════════
+ * 
+ * ✅ OBRIGATÓRIO:
+ * • Cada questão DEVE ter um ID único
+ * • Cada questão DEVE ter um "command" (pergunta)
+ * • Cada questão DEVE ter array "options"
+ * • Cada option DEVE ter "text"
+ * • EXATAMENTE UMA opção deve ter "correct": true
+ * • Mínimo de 2 opções por questão
+ * 
+ * ✅ OPCIONAL:
+ * • "capacidade" (mas recomendado para organização)
+ * • "context" (use quando a questão precisa de contexto)
+ * • "justification" (recomendado para feedback educativo)
+ * 
+ * ✅ BOAS PRÁTICAS:
+ * • Use IDs descritivos (PROG01, GAME01, MAT01)
+ * • Seja claro e objetivo nas perguntas
+ * • Justificativas devem ser educativas
+ * • Evite questões ambíguas
+ * • 4 opções é o ideal (1 correta + 3 incorretas)
+ * • Todas as opções devem ser plausíveis
+ * 
+ * ════════════════════════════════════════════════════════════
+ * TIPOS DE CAPACIDADES SUGERIDAS:
+ * ════════════════════════════════════════════════════════════
+ * 
+ * Baseado na Taxonomia de Bloom:
+ * • Conhecimento - Lembrar fatos e conceitos básicos
+ * • Compreensão - Explicar ideias ou conceitos
+ * • Aplicação - Usar informação em novas situações
+ * • Análise - Fazer conexões entre ideias
+ * • Síntese - Justificar decisões ou posições
+ * • Avaliação - Fazer julgamentos baseados em critérios
+ * 
+ * Para Jogos Digitais (exemplo):
+ * • C1 - Fundamentos de Programação
+ * • C2 - Lógica de Jogo
+ * • C3 - Design de Mecânicas
+ * • C4 - Otimização e Performance
+ * • C5 - Multimídia e Arte
+ * • C6 - Projeto e Documentação
+ * 
+ * ════════════════════════════════════════════════════════════
+ * COMO IMPORTAR:
+ * ════════════════════════════════════════════════════════════
+ * 
+ * 1. Acesse: http://localhost:3000/admin.html
+ * 2. Login com credenciais de admin
+ * 3. Vá para seção "Questões"
+ * 4. Clique em "📥 Importar Questões"
+ * 5. Selecione o curso
+ * 6. Cole o conteúdo deste arquivo (apenas o array JSON)
+ * 7. Clique em "Importar"
+ * 
+ * ════════════════════════════════════════════════════════════
+ * VALIDAÇÃO AUTOMÁTICA:
+ * ════════════════════════════════════════════════════════════
+ * 
+ * O sistema validará automaticamente:
+ * ✓ Formato JSON válido
+ * ✓ IDs únicos no curso
+ * ✓ Presença de campos obrigatórios
+ * ✓ Exatamente uma resposta correta por questão
+ * ✓ Mínimo de opções
+ * 
+ * Se houver erros, você receberá um relatório detalhado
+ * indicando qual questão tem problema e qual é o erro.
+ * 
+ * ════════════════════════════════════════════════════════════
+ * DICAS DE QUALIDADE:
+ * ════════════════════════════════════════════════════════════
+ * 
+ * 📝 Perguntas:
+ * • Seja específico e direto
+ * • Evite dupla negativa
+ * • Uma pergunta = um conceito
+ * • Use linguagem clara
+ * 
+ * 📝 Opções:
+ * • Todas as opções devem ter tamanho similar
+ * • Evite pistas na gramática
+ * • Distratores devem ser plausíveis
+ * • Evite "todas as anteriores" ou "nenhuma das anteriores"
+ * 
+ * 📝 Justificativas:
+ * • Explique POR QUE está errado
+ * • Seja educativo, não punitivo
+ * • Reforce o conceito correto
+ * • Use linguagem encorajadora
+ * 
+ * ════════════════════════════════════════════════════════════
+ */

@@ -1,0 +1,618 @@
+[
+  {
+    "id": "q1",
+    "capacidade": "C1",
+    "context": "A equipe de desenvolvimento do jogo de corrida infinita \"Cyber-Rush\" decidiu adicionar um sistema de power-ups. A mudança inclui um escudo, um ímã de moedas e um turbo. A decisão repentina gerou confusão: a equipe de programação não tem certeza sobre as regras de interação, enquanto a equipe de arte não sabe quais novos sprites criar.",
+    "command": "Considerando o risco de desalinhamento entre as equipes, qual seção do GDD deve ser priorizada para atualização a fim de garantir uma implementação coesa?",
+    "options": [
+      {
+        "text": "Adicionar uma nota no resumo do jogo (Game Overview).",
+        "justification": "Incorreta. Uma simples nota é insuficiente para alinhar o trabalho técnico e artístico detalhado."
+      },
+      {
+        "text": "Criar uma nova seção \"Lista de Assets de Power-ups\".",
+        "justification": "Incorreta. Listar os assets é uma consequência, não a causa do alinhamento. A equipe de arte precisa saber *como* os power-ups funcionam para criar os assets corretos."
+      },
+      {
+        "text": "Atualizar a seção \"Mecânicas de Jogo\" (Game Mechanics), detalhando o comportamento, duração, efeitos e regras de cada power-up.",
+        "correct": true
+      },
+      {
+        "text": "Detalhar na seção \"Monetização\" como os power-ups poderão ser adquiridos.",
+        "justification": "Incorreta. A monetização é um aspecto de negócio, não resolve a confusão técnica sobre a funcionalidade central dos itens."
+      },
+      {
+        "text": "Atualizar o cronograma de produção no apêndice do GDD.",
+        "justification": "Incorreta. O cronograma é importante para o gerenciamento, mas não define *o que* precisa ser feito pelas equipes de desenvolvimento."
+      }
+    ]
+  },
+  {
+    "id": "q2",
+    "capacidade": "C1",
+    "context": "Um testador de QA encontrou um bug severo: uma unidade de artilharia, ao atacar, ocasionalmente causa dano a um aliado do outro lado do mapa. O bug é intermitente e difícil de reproduzir. O programador afirma que, sem um registro exato do estado do jogo no momento da falha, levará dias para encontrar a causa.",
+    "command": "Além de um vídeo, qual documento técnico o testador deveria anexar ao relatório de bug para fornecer ao programador os dados exatos para um diagnóstico imediato?",
+    "options": [
+      {
+        "text": "Um diagrama de fluxo detalhando a lógica de combate da unidade.",
+        "justification": "Incorreta. Um fluxograma feito pelo testador seria baseado em suposições e não forneceria os dados internos (variáveis, estados) que o programador precisa."
+      },
+      {
+        "text": "O arquivo de log do console de depuração (console log/crash log) gerado pela engine no momento do bug.",
+        "correct": true
+      },
+      {
+        "text": "Uma planilha comparando o desempenho do jogo em diferentes hardwares.",
+        "justification": "Incorreta. O problema é de lógica, não de performance, então dados de FPS em diferentes máquinas não ajudam a depurar o erro."
+      },
+      {
+        "text": "Uma seção do GDD que descreve o comportamento esperado da unidade.",
+        "justification": "Incorreta. O GDD informa o que *deveria* acontecer, mas o log informa o que *de fato aconteceu* internamente no código, sendo crucial para a depuração."
+      },
+      {
+        "text": "Um e-mail formal para o gerente de projeto escalando a prioridade do bug.",
+        "justification": "Incorreta. Trata-se de uma comunicação de gerenciamento, que não contém a informação técnica necessária para o programador."
+      }
+    ]
+  },
+  {
+    "id": "q3",
+    "capacidade": "C2",
+    "context": "Em um jogo de sobrevivência online, os jogadores podem fabricar centenas de itens. Nos testes de usabilidade, os jogadores novatos relataram uma enorme frustração com o menu de fabricação (crafting). Eles disseram que, embora o menu seja visualmente bonito (UI), eles se sentem sobrecarregados e não conseguem encontrar os itens que querem fabricar. A equipe concluiu que a experiência do usuário (UX) está falhando.",
+    "command": "Para resolver o problema fundamental de experiência do usuário (UX) relatado pelos jogadores, qual das seguintes mudanças na interface seria a mais eficaz?",
+    "options": [
+      {
+        "text": "Alterar a paleta de cores do menu e usar fontes mais estilizadas.",
+        "justification": "Incorreta. Focar na estética (UI) não resolve o problema central de usabilidade e organização da informação (UX)."
+      },
+      {
+        "text": "Adicionar um sistema de filtros por categoria, uma barra de pesquisa e destacar itens fabricáveis.",
+        "correct": true
+      },
+      {
+        "text": "Incluir tooltips em cada ícone, explicando a função de cada botão.",
+        "justification": "Incorreta. Tooltips podem ser úteis, mas não resolvem o problema principal de sobrecarga de informação."
+      },
+      {
+        "text": "Criar um tutorial em vídeo obrigatório e detalhado.",
+        "justification": "Incorreta. Um tutorial obrigatório é uma muleta para uma má UX. O ideal é que o sistema seja intuitivo."
+      },
+      {
+        "text": "Aumentar o tamanho de todos os ícones e botões.",
+        "justification": "Incorreta. Aumentar o tamanho dos ícones pode melhorar a acessibilidade do clique, mas não resolve o problema de organização e busca."
+      }
+    ]
+  },
+  {
+    "id": "q4",
+    "capacidade": "C2",
+    "context": "Em um jogo \"combine 3\", jogadores com daltonismo (dificuldade em distinguir verde e vermelho) não conseguem jogar. A direção de arte não quer alterar a paleta de cores principal.",
+    "command": "Do ponto de vista de UI/UX inclusivo e acessível, qual é a solução mais eficaz para resolver o problema sem comprometer a estética visual para os demais jogadores?",
+    "options": [
+      {
+        "text": "Aumentar a saturação e o brilho das gemas vermelhas e verdes.",
+        "justification": "Incorreta. Mudar brilho/saturação não resolve o problema central de percepção de matiz (cor) para um daltônico."
+      },
+      {
+        "text": "Implementar um \"Modo Daltônico\" opcional que adicione uma forma geométrica única a cada tipo de gema.",
+        "correct": true
+      },
+      {
+        "text": "Substituir permanentemente as gemas verdes por azuis.",
+        "justification": "Incorreta. Isso vai contra a restrição do contexto, que é não alterar a paleta de cores principal."
+      },
+      {
+        "text": "Adicionar uma legenda de texto que aparece ao tocar e segurar uma gema.",
+        "justification": "Incorreta. Tocar e segurar cada gema tornaria a jogabilidade extremamente lenta, prejudicando a UX."
+      },
+      {
+        "text": "Incluir um aviso na página de download do jogo.",
+        "justification": "Incorreta. Isso não é uma solução, é um aviso que exclui uma parcela de jogadores."
+      }
+    ]
+  },
+  {
+    "id": "q5",
+    "capacidade": "C3",
+    "context": "Em um jogo de plataforma, o personagem tem `vida` = 100 e `estaVivo` = verdadeiro. A função `Morrer()` não deve ser chamada mais de uma vez.",
+    "command": "Qual pseudocódigo aplica 25 de dano de forma segura, garantindo que `Morrer()` seja chamada apenas uma vez?",
+    "options": [
+      {
+        "text": "`vida = vida - 25; se (vida <= 0) { Morrer(); }`",
+        "justification": "Incorreta. Permite que `Morrer()` seja chamada múltiplas vezes se o personagem continuar recebendo dano com vida negativa."
+      },
+      {
+        "text": "`se (vida <= 0) { estaVivo = falso; Morrer(); } vida = vida - 25;`",
+        "justification": "Incorreta. O dano é aplicado *após* a verificação de vida, então o personagem nunca morreria."
+      },
+      {
+        "text": "`se (estaVivo == verdadeiro) { vida = vida - 25; se (vida <= 0) { estaVivo = falso; Morrer(); } }`",
+        "correct": true
+      },
+      {
+        "text": "`vida = vida - 25; se (vida <= 0 e estaVivo == verdadeiro) { Morrer(); }`",
+        "justification": "Incorreta. Não impede que `Morrer()` seja chamada múltiplas vezes, pois `estaVivo` nunca é alterada para `falso`."
+      },
+      {
+        "text": "`se (estaVivo == verdadeiro) { vida = vida - 25; } se (vida <= 0) { estaVivo = falso; Morrer(); }`",
+        "justification": "Incorreta. Com `se` independentes, `Morrer()` pode ser chamada várias vezes se o dano continuar sendo aplicado."
+      }
+    ]
+  },
+  {
+    "id": "q6",
+    "capacidade": "C3",
+    "context": "Em um jogo, o jogador pode colidir com \"Moeda\" (+10 pontos) e \"Espinho\" (morte). Múltiplas colisões podem ocorrer no mesmo quadro. A morte por \"Espinho\" deve ter prioridade sobre o ganho de pontos.",
+    "command": "Qual estrutura lógica garante a prioridade do \"Espinho\" sobre a \"Moeda\" em colisões simultâneas?",
+    "options": [
+      {
+        "text": "`se (colidiu com \"Espinho\") { Morrer(); } se (colidiu com \"Moeda\") { AdicionarPontos(10); }`",
+        "justification": "Incorreta. Como são dois `se` independentes, se ambas as colisões ocorrerem, o jogador morreria E ganharia os pontos."
+      },
+      {
+        "text": "`se (colidiu com \"Espinho\") { Morrer(); } senão se (colidiu com \"Moeda\") { AdicionarPontos(10); }`",
+        "correct": true
+      },
+      {
+        "text": "`se (colidiu com \"Moeda\") { AdicionarPontos(10); } senão se (colidiu com \"Espinho\") { Morrer(); }`",
+        "justification": "Incorreta. Esta lógica dá prioridade à moeda. Se colidir com ambos, o jogador ganharia pontos e o bloco do espinho seria ignorado."
+      },
+      {
+        "text": "`se (colidiu com \"Moeda\") { AdicionarPontos(10); } se (colidiu com \"Espinho\") { Morrer(); }`",
+        "justification": "Incorreta. Igual à alternativa A, ambas as condições seriam executadas."
+      },
+      {
+        "text": "`se (colidiu com \"Espinho\" OU colidiu com \"Moeda\") { se (colidiu com \"Moeda\") { AdicionarPontos(10); } senão { Morrer(); } }`",
+        "justification": "Incorreta. Esta lógica está errada. Se colidir com ambos, a condição interna `se (colidiu com \"Moeda\")` seria verdadeira, fazendo o jogador ganhar pontos e não morrer."
+      }
+    ]
+  },
+  {
+    "id": "q7",
+    "capacidade": "C3",
+    "context": "Um jogador quer usar uma \"Poção de Cura\" de seu inventário (uma lista/array). A lógica precisa percorrer a lista, encontrar a primeira poção, aplicar o efeito e remover apenas aquela poção, parando a busca.",
+    "command": "Qual estrutura de laço de repetição (loop) é a mais adequada e eficiente para encontrar e consumir uma única \"Poção de Cura\"?",
+    "options": [
+      {
+        "text": "`para cada item no inventario { se (item == \"Poção de Cura\") { CurarJogador(); } } RemoverItem(\"Poção de Cura\");`",
+        "justification": "Incorreta. O jogador seria curado para cada poção no inventário, e a remoção fora do laço é imprecisa."
+      },
+      {
+        "text": "`para cada item no inventario { se (item == \"Poção de Cura\") { CurarJogador(); RemoverItem(item); } }`",
+        "justification": "Incorreta. Modificar uma lista enquanto se itera sobre ela com `para cada` é perigoso e pode causar erros. Além disso, não para após encontrar a primeira."
+      },
+      {
+        "text": "`para i de 0 até tamanho do inventario { se (inventario[i] == \"Poção de Cura\") { CurarJogador(); RemoverItem(inventario[i]); pare o laço; } }`",
+        "correct": true
+      },
+      {
+        "text": "`enquanto (inventario contém \"Poção de Cura\") { CurarJogador(); RemoverItem(\"Poção de Cura\"); }`",
+        "justification": "Incorreta. O laço `enquanto` (while) consumiria TODAS as poções de cura do inventário, e não apenas uma."
+      },
+      {
+        "text": "`se (inventario contém \"Poção de Cura\") { CurarJogador(); para cada item no inventario { RemoverItem(item); } }`",
+        "justification": "Incorreta. Esta lógica curaria o jogador uma vez e depois removeria TODOS os itens do inventário."
+      }
+    ]
+  },
+  {
+    "id": "q8",
+    "capacidade": "C3",
+    "context": "Em um jogo de corrida, um \"Turbo\" aumenta a velocidade por 5 segundos. A função `Atualizar()` é executada a cada quadro (frame) e fornece uma variável `tempoDelta` (tempo desde o último quadro). A contagem do tempo precisa usar `tempoDelta` para ser consistente.",
+    "command": "Qual a lógica correta para ser inserida na função `Atualizar()` para gerenciar o efeito do \"Turbo\" de forma independente da taxa de quadros?",
+    "options": [
+      {
+        "text": "`se (turboAtivo) { contadorTurbo++; se (contadorTurbo >= 300) { DesativarTurbo(); } }` (Assumindo 60 FPS)",
+        "justification": "Incorreta. Esta lógica depende da taxa de quadros (frame-dependent). Em um PC a 30 FPS, o turbo duraria 10 segundos."
+      },
+      {
+        "text": "`se (turboAtivo) { tempoRestanteTurbo -= tempoDelta; se (tempoRestanteTurbo <= 0) { DesativarTurbo(); } }`",
+        "correct": true
+      },
+      {
+        "text": "`se (turboAtivo) { tempoRestanteTurbo = 5; } senão { DesativarTurbo(); }`",
+        "justification": "Incorreta. Esta lógica reiniciaria o tempo do turbo para 5 segundos a cada quadro, fazendo com que ele nunca acabasse."
+      },
+      {
+        "text": "`se (turboAtivo) { esperar 5 segundos; DesativarTurbo(); }`",
+        "justification": "Incorreta. A maioria das engines não permite \"esperar\" na função de atualização, pois isso congelaria o jogo inteiro."
+      },
+      {
+        "text": "`se (turboAtivo) { tempoRestanteTurbo--; se (tempoRestanteTurbo <= 0) { DesativarTurbo(); } }`",
+        "justification": "Incorreta. Subtrair `1` é o mesmo que contar quadros, tornando a duração dependente da taxa de quadros."
+      }
+    ]
+  },
+  {
+    "id": "q9",
+    "capacidade": "C3",
+    "context": "Um inimigo 2D deve patrulhar uma plataforma horizontalmente entre `limiteDireito` e `limiteEsquerdo`, invertendo a direção ao atingir os limites.",
+    "command": "Qual lógica, executada a cada quadro, implementa corretamente o comportamento de patrulha do inimigo?",
+    "options": [
+      {
+        "text": "`posicaoX += velocidadeX; se (posicaoX >= limiteDireito) { velocidadeX = -velocidadeX; } se (posicaoX <= limiteEsquerdo) { velocidadeX = velocidadeX; }`",
+        "justification": "Incorreta. A segunda condição não faz nada e não inverte a velocidade no limite esquerdo."
+      },
+      {
+        "text": "`se (posicaoX >= limiteDireito) { velocidadeX = -velocidadeX; } senão se (posicaoX <= limiteEsquerdo) { velocidadeX = -velocidadeX; } posicaoX += velocidadeX;`",
+        "justification": "Incorreta. O `senão se` pode impedir a inversão se o inimigo ultrapassar ambos os limites em um frame com lag, e o movimento é aplicado tardiamente."
+      },
+      {
+        "text": "`posicaoX += velocidadeX; se (posicaoX >= limiteDireito OU posicaoX <= limiteEsquerdo) { velocidadeX = -velocidadeX; }`",
+        "justification": "Incorreta. Esta é uma armadilha comum. O inimigo pode ficar \"preso\" no limite, invertendo a velocidade para frente e para trás a cada quadro."
+      },
+      {
+        "text": "`posicaoX += velocidadeX; se (posicaoX == limiteDireito) { velocidadeX = -velocidadeX; } senão se (posicaoX == limiteEsquerdo) { velocidadeX = -velocidadeX; }`",
+        "justification": "Incorreta. Usar `==` é arriscado, pois o inimigo pode \"pular\" a posição exata do limite devido a variações no `tempoDelta`."
+      },
+      {
+        "text": "`se (velocidadeX > 0 e posicaoX >= limiteDireito) { velocidadeX = -velocidadeX; } senão se (velocidadeX < 0 e posicaoX <= limiteEsquerdo) { velocidadeX = -velocidadeX; } posicaoX += velocidadeX;`",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q10",
+    "capacidade": "C4",
+    "context": "Uma equipe está criando um jogo experimental. A gestão insistiu no modelo Cascata. Após 6 meses, os protótipos mostram que a mecânica principal não é divertida, mas o modelo rígido torna qualquer alteração lenta e cara.",
+    "command": "Analisando o fracasso, qual é a principal falha na escolha da metodologia e qual abordagem seria mais adequada?",
+    "options": [
+      {
+        "text": "A falha foi a falta de comunicação. Deveriam manter o Cascata, mas com reuniões diárias.",
+        "justification": "Incorreta. Reuniões não resolvem o problema estrutural do Cascata, que é a dificuldade de retornar a fases anteriores."
+      },
+      {
+        "text": "A falha foi a rigidez do Cascata. Deveriam adotar uma metodologia Ágil como o Scrum, para construir, testar e adaptar em ciclos curtos.",
+        "correct": true
+      },
+      {
+        "text": "A falha foi a má qualidade do GDD. Deveriam parar e detalhar ainda mais o documento.",
+        "justification": "Incorreta. O problema não foi a falta de detalhes, mas o fato de que as premissas se provaram erradas na prática."
+      },
+      {
+        "text": "A falha foi o foco excessivo em documentação. Deveriam migrar para o Kanban.",
+        "justification": "Incorreta. A justificativa está incompleta. O foco do Kanban não seria apenas em tarefas visuais, mas na validação do produto."
+      },
+      {
+        "text": "A falha foi a falta de habilidade da equipe de design.",
+        "justification": "Incorreta. O modelo Cascata não é eficaz para projetos com alta incerteza. A culpa é da ferramenta, não da equipe."
+      }
+    ]
+  },
+  {
+    "id": "q11",
+    "capacidade": "C4",
+    "context": "Um estúdio foi contratado para remasterizar um clássico. A publicadora forneceu uma especificação de 500 páginas. O escopo é 100% fechado, o orçamento é fixo e o prazo é inegociável.",
+    "command": "Considerando as restrições impostas – escopo fechado, requisitos detalhados e prazo rígido – qual modelo de desenvolvimento oferece a maior previsibilidade e controle?",
+    "options": [
+      {
+        "text": "O modelo Cascata (Waterfall), pois sua estrutura sequencial é ideal para projetos onde os requisitos são bem definidos e as mudanças são improváveis.",
+        "correct": true
+      },
+      {
+        "text": "A metodologia Scrum, pois seus sprints permitiriam ajustes constantes.",
+        "justification": "Incorreta. O contexto deixa claro que \"ajustes constantes\" não são permitidos. A flexibilidade do Scrum é desnecessária aqui."
+      },
+      {
+        "text": "A metodologia Extreme Programming (XP), focando em programação em par.",
+        "justification": "Incorreta. XP é uma metodologia ágil focada na flexibilidade e adaptação a mudanças, o que não é o caso."
+      },
+      {
+        "text": "Um modelo híbrido, combinando Cascata com Scrum.",
+        "justification": "Incorreta. Um modelo híbrido é útil para projetos com alguma incerteza. Neste cenário de incerteza zero, a complexidade adicional não traz benefícios."
+      },
+      {
+        "text": "A metodologia Kanban, para gerenciar o fluxo de tarefas de arte.",
+        "justification": "Incorreta. Kanban é ótimo para visualizar o fluxo, mas o Cascata é superior para o planejamento de longo prazo exigido aqui."
+      }
+    ]
+  },
+  {
+    "id": "q12",
+    "capacidade": "C5",
+    "context": "Um artista 2D criou 100 imagens .png separadas para uma explosão. Nos testes, o jogo sofre quedas de FPS quando múltiplas explosões ocorrem, devido ao alto número de \"chamadas de renderização\" (draw calls).",
+    "command": "Para otimizar a performance, resolvendo o problema das múltiplas \"draw calls\", qual técnica o artista deve aplicar?",
+    "options": [
+      {
+        "text": "Converter todas as imagens .png para o formato .jpg.",
+        "justification": "Incorreta. A compressão reduziria o tamanho em disco, mas não o número de chamadas de renderização, que é o gargalo."
+      },
+      {
+        "text": "Reduzir a resolução de cada uma das 100 imagens.",
+        "justification": "Incorreta. Reduzir a resolução aliviaria a GPU, mas o problema principal, o alto número de draw calls, permaneceria."
+      },
+      {
+        "text": "Agrupar todas as 100 imagens em um único arquivo, conhecido como \"Sprite Sheet\" ou \"Texture Atlas\".",
+        "correct": true
+      },
+      {
+        "text": "Implementar um sistema de carregamento dinâmico de memória.",
+        "justification": "Incorreta. Gerenciamento de memória é uma técnica de otimização, mas não resolve o problema da renderização em si."
+      },
+      {
+        "text": "Substituir as partículas por uma animação em vídeo (.mp4).",
+        "justification": "Incorreta. Animações de vídeo são geralmente muito mais pesadas para a memória e o processamento em dispositivos móveis."
+      }
+    ]
+  },
+  {
+    "id": "q13",
+    "capacidade": "C5",
+    "context": "Um artista 3D finalizou uma escultura \"high-poly\" (milhões de polígonos). Para ser usado no jogo, precisa ser convertido para \"low-poly\" (milhares de polígonos), mas ao fazer isso, o modelo perde todos os detalhes e parece \"plástico\".",
+    "command": "Qual técnica permite transferir a ilusão dos detalhes finos do \"high-poly\" para o \"low-poly\", sem aumentar a contagem de polígonos?",
+    "options": [
+      {
+        "text": "Aumentar a resolução da textura de cor (Albedo Map) para 4K.",
+        "justification": "Incorreta. Uma textura de cor mais nítida não recria os detalhes de relevo e profundidade."
+      },
+      {
+        "text": "Usar o modelo \"high-poly\" diretamente no jogo.",
+        "justification": "Incorreta. Usar um modelo com milhões de polígonos em tempo real é inviável para a performance."
+      },
+      {
+        "text": "Aplicar um modificador de subdivisão (Subdivision Surface) em tempo real.",
+        "justification": "Incorreta. A subdivisão aumenta a contagem de polígonos em tempo real, o que se tenta evitar."
+      },
+      {
+        "text": "Realizar o \"bake\" de um \"Normal Map\" a partir do \"high-poly\" e aplicá-lo ao \"low-poly\".",
+        "correct": true
+      },
+      {
+        "text": "Criar um \"Specular Map\" detalhado para controlar o brilho.",
+        "justification": "Incorreta. O Specular Map controla o brilho, mas não simula os detalhes finos de superfície como arranhões e poros."
+      }
+    ]
+  },
+  {
+    "id": "q14",
+    "capacidade": "C5",
+    "context": "Em um jogo de terror, o som dos passos de um monstro \"parece estar dentro da cabeça\", sendo impossível dizer sua direção. A falta de direcionalidade está quebrando a imersão.",
+    "command": "Para resolver este problema e permitir que o jogador identifique a localização da fonte sonora, qual implementação de áudio é fundamental?",
+    "options": [
+      {
+        "text": "Implementar áudio espacial (3D positional audio).",
+        "correct": true
+      },
+      {
+        "text": "Aumentar o volume geral dos efeitos sonoros.",
+        "justification": "Incorreta. Aumentar o volume não cria a percepção de direção."
+      },
+      {
+        "text": "Utilizar arquivos de áudio no formato WAV em vez de MP3.",
+        "justification": "Incorreta. A qualidade do arquivo não afeta sua posicionalidade no espaço 3D."
+      },
+      {
+        "text": "Gravar dez variações diferentes de sons de passos.",
+        "justification": "Incorreta. Variações tornam o som mais natural, mas não fornecem pistas direcionais."
+      },
+      {
+        "text": "Adicionar um efeito de reverb (reverberação) aos passos.",
+        "justification": "Incorreta. Reverb informa sobre o ambiente, mas não sobre a direção de origem do som."
+      }
+    ]
+  },
+  {
+    "id": "q15",
+    "capacidade": "C6",
+    "context": "Um programador está desenvolvendo um jogo de tiro com projéteis (balas, mísseis, lasers) que compartilham características básicas, mas têm comportamentos de colisão únicos. Ele quer uma estrutura de código organizada e fácil de expandir.",
+    "command": "Qual paradigma de programação e estrutura de código é o mais adequado para implementar este sistema de forma escalável?",
+    "options": [
+      {
+        "text": "Criar um único script monolítico com uma longa estrutura `se/senão se`.",
+        "justification": "Incorreta. Esta abordagem é difícil de manter e escalar, violando o princípio Aberto/Fechado."
+      },
+      {
+        "text": "Usar Programação Orientada a Objetos, com uma classe base `Projetil` e classes derivadas (`Bala`, `Missil`).",
+        "correct": true
+      },
+      {
+        "text": "Utilizar uma abordagem puramente procedural com funções globais separadas.",
+        "justification": "Incorreta. A abordagem procedural levaria a uma proliferação de funções e código desorganizado."
+      },
+      {
+        "text": "Armazenar os dados de cada projétil em um arquivo de texto (.txt).",
+        "justification": "Incorreta. Isso é útil para configurar dados, mas não resolve o problema de como estruturar o código que implementa os comportamentos."
+      },
+      {
+        "text": "Criar uma classe para cada comportamento e adicionar múltiplos scripts a cada objeto.",
+        "justification": "Incorreta. Adicionar múltiplos scripts pode levar a problemas de dependência. A herança é uma solução mais limpa."
+      }
+    ]
+  },
+  {
+    "id": "q16",
+    "capacidade": "C6",
+    "context": "Em um jogo RTS, é preciso implementar um sistema de busca de caminho (*pathfinding*) para dezenas de unidades em um mapa em grade, desviando de obstáculos. A performance é crítica.",
+    "command": "Qual algoritmo é o padrão da indústria e o mais eficiente para busca de caminho em uma grade, garantindo a rota mais curta?",
+    "options": [
+      {
+        "text": "Algoritmo de Busca em Largura (BFS).",
+        "justification": "Incorreta. BFS é muito lento para mapas grandes pois explora em todas as direções sem um \"foco\"."
+      },
+      {
+        "text": "Algoritmo de Dijkstra.",
+        "justification": "Incorreta. Dijkstra, como o BFS, é ineficiente por não ter um senso de direção ao alvo."
+      },
+      {
+        "text": "Algoritmo A* (A-Star).",
+        "correct": true
+      },
+      {
+        "text": "Algoritmo de Busca em Profundidade (DFS).",
+        "justification": "Incorreta. DFS é rápido para encontrar *um* caminho, mas quase nunca encontra o caminho mais curto."
+      },
+      {
+        "text": "Um laço `para` (for loop) que verifica todos os nós sequencialmente.",
+        "justification": "Incorreta. Esta não é uma abordagem de busca de caminho e não desviaria de obstáculos."
+      }
+    ]
+  },
+  {
+    "id": "q17",
+    "capacidade": "C6",
+    "context": "Um jogo salva o progresso em um arquivo de texto. Um jogador mal-intencionado pode facilmente abrir o arquivo e trapacear. A equipe de design exige que os dados não sejam legíveis ou facilmente modificáveis.",
+    "command": "Qual técnica de manipulação de dados deve ser aplicada para proteger a integridade do progresso do jogador?",
+    "options": [
+      {
+        "text": "Salvar em JSON, mas adicionar comentários alertando para não modificar.",
+        "justification": "Incorreta. Comentários não oferecem nenhuma proteção real."
+      },
+      {
+        "text": "Serializar os objetos de jogo para um formato binário.",
+        "correct": true
+      },
+      {
+        "text": "Armazenar os dados em uma planilha do Excel (.xlsx).",
+        "justification": "Incorreta. Um arquivo .xlsx ainda pode ser editado com relativa facilidade."
+      },
+      {
+        "text": "Renomear o arquivo de save para ter uma extensão obscura, como \".dat\".",
+        "justification": "Incorreta. A \"segurança por obscuridade\" é ineficaz e facilmente contornável."
+      },
+      {
+        "text": "Salvar os dados em um banco de dados SQL local.",
+        "justification": "Incorreta. Embora robusta, a serialização binária é uma solução muito mais simples e comum para este problema específico."
+      }
+    ]
+  },
+  {
+    "id": "q18",
+    "capacidade": "C6",
+    "context": "Um programador está implementando a IA para um arqueiro que alterna entre os estados `Patrulhando`, `Perseguindo` e `Atacando`. Uma implementação com `se/senão se` aninhados resultou em um código confuso.",
+    "command": "Qual padrão de projeto de software (*design pattern*) é comumente utilizado para gerenciar a IA de personagens, representando seus comportamentos como estados?",
+    "options": [
+      {
+        "text": "Padrão Singleton.",
+        "justification": "Incorreta. Singleton serve para garantir uma única instância de uma classe, o que não se aplica à gestão de comportamentos."
+      },
+      {
+        "text": "Padrão Máquina de Estados Finitos (FSM - Finite State Machine).",
+        "correct": true
+      },
+      {
+        "text": "Padrão Observador (Observer).",
+        "justification": "Incorreta. Observer é usado para criar sistemas de eventos e notificações, não para gerenciar a lógica interna de estados."
+      },
+      {
+        "text": "Padrão Fábrica (Factory).",
+        "justification": "Incorreta. Factory é usado para criar objetos, não para gerenciar seu comportamento."
+      },
+      {
+        "text": "Padrão Comando (Command).",
+        "justification": "Incorreta. Command é usado para encapsular ações, não para a lógica de decisão de uma IA."
+      }
+    ]
+  },
+  {
+    "id": "q19",
+    "capacidade": "C7",
+    "context": "Um jogo multiplayer online sofre de \"lag\" e quedas de FPS, mas apenas com mais de 30 jogadores simultâneos. Com a equipe de 5 pessoas, o jogo rodava perfeitamente. A equipe precisa reproduzir o problema internamente.",
+    "command": "Qual tipo de teste especializado é o mais adequado para a equipe de QA simular as condições de uma partida cheia e identificar os gargalos de performance?",
+    "options": [
+      {
+        "text": "Teste de Regressão.",
+        "justification": "Incorreta. Teste de regressão verifica se novas mudanças quebraram funcionalidades antigas, não serve para medir performance sob estresse."
+      },
+      {
+        "text": "Teste de Unidade (Unit Test).",
+        "justification": "Incorreta. Testes de unidade são para pequenas partes isoladas do código e não simulam a interação de múltiplos jogadores."
+      },
+      {
+        "text": "Teste de Carga (Load Test), utilizando scripts para simular centenas de \"jogadores virtuais\" (bots).",
+        "correct": true
+      },
+      {
+        "text": "Teste de Usabilidade (Usability Test).",
+        "justification": "Incorreta. Teste de usabilidade avalia a experiência do jogador com a interface, não a performance técnica do servidor."
+      },
+      {
+        "text": "Teste de Fumaça (Smoke Test).",
+        "justification": "Incorreta. Teste de fumaça é uma verificação rápida para ver se o jogo \"liga\", não um teste aprofundado de performance."
+      }
+    ]
+  },
+  {
+    "id": "q20",
+    "capacidade": "C7",
+    "context": "A equipe de QA precisa validar uma nova missão de MMORPG que exige nível 80 e a conclusão de uma longa cadeia de missões. Os testadores não possuem personagens que atendam a esses pré-requisitos.",
+    "command": "Qual procedimento ou ferramenta a equipe de QA deve utilizar para validar eficientemente a nova missão sem a necessidade de jogar por semanas?",
+    "options": [
+      {
+        "text": "Iniciar um teste exploratório, tentando encontrar uma maneira alternativa de ativar a missão.",
+        "justification": "Incorreta. Tentar \"quebrar\" os pré-requisitos é um tipo de teste, mas não valida a missão em si de forma completa."
+      },
+      {
+        "text": "Utilizar uma ferramenta de depuração (debug tool) ou comandos de console para criar um personagem de teste com os pré-requisitos atendidos.",
+        "correct": true
+      },
+      {
+        "text": "Conduzir uma revisão por pares (peer review) do GDD da missão.",
+        "justification": "Incorreta. Revisar o documento é útil, mas não garante que a implementação no jogo está funcionando."
+      },
+      {
+        "text": "Organizar um teste beta público, convidando a comunidade para testar.",
+        "justification": "Incorreta. A equipe de QA precisa ser capaz de validar o conteúdo internamente antes de liberá-lo para o público."
+      },
+      {
+        "text": "Realizar testes de caixa-branca (white-box testing), analisando o código-fonte.",
+        "justification": "Incorreta. Para testar a missão como um jogador (caixa-preta), a equipe ainda precisa de um personagem. Os comandos de console resolvem esse bloqueio."
+      }
+    ]
+  },
+  {
+    "id": "q21",
+    "capacidade": "C8",
+    "context": "Um estúdio vai lançar seu jogo de PC na Steam, onde há uma imensa variedade de hardware. É crucial que o jogo seja jogável no maior número de computadores possível. O jogo foi testado apenas em máquinas de alta performance.",
+    "command": "Para garantir que o jogo seja acessível a jogadores com hardware menos potente, qual é o parâmetro de publicação mais importante que a equipe deve definir e testar exaustivamente?",
+    "options": [
+      {
+        "text": "O preço final do jogo e as opções de pacotes de DLC.",
+        "justification": "Incorreta. Preço e DLC são decisões de negócio, não parâmetros técnicos que afetam a acessibilidade do hardware."
+      },
+      {
+        "text": "A lista completa de conquistas (achievements).",
+        "justification": "Incorreta. Conquistas são conteúdo do jogo e não têm relação com a capacidade de um computador rodar o software."
+      },
+      {
+        "text": "Os requisitos mínimos e recomendados de sistema (CPU, GPU, RAM), validados através de testes.",
+        "correct": true
+      },
+      {
+        "text": "A configuração do sistema anti-cheat.",
+        "justification": "Incorreta. Anti-cheat é importante para jogos multiplayer, mas não garante que o jogo funcione em hardware mais fraco."
+      },
+      {
+        "text": "O design dos ícones do jogo em diferentes resoluções.",
+        "justification": "Incorreta. Ícones são importantes para o marketing, mas não afetam a jogabilidade ou a performance."
+      }
+    ]
+  },
+  {
+    "id": "q22",
+    "capacidade": "C8",
+    "context": "Uma equipe está finalizando um jogo para PlayStation 5 e Nintendo Switch. Um programador júnior usou as mesmas configurações de compressão de texturas e qualidade de modelos 3D para ambas. Resultado: a versão de PS5 pareceu abaixo do esperado, e a de Switch teve performance baixa e excedeu a memória.",
+    "command": "Qual princípio fundamental da parametrização de jogos para múltiplas plataformas foi ignorado?",
+    "options": [
+      {
+        "text": "O princípio da localização (tradução).",
+        "justification": "Incorreta. Localização não tem relação com a performance gráfica ou de memória."
+      },
+      {
+        "text": "O princípio da otimização específica da plataforma (platform-specific optimization).",
+        "correct": true
+      },
+      {
+        "text": "O princípio do controle de versão (Git).",
+        "justification": "Incorreta. Controle de versão é uma ferramenta de desenvolvimento, mas não dita como os assets devem ser configurados."
+      },
+      {
+        "text": "O princípio da paridade de conteúdo.",
+        "justification": "Incorreta. O problema não foi o conteúdo do jogo, mas a configuração técnica dos assets gráficos."
+      },
+      {
+        "text": "O princípio da conformidade de rede (cross-play).",
+        "justification": "Incorreta. Conformidade de rede não se relaciona com a otimização de assets para performance single-player."
+      }
+    ]
+  }
+]

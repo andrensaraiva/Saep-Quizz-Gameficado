@@ -1,0 +1,121 @@
+[
+  {
+    "id": "EX01",
+    "capacidade": "Compreensão",
+    "context": "No desenvolvimento de software, é comum utilizarmos padrões de projeto para resolver problemas recorrentes de forma elegante e eficiente.",
+    "command": "Qual padrão de projeto é mais adequado quando precisamos garantir que uma classe tenha apenas uma instância?",
+    "options": [
+      {
+        "text": "Singleton",
+        "correct": true
+      },
+      {
+        "text": "Factory Method",
+        "justification": "Factory Method é usado para criar objetos sem especificar a classe exata, mas não garante instância única."
+      },
+      {
+        "text": "Observer",
+        "justification": "Observer é usado para notificar múltiplos objetos sobre mudanças de estado, não para controlar instâncias."
+      },
+      {
+        "text": "Strategy",
+        "justification": "Strategy é usado para definir uma família de algoritmos intercambiáveis, não para controlar instâncias."
+      }
+    ]
+  },
+  {
+    "id": "EX02",
+    "capacidade": "Análise",
+    "context": "Em um jogo 2D, você precisa implementar colisão entre objetos retangulares. Todos os retângulos estão alinhados aos eixos (não rotacionados).",
+    "command": "Qual técnica de detecção de colisão é mais eficiente para este caso?",
+    "options": [
+      {
+        "text": "AABB (Axis-Aligned Bounding Box)",
+        "correct": true
+      },
+      {
+        "text": "Pixel Perfect Collision",
+        "justification": "É muito custosa computacionalmente e desnecessária para retângulos simples."
+      },
+      {
+        "text": "SAT (Separating Axis Theorem)",
+        "justification": "É mais complexo e usado para polígonos arbitrários, desnecessário para retângulos alinhados."
+      },
+      {
+        "text": "Ray Casting",
+        "justification": "É usado para detecção de linha de visão, não para colisão entre objetos."
+      }
+    ]
+  },
+  {
+    "id": "EX03",
+    "capacidade": "Aplicação",
+    "command": "Qual estrutura de dados é mais adequada para implementar o sistema de inventário de um RPG onde itens precisam ser adicionados e removidos frequentemente?",
+    "options": [
+      {
+        "text": "Lista (List/ArrayList)",
+        "correct": true
+      },
+      {
+        "text": "Array de tamanho fixo",
+        "justification": "Não permite redimensionamento dinâmico, limitando a flexibilidade do inventário."
+      },
+      {
+        "text": "Pilha (Stack)",
+        "justification": "Restringe o acesso apenas ao último item, não adequado para acesso aleatório ao inventário."
+      },
+      {
+        "text": "Árvore Binária",
+        "justification": "Adiciona complexidade desnecessária para um inventário simples."
+      }
+    ]
+  },
+  {
+    "id": "EX04",
+    "capacidade": "Síntese",
+    "context": "Você está desenvolvendo um jogo multiplayer online e precisa sincronizar a posição dos jogadores entre cliente e servidor.",
+    "command": "Qual técnica é recomendada para reduzir a latência percebida pelo jogador?",
+    "options": [
+      {
+        "text": "Client-side prediction combinada com server reconciliation",
+        "correct": true
+      },
+      {
+        "text": "Aguardar confirmação do servidor antes de mover o personagem",
+        "justification": "Cria latência perceptível e prejudica a jogabilidade."
+      },
+      {
+        "text": "Enviar apenas a posição final após o jogador parar de se mover",
+        "justification": "Outros jogadores veriam movimento irregular e desconexo."
+      },
+      {
+        "text": "Sincronizar posição a cada 5 segundos",
+        "justification": "Intervalo muito grande causaria dessincronização grave."
+      }
+    ]
+  },
+  {
+    "id": "EX05",
+    "capacidade": "Avaliação",
+    "context": "Um jogo mobile está apresentando problemas de performance, com quedas de FPS durante cenas com muitos objetos.",
+    "command": "Qual técnica de otimização seria mais efetiva neste cenário?",
+    "options": [
+      {
+        "text": "Object Pooling para reutilizar objetos ao invés de criar/destruir",
+        "correct": true
+      },
+      {
+        "text": "Aumentar a resolução das texturas",
+        "justification": "Isso pioraria o problema, aumentando o uso de memória."
+      },
+      {
+        "text": "Executar todas as físicas no Update() ao invés de FixedUpdate()",
+        "justification": "Isso tornaria a física instável e dependente do framerate."
+      },
+      {
+        "text": "Desabilitar o Garbage Collector",
+        "justification": "Não é possível e causaria vazamento de memória."
+      }
+    ]
+  }
+]

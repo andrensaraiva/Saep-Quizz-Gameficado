@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - Quiz Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin-styles.css">
+</head>
+<body class="admin-body">
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="container header-content">
+            <h1>⚙️ Painel Administrativo</h1>
+            <nav>
+                <span id="admin-username"></span>
+                <button onclick="backToMain()" class="btn-secondary">← Voltar ao Quiz</button>
+                <button onclick="logout()" class="btn-danger">Sair</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" onclick="showSection('dashboard')">
+                    <span class="icon">📊</span> Dashboard
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('courses')">
+                    <span class="icon">📚</span> Cursos
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('questions')">
+                    <span class="icon">❓</span> Questões
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('users')">
+                    <span class="icon">👥</span> Usuários
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('reports')">
+                    <span class="icon">📈</span> Relatórios
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="admin-section">
+                <h2>Dashboard Geral</h2>
+                
+                <div class="stats-grid-admin">
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">👥</div>
+                        <div class="stat-value-admin" id="dash-total-users">0</div>
+                        <div class="stat-label-admin">Total de Usuários</div>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">📚</div>
+                        <div class="stat-value-admin" id="dash-total-courses">0</div>
+                        <div class="stat-label-admin">Cursos Criados</div>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">❓</div>
+                        <div class="stat-value-admin" id="dash-total-questions">0</div>
+                        <div class="stat-label-admin">Questões Cadastradas</div>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">📝</div>
+                        <div class="stat-value-admin" id="dash-total-attempts">0</div>
+                        <div class="stat-label-admin">Tentativas Realizadas</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3>Estatísticas Gerais</h3>
+                        <ul class="stats-list">
+                            <li>
+                                <span>Usuários Ativos:</span>
+                                <strong id="dash-active-users">0</strong>
+                            </li>
+                            <li>
+                                <span>Média Geral de Acertos:</span>
+                                <strong id="dash-average-score">0%</strong>
+                            </li>
+                            <li>
+                                <span>Curso Mais Popular:</span>
+                                <strong id="dash-popular-course">-</strong>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h3>Atividades Recentes</h3>
+                        <div id="recent-activities"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Courses Section -->
+            <section id="courses-section" class="admin-section" style="display:none;">
+                <div class="section-header">
+                    <h2>Gerenciar Cursos</h2>
+                    <button onclick="showAddCourseModal()" class="btn-primary">+ Novo Curso</button>
+                </div>
+
+                <div id="courses-list"></div>
+            </section>
+
+            <!-- Questions Section -->
+            <section id="questions-section" class="admin-section" style="display:none;">
+                <div class="section-header">
+                    <h2>Gerenciar Questões</h2>
+                    <div class="button-group-horizontal">
+                        <select id="course-filter" onchange="loadQuestionsByCourse()" class="form-select">
+                            <option value="">Selecione um curso...</option>
+                        </select>
+                        <button onclick="showAddQuestionModal()" class="btn-primary">+ Nova Questão</button>
+                        <button onclick="showImportModal()" class="btn-success">📤 Importar em Lote</button>
+                    </div>
+                </div>
+
+                <div id="questions-list"></div>
+            </section>
+
+            <!-- Users Section -->
+            <section id="users-section" class="admin-section" style="display:none;">
+                <h2>Gerenciar Usuários</h2>
+                <div id="users-list"></div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports-section" class="admin-section" style="display:none;">
+                <h2>Relatórios</h2>
+                
+                <div class="reports-tools">
+                    <div class="tool-card">
+                        <h3>Exportar Dados</h3>
+                        <div class="button-group-vertical">
+                            <button onclick="exportData('users')" class="btn-secondary">Exportar Usuários (CSV)</button>
+                            <button onclick="exportData('courses')" class="btn-secondary">Exportar Cursos (CSV)</button>
+                            <button onclick="exportData('scores')" class="btn-secondary">Exportar Pontuações (CSV)</button>
+                        </div>
+                    </div>
+
+                    <div class="tool-card">
+                        <h3>Relatório por Curso</h3>
+                        <select id="report-course-select" class="form-select">
+                            <option value="">Selecione um curso...</option>
+                        </select>
+                        <button onclick="generateCourseReport()" class="btn-primary" style="margin-top: 10px; width: 100%;">Gerar Relatório</button>
+                    </div>
+                </div>
+
+                <div id="report-content"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal: Adicionar Curso -->
+    <div id="add-course-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('add-course-modal')">&times;</span>
+            <h2>Adicionar Novo Curso</h2>
+            <form onsubmit="handleAddCourse(event)">
+                <input type="text" id="course-name" placeholder="Nome do Curso" required>
+                <textarea id="course-description" placeholder="Descrição"></textarea>
+                <input type="text" id="course-category" placeholder="Categoria (ex: Tecnologia, Saúde...)" required>
+                <div class="form-group">
+                    <label>Cor do Curso:</label>
+                    <input type="color" id="course-color" value="#3b82f6">
+                </div>
+                <button type="submit" class="btn-large btn-primary">Criar Curso</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Adicionar Questão -->
+    <div id="add-question-modal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeModal('add-question-modal')">&times;</span>
+            <h2>Adicionar Nova Questão</h2>
+            <form onsubmit="handleAddQuestion(event)">
+                <select id="question-course" required class="form-select">
+                    <option value="">Selecione o curso...</option>
+                </select>
+                <input type="text" id="question-id" placeholder="ID da Questão (ex: q1)" required>
+                <input type="text" id="question-capacity" placeholder="Capacidade/Categoria (ex: C1)" required>
+                <textarea id="question-context" placeholder="Contexto da questão" required></textarea>
+                <textarea id="question-command" placeholder="Pergunta" required></textarea>
+                
+                <h4>Opções (pelo menos 2):</h4>
+                <div id="options-container"></div>
+                <button type="button" onclick="addOption()" class="btn-secondary">+ Adicionar Opção</button>
+                
+                <button type="submit" class="btn-large btn-primary" style="margin-top: 20px;">Criar Questão</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Importar Questões -->
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('import-modal')">&times;</span>
+            <h2>Importar Questões em Lote</h2>
+            
+            <div class="info-box">
+                <h4>📋 Formato do arquivo JSON:</h4>
+                <p>Cole um array JSON com suas questões no formato:</p>
+                <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto;">
+[
+  {
+    "id": "q1",
+    "capacidade": "C1",
+    "context": "Contexto...",
+    "command": "Pergunta?",
+    "options": [
+      { "text": "Opção 1", "justification": "Por que está errada" },
+      { "text": "Opção 2", "correct": true }
+    ]
+  }
+]</pre>
+            </div>
+
+            <form onsubmit="handleImportQuestions(event)">
+                <select id="import-course" required class="form-select">
+                    <option value="">Selecione o curso...</option>
+                </select>
+                <textarea id="import-json" placeholder="Cole aqui o JSON com as questões..." rows="10" required></textarea>
+                <button type="submit" class="btn-large btn-success">Importar Questões</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

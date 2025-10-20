@@ -1,0 +1,203 @@
+╔════════════════════════════════════════════════════════════════╗
+║  🚀 GUIA RÁPIDO DE INICIALIZAÇÃO - Quiz Multi-Cursos          ║
+╚════════════════════════════════════════════════════════════════╝
+
+📋 CHECKLIST RÁPIDO:
+
+[ ] 1. Abrir este projeto no VS Code
+[ ] 2. Instalar dependências (cd backend && npm install)
+[ ] 3. Criar arquivo .env
+[ ] 4. Iniciar servidor (cd backend && node server.js)
+[ ] 5. Executar script init (node init-first-course.js)
+[ ] 6. Acessar admin panel
+
+════════════════════════════════════════════════════════════════
+
+📦 PASSO 1: INSTALAR DEPENDÊNCIAS
+────────────────────────────────────────────────────────────────
+
+No terminal do VS Code (Ctrl + `):
+
+    cd backend
+    npm install
+
+Aguarde a instalação completar.
+
+════════════════════════════════════════════════════════════════
+
+⚙️ PASSO 2: CRIAR ARQUIVO .ENV
+────────────────────────────────────────────────────────────────
+
+Crie o arquivo: backend/.env
+
+Conteúdo:
+
+    PORT=3000
+    JWT_SECRET=seu_jwt_secret_super_seguro_mude_isto
+    ADMIN_SECRET=admin_secret_super_seguro_mude_isto
+
+⚠️ IMPORTANTE: Mude estes valores em produção!
+
+════════════════════════════════════════════════════════════════
+
+🚀 PASSO 3: INICIAR O SERVIDOR
+────────────────────────────────────────────────────────────────
+
+No terminal:
+
+    cd backend
+    node server.js
+
+Aguarde ver: "Servidor rodando na porta 3000"
+
+Deixe este terminal aberto!
+
+════════════════════════════════════════════════════════════════
+
+🎯 PASSO 4: INICIALIZAR SISTEMA (Executar UMA VEZ)
+────────────────────────────────────────────────────────────────
+
+Abra um NOVO terminal (Ctrl + Shift + `) e execute:
+
+    node init-first-course.js
+
+Este script vai:
+✓ Criar usuário administrador
+✓ Criar curso "Programação de Jogos Digitais"
+✓ Importar 22 questões
+
+════════════════════════════════════════════════════════════════
+
+🌐 PASSO 5: ACESSAR O SISTEMA
+────────────────────────────────────────────────────────────────
+
+No navegador, abra:
+
+    PAINEL ADMIN:
+    http://localhost:3000/admin.html
+
+    Login:
+    • Usuário: admin
+    • Senha: admin123
+
+    QUIZ (para usuários):
+    http://localhost:3000/index.html
+
+════════════════════════════════════════════════════════════════
+
+✅ PRONTO! AGORA VOCÊ PODE:
+────────────────────────────────────────────────────────────────
+
+👑 NO PAINEL ADMIN:
+• Criar novos cursos
+• Adicionar questões uma a uma
+• Importar questões em lote (JSON)
+• Gerenciar usuários
+• Ver relatórios e estatísticas
+• Exportar dados em CSV
+
+👤 NO QUIZ:
+• Criar conta de usuário
+• Fazer o quiz
+• Ver ranking
+• Ver histórico de tentativas
+
+════════════════════════════════════════════════════════════════
+
+📖 IMPORTAR QUESTÕES EM LOTE:
+────────────────────────────────────────────────────────────────
+
+1. No admin panel, vá em "Questões"
+2. Clique em "📥 Importar Questões"
+3. Selecione o curso
+4. Cole o JSON (exemplo abaixo)
+
+Formato JSON:
+
+[
+  {
+    "id": "Q01",
+    "capacidade": "Análise",
+    "context": "Contexto opcional...",
+    "command": "Pergunta aqui?",
+    "options": [
+      {
+        "text": "Resposta correta",
+        "correct": true
+      },
+      {
+        "text": "Resposta errada",
+        "justification": "Explicação do erro"
+      }
+    ]
+  }
+]
+
+REGRAS:
+• Exatamente UMA opção deve ter "correct": true
+• ID deve ser único no curso
+• Mínimo 2 opções por questão
+
+════════════════════════════════════════════════════════════════
+
+🎓 CRIAR NOVO CURSO:
+────────────────────────────────────────────────────────────────
+
+1. Admin Panel → Cursos → "+ Novo Curso"
+2. Preencha:
+   - Nome do curso
+   - Descrição
+   - Categoria
+   - Cor (escolha do seletor)
+3. Salvar
+4. Adicione questões ao novo curso
+
+════════════════════════════════════════════════════════════════
+
+🔧 PROBLEMAS COMUNS:
+────────────────────────────────────────────────────────────────
+
+❌ "Cannot find module"
+    → cd backend && npm install
+
+❌ "JWT_SECRET is not defined"
+    → Crie o arquivo backend/.env
+
+❌ "Port 3000 already in use"
+    → Mate o processo:
+      netstat -ano | findstr :3000
+      taskkill /PID [PID] /F
+
+❌ Erro ao importar questões
+    → Verifique o formato JSON
+    → Certifique-se de ter UMA resposta correta por questão
+
+════════════════════════════════════════════════════════════════
+
+📚 DOCUMENTAÇÃO COMPLETA:
+────────────────────────────────────────────────────────────────
+
+Veja o arquivo README.md para:
+• Lista completa de endpoints da API
+• Estrutura detalhada do projeto
+• Todas as funcionalidades
+• Próximos passos para produção
+
+════════════════════════════════════════════════════════════════
+
+💡 DICAS:
+────────────────────────────────────────────────────────────────
+
+• Use o dashboard para monitorar o sistema
+• Exporte dados regularmente (CSV)
+• Analise questões com baixa taxa de acerto
+• Promova usuários confiáveis para admin
+• Altere a senha do admin após primeiro login
+
+════════════════════════════════════════════════════════════════
+
+🎉 BOM USO DO SISTEMA!
+
+Para suporte, consulte o README.md ou abra uma issue.
+
+════════════════════════════════════════════════════════════════

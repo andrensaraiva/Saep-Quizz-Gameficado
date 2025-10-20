@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Questões - Quiz SAEP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .options-section {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .option-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .option-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .option-header h4 {
+            color: #667eea;
+            margin: 0;
+        }
+        
+        .correct-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 2px solid #28a745;
+        }
+        
+        .correct-checkbox input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+        
+        .correct-checkbox label {
+            margin: 0;
+            font-weight: normal;
+            color: #28a745;
+            cursor: pointer;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            justify-content: center;
+        }
+        
+        .output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            display: none;
+        }
+        
+        .output pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .info-box h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .info-box ul {
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Editor de Questões - Quiz SAEP</h1>
+        <p class="subtitle">Crie novas questões facilmente e copie o JSON gerado</p>
+        
+        <div class="info-box">
+            <h3>ℹ️ Como usar:</h3>
+            <ul>
+                <li>Preencha todos os campos do formulário</li>
+                <li>Marque apenas UMA opção como correta</li>
+                <li>Clique em "Gerar JSON"</li>
+                <li>Copie o código e adicione ao arquivo <code>shared/questions.json</code></li>
+            </ul>
+        </div>
+        
+        <form id="question-form">
+            <div class="form-group">
+                <label for="question-id">ID da Questão *</label>
+                <input type="text" id="question-id" placeholder="Ex: q23" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="capacity">Capacidade *</label>
+                <select id="capacity" required>
+                    <option value="">Selecione...</option>
+                    <option value="C1">C1 - Documentação e Comunicação</option>
+                    <option value="C2">C2 - Interface e Usabilidade</option>
+                    <option value="C3">C3 - Lógica de Programação</option>
+                    <option value="C4">C4 - Metodologias de Desenvolvimento</option>
+                    <option value="C5">C5 - Arte e Áudio</option>
+                    <option value="C6">C6 - Programação Avançada</option>
+                    <option value="C7">C7 - Testes e QA</option>
+                    <option value="C8">C8 - Publicação e Parametrização</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="context">Contexto da Questão *</label>
+                <textarea id="context" placeholder="Descreva o cenário/situação da questão..." required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="command">Comando/Pergunta *</label>
+                <textarea id="command" placeholder="Qual é a pergunta que o estudante deve responder?" required></textarea>
+            </div>
+            
+            <div class="options-section">
+                <h3>Opções de Resposta</h3>
+                
+                <div class="option-item">
+                    <div class="option-header">
+                        <h4>Opção A</h4>
+                        <div class="correct-checkbox">
+                            <input type="radio" name="correct-option" id="correct-a" value="0">
+                            <label for="correct-a">✓ Correta</label>
+                        </div>
+                    </div>
+                    <input type="text" id="option-a-text" placeholder="Texto da opção A" required>
+                    <textarea id="option-a-just" placeholder="Justificativa (apenas para opções incorretas)" style="margin-top: 10px;"></textarea>
+                </div>
+                
+                <div class="option-item">
+                    <div class="option-header">
+                        <h4>Opção B</h4>
+                        <div class="correct-checkbox">
+                            <input type="radio" name="correct-option" id="correct-b" value="1">
+                            <label for="correct-b">✓ Correta</label>
+                        </div>
+                    </div>
+                    <input type="text" id="option-b-text" placeholder="Texto da opção B" required>
+                    <textarea id="option-b-just" placeholder="Justificativa (apenas para opções incorretas)" style="margin-top: 10px;"></textarea>
+                </div>
+                
+                <div class="option-item">
+                    <div class="option-header">
+                        <h4>Opção C</h4>
+                        <div class="correct-checkbox">
+                            <input type="radio" name="correct-option" id="correct-c" value="2">
+                            <label for="correct-c">✓ Correta</label>
+                        </div>
+                    </div>
+                    <input type="text" id="option-c-text" placeholder="Texto da opção C" required>
+                    <textarea id="option-c-just" placeholder="Justificativa (apenas para opções incorretas)" style="margin-top: 10px;"></textarea>
+                </div>
+                
+                <div class="option-item">
+                    <div class="option-header">
+                        <h4>Opção D</h4>
+                        <div class="correct-checkbox">
+                            <input type="radio" name="correct-option" id="correct-d" value="3">
+                            <label for="correct-d">✓ Correta</label>
+                        </div>
+                    </div>
+                    <input type="text" id="option-d-text" placeholder="Texto da opção D" required>
+                    <textarea id="option-d-just" placeholder="Justificativa (apenas para opções incorretas)" style="margin-top: 10px;"></textarea>
+                </div>
+                
+                <div class="option-item">
+                    <div class="option-header">
+                        <h4>Opção E (Opcional)</h4>
+                        <div class="correct-checkbox">
+                            <input type="radio" name="correct-option" id="correct-e" value="4">
+                            <label for="correct-e">✓ Correta</label>
+                        </div>
+                    </div>
+                    <input type="text" id="option-e-text" placeholder="Texto da opção E (opcional)">
+                    <textarea id="option-e-just" placeholder="Justificativa (apenas para opções incorretas)" style="margin-top: 10px;"></textarea>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary">🎯 Gerar JSON</button>
+                <button type="button" class="btn btn-success" onclick="copyToClipboard()">📋 Copiar JSON</button>
+            </div>
+        </form>
+        
+        <div class="alert alert-warning" id="validation-alert"></div>
+        <div class="alert alert-success" id="success-alert">JSON copiado para a área de transferência! ✓</div>
+        
+        <div class="output" id="output">
+            <pre id="json-output"></pre>
+        </div>
+    </div>
+    
+    <script>
+        const form = document.getElementById('question-form');
+        const output = document.getElementById('output');
+        const jsonOutput = document.getElementById('json-output');
+        const validationAlert = document.getElementById('validation-alert');
+        const successAlert = document.getElementById('success-alert');
+        
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Resetar alertas
+            validationAlert.style.display = 'none';
+            successAlert.style.display = 'none';
+            
+            // Verificar se uma opção correta foi selecionada
+            const correctOption = document.querySelector('input[name="correct-option"]:checked');
+            if (!correctOption) {
+                validationAlert.textContent = '⚠️ Por favor, marque UMA opção como correta!';
+                validationAlert.style.display = 'block';
+                return;
+            }
+            
+            const correctIndex = parseInt(correctOption.value);
+            
+            // Coletar dados
+            const questionData = {
+                id: document.getElementById('question-id').value.trim(),
+                capacidade: document.getElementById('capacity').value,
+                context: document.getElementById('context').value.trim(),
+                command: document.getElementById('command').value.trim(),
+                options: []
+            };
+            
+            // Processar opções
+            const options = ['a', 'b', 'c', 'd', 'e'];
+            options.forEach((opt, index) => {
+                const text = document.getElementById(`option-${opt}-text`).value.trim();
+                const justification = document.getElementById(`option-${opt}-just`).value.trim();
+                
+                if (text) {
+                    const option = { text };
+                    
+                    if (index === correctIndex) {
+                        option.correct = true;
+                    } else if (justification) {
+                        option.justification = justification;
+                    }
+                    
+                    questionData.options.push(option);
+                }
+            });
+            
+            // Gerar JSON formatado
+            const jsonString = JSON.stringify(questionData, null, 2);
+            jsonOutput.textContent = jsonString;
+            output.style.display = 'block';
+            
+            // Scroll suave para o output
+            output.scrollIntoView({ behavior: 'smooth' });
+        });
+        
+        function copyToClipboard() {
+            const jsonText = jsonOutput.textContent;
+            
+            if (!jsonText) {
+                validationAlert.textContent = '⚠️ Gere o JSON primeiro antes de copiar!';
+                validationAlert.style.display = 'block';
+                return;
+            }
+            
+            navigator.clipboard.writeText(jsonText).then(() => {
+                successAlert.style.display = 'block';
+                setTimeout(() => {
+                    successAlert.style.display = 'none';
+                }, 3000);
+            }).catch(err => {
+                alert('Erro ao copiar: ' + err);
+            });
+        }
+    </script>
+</body>
+</html>

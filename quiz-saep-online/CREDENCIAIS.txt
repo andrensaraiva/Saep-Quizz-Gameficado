@@ -1,0 +1,306 @@
+╔═══════════════════════════════════════════════════════════════╗
+║           🔐 CREDENCIAIS E ACESSOS DO SISTEMA                 ║
+╚═══════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════
+📍 URLS DE ACESSO
+═══════════════════════════════════════════════════════════════
+
+🌐 API Backend:
+   http://localhost:3000/api
+
+👑 Painel Administrativo:
+   http://localhost:3000/admin.html
+
+📝 Quiz para Usuários:
+   http://localhost:3000/index.html
+
+🏆 Ranking:
+   http://localhost:3000/index.html#ranking
+
+═══════════════════════════════════════════════════════════════
+👤 CREDENCIAIS PADRÃO
+═══════════════════════════════════════════════════════════════
+
+ADMINISTRADOR:
+╔═════════════════════════════════════════════════════════════╗
+║  Usuário: admin                                             ║
+║  Senha:   admin123                                          ║
+║  Email:   admin@quiz.com                                    ║
+║  Role:    admin                                             ║
+╚═════════════════════════════════════════════════════════════╝
+
+⚠️  IMPORTANTE: 
+    Altere a senha após o primeiro login!
+    Use uma senha forte e segura em produção!
+
+═══════════════════════════════════════════════════════════════
+🔑 SECRETS DO SISTEMA (.env)
+═══════════════════════════════════════════════════════════════
+
+Arquivo: backend/.env
+
+PORT=3000
+JWT_SECRET=seu_jwt_secret_super_seguro_mude_isto
+ADMIN_SECRET=admin_secret_super_seguro_mude_isto
+
+⚠️  SEGURANÇA CRÍTICA:
+    • NUNCA compartilhe estes secrets
+    • NUNCA commite o arquivo .env
+    • Use secrets aleatórios e complexos em produção
+    • Cada ambiente deve ter seus próprios secrets
+
+Como gerar secrets seguros:
+1. Use um gerador online: https://www.uuidgenerator.net/
+2. Ou no PowerShell:
+   [guid]::NewGuid().ToString() -replace '-', ''
+
+═══════════════════════════════════════════════════════════════
+🎯 ENDPOINTS DA API
+═══════════════════════════════════════════════════════════════
+
+PÚBLICOS (sem autenticação):
+┌─────────────────────────────────────────────────────────────┐
+│ GET  /api/courses                Listar todos os cursos     │
+│ GET  /api/courses/:id            Detalhes de um curso       │
+│ GET  /api/courses/:id/questions  Questões do curso          │
+│ GET  /api/ranking                Ranking geral              │
+│ GET  /api/ranking?courseId=X     Ranking por curso          │
+└─────────────────────────────────────────────────────────────┘
+
+AUTENTICAÇÃO:
+┌─────────────────────────────────────────────────────────────┐
+│ POST /api/auth/register          Registrar novo usuário    │
+│ POST /api/auth/login             Login de usuário          │
+│ GET  /api/auth/verify            Verificar token JWT       │
+│ POST /api/auth/create-admin      Criar administrador       │
+│                                  (requer ADMIN_SECRET)     │
+└─────────────────────────────────────────────────────────────┘
+
+AUTENTICADO (requer token JWT):
+┌─────────────────────────────────────────────────────────────┐
+│ POST /api/scores                 Salvar pontuação          │
+│ GET  /api/stats                  Estatísticas do usuário   │
+└─────────────────────────────────────────────────────────────┘
+
+ADMIN (requer token JWT + role admin):
+┌─────────────────────────────────────────────────────────────┐
+│ CURSOS:                                                     │
+│ POST   /api/courses              Criar curso               │
+│ PUT    /api/courses/:id          Atualizar curso           │
+│ DELETE /api/courses/:id          Excluir curso             │
+│                                                             │
+│ QUESTÕES:                                                   │
+│ POST   /api/courses/:id/questions       Adicionar questão  │
+│ POST   /api/courses/:id/questions/import Importar lote     │
+│ DELETE /api/courses/:id/questions/:qid  Excluir questão    │
+│                                                             │
+│ ADMINISTRAÇÃO:                                              │
+│ GET    /api/admin/dashboard             Dashboard stats    │
+│ GET    /api/admin/users                 Listar usuários    │
+│ PUT    /api/admin/users/:id/role        Alterar role       │
+│ DELETE /api/admin/users/:id             Excluir usuário    │
+│ GET    /api/admin/reports/course/:id    Relatório curso    │
+│ GET    /api/admin/export/:type          Exportar CSV       │
+│        (type: users, scores, courses)                       │
+└─────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════
+📦 EXEMPLO DE REQUISIÇÕES
+═══════════════════════════════════════════════════════════════
+
+1. LOGIN (obtém token JWT):
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+Resposta:
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "username": "admin",
+    "email": "admin@quiz.com",
+    "role": "admin"
+  }
+}
+
+───────────────────────────────────────────────────────────────
+
+2. CRIAR CURSO (com token):
+POST http://localhost:3000/api/courses
+Authorization: Bearer SEU_TOKEN_AQUI
+Content-Type: application/json
+
+{
+  "name": "JavaScript Avançado",
+  "description": "Curso completo de JavaScript ES6+",
+  "category": "Programação",
+  "color": "#f59e0b"
+}
+
+───────────────────────────────────────────────────────────────
+
+3. IMPORTAR QUESTÕES:
+POST http://localhost:3000/api/courses/1/questions/import
+Authorization: Bearer SEU_TOKEN_AQUI
+Content-Type: application/json
+
+{
+  "questionsData": [
+    {
+      "id": "Q01",
+      "capacidade": "Compreensão",
+      "command": "Pergunta aqui?",
+      "options": [
+        { "text": "Resposta correta", "correct": true },
+        { "text": "Resposta errada", "justification": "..." }
+      ]
+    }
+  ]
+}
+
+═══════════════════════════════════════════════════════════════
+🔒 AUTENTICAÇÃO JWT
+═══════════════════════════════════════════════════════════════
+
+Para endpoints protegidos, adicione o header:
+
+Authorization: Bearer SEU_TOKEN_JWT_AQUI
+
+O token é obtido após login e tem validade de 24 horas.
+
+No frontend, o token é armazenado em:
+localStorage.getItem('token')
+
+═══════════════════════════════════════════════════════════════
+👥 TIPOS DE USUÁRIO
+═══════════════════════════════════════════════════════════════
+
+USER (role: 'user'):
+✓ Fazer quiz
+✓ Ver ranking
+✓ Ver próprias estatísticas
+✓ Salvar pontuações
+✗ Não pode acessar painel admin
+✗ Não pode criar/editar cursos ou questões
+
+ADMIN (role: 'admin'):
+✓ Tudo que user pode fazer
+✓ Acessar painel administrativo
+✓ Criar/editar/excluir cursos
+✓ Criar/editar/excluir questões
+✓ Gerenciar usuários
+✓ Ver todos os relatórios
+✓ Exportar dados
+✓ Promover usuários para admin
+
+═══════════════════════════════════════════════════════════════
+🎓 PRIMEIRO CURSO CRIADO
+═══════════════════════════════════════════════════════════════
+
+Após executar `node init-first-course.js`:
+
+Nome: Programação de Jogos Digitais
+Descrição: Curso completo sobre desenvolvimento de jogos
+Categoria: Tecnologia
+Cor: #6366f1
+Questões: 22 questões importadas
+
+═══════════════════════════════════════════════════════════════
+📊 DADOS INICIAIS DO SISTEMA
+═══════════════════════════════════════════════════════════════
+
+Usuários: 1 (admin)
+Cursos: 1 (Programação de Jogos Digitais)
+Questões: 22
+Pontuações: 0 (ainda nenhum quiz realizado)
+
+═══════════════════════════════════════════════════════════════
+🛡️ SEGURANÇA - CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+DESENVOLVIMENTO (OK para testes):
+[x] Senhas criptografadas (bcrypt)
+[x] JWT tokens com expiração
+[x] Proteção de rotas admin
+[x] Validação básica de dados
+
+PRODUÇÃO (NECESSÁRIO antes de deploy):
+[ ] Alterar todos os secrets para valores únicos
+[ ] Implementar HTTPS
+[ ] Adicionar rate limiting
+[ ] Adicionar logs de auditoria
+[ ] Usar banco de dados real
+[ ] Backup automático
+[ ] Monitoramento de erros
+[ ] Validação rigorosa de entrada
+[ ] Sanitização de dados
+[ ] Proteção CSRF
+[ ] Headers de segurança
+[ ] Limitar tamanho de requisições
+[ ] Implementar CORS apropriado
+
+═══════════════════════════════════════════════════════════════
+⚠️  AVISOS IMPORTANTES
+═══════════════════════════════════════════════════════════════
+
+1. DADOS EM MEMÓRIA:
+   Atualmente os dados são armazenados em arrays na memória.
+   Reiniciar o servidor = PERDER TODOS OS DADOS.
+   Para produção, implemente banco de dados!
+
+2. SECRETS PADRÃO:
+   Os secrets no .env.example são apenas exemplos.
+   NUNCA use estes valores em produção!
+
+3. SENHA DO ADMIN:
+   A senha padrão (admin123) é FRACA.
+   Altere imediatamente após primeiro login!
+
+4. PORTA 3000:
+   Se a porta 3000 estiver em uso, altere no .env
+
+5. BACKUP:
+   Como não há banco de dados, faça backup dos arrays
+   regularmente ou implemente persistência em arquivos.
+
+═══════════════════════════════════════════════════════════════
+📞 SUPORTE
+═══════════════════════════════════════════════════════════════
+
+Documentação completa: README.md
+Guia rápido: INICIO-RAPIDO.txt
+Comandos: COMANDOS.ps1
+Template questões: TEMPLATE-QUESTOES.txt
+Exemplo importação: exemplo-questoes-importacao.json
+
+═══════════════════════════════════════════════════════════════
+✅ CHECKLIST DE PRIMEIRO ACESSO
+═══════════════════════════════════════════════════════════════
+
+[ ] 1. Servidor rodando (backend/server.js)
+[ ] 2. Script init executado (init-first-course.js)
+[ ] 3. Acessar admin panel (http://localhost:3000/admin.html)
+[ ] 4. Login com admin/admin123
+[ ] 5. Verificar dashboard
+[ ] 6. Verificar curso criado
+[ ] 7. Verificar 22 questões importadas
+[ ] 8. Alterar senha do admin
+[ ] 9. Criar um usuário teste
+[ ] 10. Fazer um quiz teste
+[ ] 11. Verificar ranking
+[ ] 12. Testar criação de novo curso
+[ ] 13. Testar importação de questões
+[ ] 14. Gerar relatório
+[ ] 15. Exportar CSV
+
+═══════════════════════════════════════════════════════════════
+
+🎉 SISTEMA PRONTO PARA USO!
+
+═══════════════════════════════════════════════════════════════

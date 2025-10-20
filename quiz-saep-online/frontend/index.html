@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz SAEP - Programação de Jogos Digitais</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Cabeçalho -->
+    <header>
+        <div class="container header-content">
+            <h1>🎮 Quiz SAEP</h1>
+            <nav id="user-nav">
+                <div id="auth-buttons">
+                    <button onclick="showAuthModal('login')" class="btn-secondary">Login</button>
+                    <button onclick="showAuthModal('register')" class="btn-primary">Cadastrar</button>
+                </div>
+                <div id="user-info" style="display: none;">
+                    <span id="username-display"></span>
+                    <button id="admin-panel-btn" onclick="openAdminPanel()" class="btn-secondary" style="display: none;">Painel Admin</button>
+                    <button onclick="showProfile()" class="btn-secondary">Perfil</button>
+                    <button onclick="logout()" class="btn-danger">Sair</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Menu Principal -->
+    <div id="main-menu" class="container">
+        <div class="menu-card">
+            <h2>Quiz SAEP: <span id="course-name-display">Programação de Jogos Digitais</span></h2>
+            <p class="subtitle" id="course-description">Teste seus conhecimentos sobre desenvolvimento de jogos!</p>
+            
+            <div class="menu-options">
+                <button onclick="startQuiz()" class="btn-large btn-primary">
+                    <span class="icon">▶</span> Iniciar Quiz
+                </button>
+                <button onclick="showRanking()" class="btn-large btn-secondary">
+                    <span class="icon">🏆</span> Ver Ranking
+                </button>
+                <button onclick="showProfile()" class="btn-large btn-secondary" id="profile-btn" style="display: none;">
+                    <span class="icon">📊</span> Meu Perfil
+                </button>
+            </div>
+
+            <div class="info-box">
+                <h3>ℹ️ Informações</h3>
+                <ul>
+                    <li>Curso: <strong id="course-category">Tecnologia</strong></li>
+                    <li>Total de questões: <strong id="total-questions">0</strong></li>
+                    <li>Capacidades avaliadas: <strong id="course-capacities">Variadas</strong></li>
+                    <li>Cronômetro: <strong>Sim</strong></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container do Quiz -->
+    <div id="quiz-container" style="display: none;" class="container">
+        <div class="quiz-header">
+            <div class="timer">
+                <span class="icon">⏱️</span>
+                <span id="timer-display">00:00</span>
+            </div>
+            <div class="progress-info">
+                Questão <span id="current-question">1</span> de <span id="total-questions-display">22</span>
+            </div>
+        </div>
+
+        <form id="quiz-form"></form>
+
+        <div class="button-wrapper">
+            <button id="submit-btn" class="btn-large btn-primary">✓ Verificar Respostas</button>
+            <button id="back-btn" onclick="backToMenu()" type="button" class="btn-large btn-danger">← Voltar ao Menu</button>
+        </div>
+    </div>
+
+    <!-- Container do Relatório -->
+    <div id="report-container" style="display: none;" class="container">
+        <div class="report-card">
+            <h2>📊 Relatório de Desempenho</h2>
+            
+            <div class="score-summary">
+                <div class="score-circle">
+                    <div class="percentage" id="percentage-display">0%</div>
+                    <div class="score-text" id="score-text"></div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-value" id="time-spent">00:00</div>
+                    <div class="stat-label">Tempo gasto</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✓</div>
+                    <div class="stat-value" id="correct-count">0</div>
+                    <div class="stat-label">Acertos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✗</div>
+                    <div class="stat-value" id="wrong-count">0</div>
+                    <div class="stat-label">Erros</div>
+                </div>
+            </div>
+
+            <div id="capacity-stats" class="capacity-stats"></div>
+
+            <div id="save-score-section" style="display: none;">
+                <button onclick="saveScore()" class="btn-large btn-success">💾 Salvar no Ranking</button>
+            </div>
+
+            <div id="wrong-questions-list"></div>
+
+            <div class="button-wrapper">
+                <button onclick="retryQuiz()" class="btn-large btn-primary">🔄 Refazer Quiz</button>
+                <button onclick="backToMenu()" class="btn-large btn-secondary">← Menu Principal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container do Ranking -->
+    <div id="ranking-container" style="display: none;" class="container">
+        <div class="ranking-card">
+            <h2>🏆 Ranking Global</h2>
+            
+            <div class="ranking-filters">
+                <button onclick="loadRanking('all')" class="filter-btn active" data-period="all">Todos os Tempos</button>
+                <button onclick="loadRanking('month')" class="filter-btn" data-period="month">Este Mês</button>
+                <button onclick="loadRanking('week')" class="filter-btn" data-period="week">Esta Semana</button>
+                <button onclick="loadRanking('today')" class="filter-btn" data-period="today">Hoje</button>
+            </div>
+
+            <div id="ranking-list"></div>
+
+            <button onclick="backToMenu()" class="btn-large btn-secondary">← Menu Principal</button>
+        </div>
+    </div>
+
+    <!-- Container do Perfil -->
+    <div id="profile-container" style="display: none;" class="container">
+        <div class="profile-card">
+            <h2>👤 Meu Perfil</h2>
+            
+            <div class="profile-info">
+                <div class="profile-avatar">
+                    <span id="profile-avatar-text"></span>
+                </div>
+                <div class="profile-details">
+                    <h3 id="profile-username"></h3>
+                    <p id="profile-email"></p>
+                </div>
+            </div>
+
+            <h3>📈 Histórico de Tentativas</h3>
+            <div id="history-list"></div>
+
+            <button onclick="backToMenu()" class="btn-large btn-secondary">← Menu Principal</button>
+        </div>
+    </div>
+
+    <!-- Modal de Autenticação -->
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAuthModal()">&times;</span>
+            
+            <div id="login-form" style="display: none;">
+                <h2>Login</h2>
+                <form onsubmit="handleLogin(event)">
+                    <input type="email" id="login-email" placeholder="Email" required>
+                    <input type="password" id="login-password" placeholder="Senha" required>
+                    <button type="submit" class="btn-large btn-primary">Entrar</button>
+                </form>
+                <p class="switch-auth">Não tem conta? <a href="#" onclick="showAuthModal('register')">Cadastre-se</a></p>
+            </div>
+
+            <div id="register-form" style="display: none;">
+                <h2>Cadastro</h2>
+                <form onsubmit="handleRegister(event)">
+                    <input type="text" id="register-username" placeholder="Nome de usuário" required>
+                    <input type="email" id="register-email" placeholder="Email" required>
+                    <input type="password" id="register-password" placeholder="Senha (mín. 6 caracteres)" required>
+                    <button type="submit" class="btn-large btn-primary">Cadastrar</button>
+                </form>
+                <p class="switch-auth">Já tem conta? <a href="#" onclick="showAuthModal('login')">Faça login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
