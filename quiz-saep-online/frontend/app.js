@@ -1,5 +1,19 @@
 // Configuração da API
-const API_URL = 'http://localhost:3000/api';
+const RENDER_API_URL = 'https://SUA-URL-RENDER.onrender.com/api'; // TODO: substitua pela URL real da Render
+const LOCAL_API_URL = 'http://localhost:3000/api';
+
+const API_URL = (() => {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+        return LOCAL_API_URL;
+    }
+
+    if (host.includes('github.io')) {
+        return RENDER_API_URL;
+    }
+
+    return LOCAL_API_URL;
+})();
 
 // Estado Global
 let quizData = [];
