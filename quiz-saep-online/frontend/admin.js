@@ -1,5 +1,30 @@
 // Configuração da API
-const API_URL = 'http://localhost:3000/api';
+const RENDER_API_URL = 'https://saep-quizz-gameficado.onrender.com/api';
+const LOCAL_API_URL = 'http://localhost:3000/api';
+
+const API_URL = (() => {
+    const host = window.location.hostname;
+    
+    // Se estiver rodando localmente
+    if (host === 'localhost' || host === '127.0.0.1') {
+        return LOCAL_API_URL;
+    }
+
+    // Se estiver no GitHub Pages
+    if (host.includes('github.io')) {
+        return RENDER_API_URL;
+    }
+
+    // Se estiver no próprio Render ou outro domínio, usar URL relativa
+    if (host.includes('onrender.com')) {
+        return '/api';
+    }
+
+    // Fallback para URL relativa (funciona quando frontend e backend estão no mesmo domínio)
+    return '/api';
+})();
+
+console.log('🌐 API URL configurada:', API_URL);
 
 // Estado Global
 let currentUser = null;

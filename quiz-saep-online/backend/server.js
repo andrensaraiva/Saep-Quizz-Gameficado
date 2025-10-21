@@ -10,12 +10,38 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_default_nao_usar_em_producao';
 
+// Configuração CORS para permitir requisições do Render e outros domínios
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permitir requisições sem origin (mobile apps, Postman, etc) ou de qualquer origem em desenvolvimento
+    const allowedOrigins = [
+      'https://saep-quizz-gameficado.onrender.com',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:5500',
+      'http://127.0.0.1:5500'
+    ];
+    
+    if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(null, true); // Permitir todas as origens por enquanto
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Servir arquivos estáticos do frontend
-app.use(express.static('../frontend'));
+const frontendPath = path.join(__dirname, '../frontend');
+const sharedPath = path.join(__dirname, '../shared');
+app.use(express.static(frontendPath));
+app.use('/shared', express.static(sharedPath));
 
 // "Banco de dados" em memória (para produção, usar MongoDB, PostgreSQL, etc.)
 const users = [];
@@ -922,11 +948,32 @@ app.get('/api/admin/export/:type', authenticateToken, requireAdmin, (req, res) =
 // ==================== ROTA DE TESTE ====================
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Servidor rodando!' });
+  res.json({ 
+    status: 'OK', 
+    message: 'Servidor rodando!',
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT,
+    users: users.length,
+    courses: courses.length,
+    questions: questions.length
+  });
+});
+
+// Servir o index.html para qualquer rota não reconhecida (SPA routing)
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  } else {
+    res.status(404).json({ error: 'Rota não encontrada' });
+  }
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`📊 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌍 Available at your primary URL`);
+  console.log(`==>`);
+  console.log(`==> Your service is live 🎉`);
+  console.log(`==>`);
 });

@@ -2,6 +2,8 @@
 
 Sistema completo de quiz online com **múltiplos cursos**, ranking, autenticação, **painel administrativo** e correção automática.
 
+**🌐 DEPLOY NO RENDER:** [Guia Completo de Deploy](DEPLOY-RENDER.md)
+
 ## ✨ Funcionalidades Principais
 
 ### 🎓 Sistema Multi-Curso
