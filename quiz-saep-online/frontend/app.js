@@ -1,5 +1,5 @@
 // Configuração da API
-const RENDER_API_URL = 'https://SUA-URL-RENDER.onrender.com/api'; // TODO: substitua pela URL real da Render
+const RENDER_API_URL = 'https://saep-quizz-gameficado.onrender.com/api';
 const LOCAL_API_URL = 'http://localhost:3000/api';
 
 const API_URL = (() => {
