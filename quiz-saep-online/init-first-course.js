@@ -12,7 +12,31 @@
 const fs = require('fs');
 const path = require('path');
 
-const API_URL = 'http://localhost:3000/api';
+const DEFAULT_API_URL = 'http://localhost:3000/api';
+const API_URL = (() => {
+    const rawUrl = process.env.API_URL || DEFAULT_API_URL;
+    return rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
+})();
+
+const FRONTEND_BASE_URL = (() => {
+    const fromEnv = process.env.FRONTEND_URL;
+    if (fromEnv) {
+        return fromEnv.endsWith('/') ? fromEnv.slice(0, -1) : fromEnv;
+    }
+
+    if (API_URL.startsWith('http://localhost') || API_URL.startsWith('http://127.0.0.1')) {
+        return 'http://localhost:3000';
+    }
+
+    // Assume Render serving frontend via GitHub Pages; fallback to API host root
+    try {
+        const url = new URL(API_URL);
+        url.pathname = '';
+        return url.toString().replace(/\/$/, '');
+    } catch (error) {
+        return 'http://localhost:3000';
+    }
+})();
 
 // Configurações
 const ADMIN_USER = {
@@ -48,20 +72,24 @@ async function main() {
         const result = await importQuestions(courseId, adminToken);
         console.log(`   ✅ ${result.imported} questões importadas com sucesso!\n`);
 
-        console.log('════════════════════════════════════════════════════════');
-        console.log('✨ CONFIGURAÇÃO CONCLUÍDA COM SUCESSO!');
-        console.log('════════════════════════════════════════════════════════');
+    console.log('════════════════════════════════════════════════════════');
+    console.log('✨ CONFIGURAÇÃO CONCLUÍDA COM SUCESSO!');
+    console.log('════════════════════════════════════════════════════════');
+    console.log(`🌐 API utilizada: ${API_URL}`);
         console.log('\n📋 CREDENCIAIS DO ADMINISTRADOR:');
         console.log(`   Usuário: ${ADMIN_USER.username}`);
         console.log(`   Senha: ${ADMIN_USER.password}`);
         console.log(`   Email: ${ADMIN_USER.email}`);
         console.log('\n🌐 ACESSO:');
-        console.log('   Painel Admin: http://localhost:3000/admin.html');
-        console.log('   Quiz: http://localhost:3000/index.html');
+    console.log(`   Painel Admin: ${FRONTEND_BASE_URL}/admin.html`);
+    console.log(`   Quiz: ${FRONTEND_BASE_URL}/index.html`);
         console.log('\n⚠️  IMPORTANTE: Altere a senha do admin após o primeiro login!\n');
 
     } catch (error) {
-        console.error('❌ Erro durante a inicialização:', error.message);
+        console.error('❌ Erro durante a inicialização:', error.message || error);
+        if (error?.stack) {
+            console.error(error.stack);
+        }
         process.exit(1);
     }
 }
