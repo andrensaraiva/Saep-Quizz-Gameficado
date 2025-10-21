@@ -6,9 +6,25 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+// Importar APIs de IA
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const OpenAI = require('openai');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_default_nao_usar_em_producao';
+
+// Configurar APIs de IA
+let genAI = null;
+let openai = null;
+
+if (process.env.GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+}
+
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 // Configuração CORS para permitir requisições do Render e outros domínios
 const corsOptions = {
@@ -943,6 +959,146 @@ app.get('/api/admin/export/:type', authenticateToken, requireAdmin, (req, res) =
     console.error('Erro ao exportar:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
+});
+
+// ==================== ROTAS DE IA ====================
+
+// Gerar questão com IA
+app.post('/api/ai/generate-question', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { capacity, content, difficulty, provider } = req.body;
+
+    // Validações
+    if (!capacity || !content || !difficulty) {
+      return res.status(400).json({ error: 'Capacidade, conteúdo e dificuldade são obrigatórios' });
+    }
+
+    const aiProvider = provider || 'gemini'; // Default: Gemini
+
+    // Montar o prompt
+    const prompt = `Você é um especialista em criar questões de múltipla escolha para avaliações educacionais.
+
+Crie uma questão de múltipla escolha com as seguintes características:
+
+**Capacidade/Competência:** ${capacity}
+**Conteúdo:** ${content}
+**Dificuldade:** ${difficulty}
+
+A questão deve ter:
+- Um contexto claro e relevante (se necessário)
+- Uma pergunta objetiva e bem formulada
+- Exatamente 4 alternativas (A, B, C, D)
+- Apenas UMA alternativa correta
+- As alternativas incorretas devem ser plausíveis
+- Uma explicação breve do porquê a resposta correta está certa
+
+Retorne APENAS um JSON válido no seguinte formato (sem markdown, sem \`\`\`):
+{
+  "id": "Q_GERADO_${Date.now()}",
+  "capacidade": "${capacity}",
+  "context": "Contexto da questão aqui (pode ser vazio se não for necessário)",
+  "command": "A pergunta aqui?",
+  "options": [
+    { "letter": "A", "text": "Primeira alternativa", "correct": false, "explanation": "Explicação se necessário" },
+    { "letter": "B", "text": "Segunda alternativa", "correct": true, "explanation": "Explicação da resposta correta" },
+    { "letter": "C", "text": "Terceira alternativa", "correct": false, "explanation": "Explicação se necessário" },
+    { "letter": "D", "text": "Quarta alternativa", "correct": false, "explanation": "Explicação se necessário" }
+  ]
+}`;
+
+    let generatedQuestion = null;
+
+    // Gerar com Gemini
+    if (aiProvider === 'gemini') {
+      if (!genAI) {
+        return res.status(503).json({ 
+          error: 'API do Gemini não configurada. Adicione GEMINI_API_KEY no .env',
+          instructions: 'Obtenha sua chave gratuita em: https://makersuite.google.com/app/apikey'
+        });
+      }
+
+      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      // Tentar extrair JSON da resposta
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        generatedQuestion = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('Resposta da IA não contém JSON válido');
+      }
+    }
+    // Gerar com ChatGPT
+    else if (aiProvider === 'chatgpt') {
+      if (!openai) {
+        return res.status(503).json({ 
+          error: 'API do ChatGPT não configurada. Adicione OPENAI_API_KEY no .env',
+          instructions: 'Obtenha sua chave em: https://platform.openai.com/api-keys'
+        });
+      }
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+      });
+
+      const text = completion.choices[0].message.content;
+      
+      // Tentar extrair JSON da resposta
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        generatedQuestion = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('Resposta da IA não contém JSON válido');
+      }
+    }
+    else {
+      return res.status(400).json({ error: 'Provider inválido. Use "gemini" ou "chatgpt"' });
+    }
+
+    // Validar estrutura da questão gerada
+    if (!generatedQuestion || !generatedQuestion.command || !generatedQuestion.options || generatedQuestion.options.length !== 4) {
+      throw new Error('Questão gerada com formato inválido');
+    }
+
+    // Adicionar metadados
+    generatedQuestion.generatedBy = aiProvider;
+    generatedQuestion.generatedAt = new Date().toISOString();
+    generatedQuestion.difficulty = difficulty;
+
+    res.json({
+      message: 'Questão gerada com sucesso',
+      question: generatedQuestion,
+      provider: aiProvider
+    });
+
+  } catch (error) {
+    console.error('Erro ao gerar questão com IA:', error);
+    res.status(500).json({ 
+      error: 'Erro ao gerar questão',
+      details: error.message,
+      tip: 'Verifique se a API key está configurada corretamente'
+    });
+  }
+});
+
+// Verificar status das APIs de IA
+app.get('/api/ai/status', authenticateToken, requireAdmin, (req, res) => {
+  res.json({
+    gemini: {
+      available: !!genAI,
+      configured: !!process.env.GEMINI_API_KEY,
+      info: 'Google Gemini - Gratuito com limites'
+    },
+    chatgpt: {
+      available: !!openai,
+      configured: !!process.env.OPENAI_API_KEY,
+      info: 'OpenAI ChatGPT - Requer créditos'
+    }
+  });
 });
 
 // ==================== ROTA DE TESTE ====================

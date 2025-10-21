@@ -780,3 +780,272 @@ window.onclick = function(event) {
         event.target.style.display = 'none';
     }
 }
+
+// ==================== IA - GERAÇÃO DE QUESTÕES ====================
+
+let generatedAIQuestion = null;
+
+async function showAIQuestionModal() {
+    // Carregar cursos no select
+    const courseSelect = document.getElementById('ai-course');
+    courseSelect.innerHTML = '<option value="">Selecione o curso...</option>';
+    allCourses.forEach(course => {
+        const option = document.createElement('option');
+        option.value = course.id;
+        option.textContent = course.name;
+        courseSelect.appendChild(option);
+    });
+
+    // Verificar status das APIs
+    try {
+        const response = await fetch(`${API_URL}/ai/status`, {
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+        });
+        
+        if (response.ok) {
+            const status = await response.json();
+            console.log('Status das APIs de IA:', status);
+            
+            // Atualizar opções disponíveis
+            const providerSelect = document.getElementById('ai-provider');
+            providerSelect.innerHTML = '';
+            
+            if (status.gemini.configured) {
+                const opt = document.createElement('option');
+                opt.value = 'gemini';
+                opt.textContent = '🟢 Google Gemini (Gratuito)';
+                providerSelect.appendChild(opt);
+            } else {
+                const opt = document.createElement('option');
+                opt.value = 'gemini';
+                opt.textContent = '🔴 Google Gemini (Não configurado)';
+                opt.disabled = true;
+                providerSelect.appendChild(opt);
+            }
+            
+            if (status.chatgpt.configured) {
+                const opt = document.createElement('option');
+                opt.value = 'chatgpt';
+                opt.textContent = '🟢 ChatGPT (OpenAI)';
+                providerSelect.appendChild(opt);
+            } else {
+                const opt = document.createElement('option');
+                opt.value = 'chatgpt';
+                opt.textContent = '🔴 ChatGPT (Não configurado)';
+                opt.disabled = true;
+                providerSelect.appendChild(opt);
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao verificar status das APIs:', error);
+    }
+
+    // Resetar preview
+    document.getElementById('ai-preview').style.display = 'none';
+    generatedAIQuestion = null;
+
+    document.getElementById('ai-question-modal').style.display = 'block';
+}
+
+async function handleGenerateAIQuestion(event) {
+    event.preventDefault();
+
+    const provider = document.getElementById('ai-provider').value;
+    const courseId = parseInt(document.getElementById('ai-course').value);
+    const capacity = document.getElementById('ai-capacity').value;
+    const content = document.getElementById('ai-content').value;
+    const difficulty = document.getElementById('ai-difficulty').value;
+
+    if (!courseId) {
+        alert('Por favor, selecione um curso');
+        return;
+    }
+
+    const generateBtn = document.getElementById('generate-btn');
+    const originalText = generateBtn.innerHTML;
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '⏳ Gerando questão... Aguarde (pode levar até 30s)';
+
+    try {
+        const response = await fetch(`${API_URL}/ai/generate-question`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify({
+                provider,
+                capacity,
+                content,
+                difficulty
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Erro ao gerar questão');
+        }
+
+        // Armazenar questão gerada
+        generatedAIQuestion = {
+            ...data.question,
+            courseId
+        };
+
+        // Mostrar preview
+        displayAIQuestionPreview(generatedAIQuestion);
+
+        alert('✅ Questão gerada com sucesso! Revise abaixo antes de salvar.');
+
+    } catch (error) {
+        console.error('Erro:', error);
+        alert(`❌ Erro ao gerar questão: ${error.message}\n\nDica: Verifique se a API key está configurada no servidor.`);
+    } finally {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = originalText;
+    }
+}
+
+function displayAIQuestionPreview(question) {
+    const previewContainer = document.getElementById('ai-question-preview');
+    
+    const correctOption = question.options.find(opt => opt.correct);
+    
+    previewContainer.innerHTML = `
+        <div class="question-card" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 2px solid #4CAF50;">
+            <div style="margin-bottom: 10px;">
+                <span class="badge" style="background: #2196F3; color: white; padding: 5px 10px; border-radius: 4px;">
+                    ${question.capacidade}
+                </span>
+                <span class="badge" style="background: #FF9800; color: white; padding: 5px 10px; border-radius: 4px; margin-left: 10px;">
+                    ${question.difficulty || 'N/A'}
+                </span>
+                <span class="badge" style="background: #9C27B0; color: white; padding: 5px 10px; border-radius: 4px; margin-left: 10px;">
+                    Gerado por ${question.generatedBy}
+                </span>
+            </div>
+            
+            <div><strong>ID:</strong> ${question.id}</div>
+            
+            ${question.context ? `
+                <div style="margin-top: 15px; padding: 10px; background: white; border-left: 3px solid #2196F3;">
+                    <strong>Contexto:</strong><br>
+                    ${question.context}
+                </div>
+            ` : ''}
+            
+            <div style="margin-top: 15px; padding: 10px; background: white; border-left: 3px solid #4CAF50;">
+                <strong>Pergunta:</strong><br>
+                ${question.command}
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <strong>Alternativas:</strong>
+                <ul style="list-style: none; padding: 0; margin-top: 10px;">
+                    ${question.options.map(opt => `
+                        <li style="padding: 10px; margin: 5px 0; background: ${opt.correct ? '#C8E6C9' : 'white'}; border: 1px solid ${opt.correct ? '#4CAF50' : '#ddd'}; border-radius: 4px;">
+                            <strong>${opt.letter})</strong> ${opt.text}
+                            ${opt.correct ? '<span style="color: #4CAF50; font-weight: bold;"> ✓ CORRETA</span>' : ''}
+                            ${opt.explanation ? `<br><small style="color: #666;"><em>Explicação: ${opt.explanation}</em></small>` : ''}
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+            
+            ${correctOption && correctOption.explanation ? `
+                <div style="margin-top: 15px; padding: 10px; background: #E8F5E9; border-left: 3px solid #4CAF50;">
+                    <strong>✓ Resposta Correta:</strong> ${correctOption.letter}) ${correctOption.text}<br>
+                    <strong>Explicação:</strong> ${correctOption.explanation}
+                </div>
+            ` : ''}
+        </div>
+    `;
+
+    document.getElementById('ai-preview').style.display = 'block';
+    
+    // Scroll para o preview
+    document.getElementById('ai-preview').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function approveAIQuestion() {
+    if (!generatedAIQuestion) {
+        alert('Nenhuma questão para aprovar');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/questions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify(generatedAIQuestion)
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Erro ao salvar questão');
+        }
+
+        alert('✅ Questão aprovada e salva com sucesso!');
+        closeModal('ai-question-modal');
+        await loadQuestionsByCourse();
+        
+        // Resetar
+        generatedAIQuestion = null;
+        document.getElementById('ai-preview').style.display = 'none';
+
+    } catch (error) {
+        console.error('Erro:', error);
+        alert(`❌ Erro ao salvar questão: ${error.message}`);
+    }
+}
+
+function rejectAIQuestion() {
+    if (confirm('Deseja rejeitar esta questão e gerar uma nova?')) {
+        generatedAIQuestion = null;
+        document.getElementById('ai-preview').style.display = 'none';
+        alert('Questão rejeitada. Preencha os campos e clique em "Gerar Questão" novamente.');
+    }
+}
+
+function editAIQuestion() {
+    if (!generatedAIQuestion) {
+        alert('Nenhuma questão para editar');
+        return;
+    }
+
+    // Fechar modal de IA
+    closeModal('ai-question-modal');
+
+    // Abrir modal de adicionar questão com dados preenchidos
+    showAddQuestionModal();
+
+    // Aguardar o modal carregar
+    setTimeout(() => {
+        // Preencher os campos
+        document.getElementById('question-course').value = generatedAIQuestion.courseId;
+        document.getElementById('question-id').value = generatedAIQuestion.id;
+        document.getElementById('question-capacity').value = generatedAIQuestion.capacidade;
+        document.getElementById('question-context').value = generatedAIQuestion.context || '';
+        document.getElementById('question-command').value = generatedAIQuestion.command;
+
+        // Limpar opções existentes
+        optionCounter = 0;
+        document.getElementById('options-container').innerHTML = '';
+
+        // Adicionar as opções geradas
+        generatedAIQuestion.options.forEach(opt => {
+            addOption();
+            const lastIndex = optionCounter - 1;
+            document.getElementById(`option-text-${lastIndex}`).value = opt.text;
+            document.getElementById(`option-correct-${lastIndex}`).checked = opt.correct || false;
+            document.getElementById(`option-justification-${lastIndex}`).value = opt.explanation || opt.justification || '';
+        });
+
+        alert('✏️ Questão carregada para edição. Faça as alterações desejadas e clique em "Criar Questão".');
+    }, 300);
+}
+

@@ -115,6 +115,7 @@
                         <select id="course-filter" onchange="loadQuestionsByCourse()" class="form-select">
                             <option value="">Selecione um curso...</option>
                         </select>
+                        <button onclick="showAIQuestionModal()" class="btn-success">🤖 Gerar com IA</button>
                         <button onclick="showAddQuestionModal()" class="btn-primary">+ Nova Questão</button>
                         <button onclick="showImportModal()" class="btn-success">📤 Importar em Lote</button>
                     </div>
@@ -195,6 +196,76 @@
                 
                 <button type="submit" class="btn-large btn-primary" style="margin-top: 20px;">Criar Questão</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal: Gerar Questão com IA -->
+    <div id="ai-question-modal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeModal('ai-question-modal')">&times;</span>
+            <h2>🤖 Gerar Questão com Inteligência Artificial</h2>
+            
+            <div class="info-box">
+                <h4>💡 Como funciona:</h4>
+                <p>Preencha os campos abaixo e a IA irá gerar uma questão completa de múltipla escolha para você revisar e aprovar.</p>
+            </div>
+
+            <form onsubmit="handleGenerateAIQuestion(event)">
+                <div class="form-group">
+                    <label>Provedor de IA:</label>
+                    <select id="ai-provider" required class="form-select">
+                        <option value="gemini">Google Gemini (Gratuito)</option>
+                        <option value="chatgpt">ChatGPT (Requer API Key)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Curso de Destino:</label>
+                    <select id="ai-course" required class="form-select">
+                        <option value="">Selecione o curso...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Capacidade/Competência:</label>
+                    <input type="text" id="ai-capacity" placeholder="Ex: C1, Lógica de Programação, etc." required>
+                    <small>A categoria ou competência que esta questão avalia</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Conteúdo/Tema da Questão:</label>
+                    <textarea id="ai-content" placeholder="Ex: Estruturas de repetição em JavaScript, variáveis e tipos de dados, etc." rows="3" required></textarea>
+                    <small>Descreva o assunto específico que a questão deve abordar</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Nível de Dificuldade:</label>
+                    <select id="ai-difficulty" required class="form-select">
+                        <option value="fácil">Fácil</option>
+                        <option value="médio">Médio</option>
+                        <option value="difícil">Difícil</option>
+                    </select>
+                </div>
+
+                <div class="button-group-vertical">
+                    <button type="submit" class="btn-large btn-success" id="generate-btn">
+                        🤖 Gerar Questão
+                    </button>
+                </div>
+            </form>
+
+            <!-- Preview da questão gerada -->
+            <div id="ai-preview" style="display:none; margin-top: 20px;">
+                <hr>
+                <h3>📝 Questão Gerada - Revisar antes de salvar</h3>
+                <div id="ai-question-preview" class="question-preview"></div>
+                
+                <div class="button-group-horizontal" style="margin-top: 20px;">
+                    <button onclick="approveAIQuestion()" class="btn-primary">✓ Aprovar e Salvar</button>
+                    <button onclick="rejectAIQuestion()" class="btn-danger">✗ Rejeitar e Gerar Outra</button>
+                    <button onclick="editAIQuestion()" class="btn-secondary">✏️ Editar Manualmente</button>
+                </div>
+            </div>
         </div>
     </div>
 
