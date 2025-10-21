@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -20,6 +22,81 @@ const users = [];
 const scores = [];
 const courses = [];
 const questions = [];
+
+const DEFAULT_ADMIN = {
+  username: 'admin',
+  email: 'admin@quiz.com',
+  password: 'admin123'
+};
+
+const DEFAULT_COURSE = {
+  name: 'Programação de Jogos Digitais',
+  description: 'Curso completo sobre desenvolvimento de jogos, cobrindo conceitos fundamentais de game design, programação e mecânicas de jogo.',
+  category: 'Tecnologia',
+  color: '#6366f1'
+};
+
+const QUESTIONS_FILE_PATH = path.join(__dirname, '../shared/questions.json');
+
+function seedInitialData() {
+  try {
+    let admin = users.find(u => u.role === 'admin');
+    if (!admin) {
+      const hashedPassword = bcrypt.hashSync(DEFAULT_ADMIN.password, 10);
+      admin = {
+        id: users.length + 1,
+        username: DEFAULT_ADMIN.username,
+        email: DEFAULT_ADMIN.email,
+        password: hashedPassword,
+        role: 'admin',
+        createdAt: new Date().toISOString()
+      };
+      users.push(admin);
+      console.log('✅ Admin padrão criado automaticamente');
+    }
+
+    let course = courses.find(c => c.name === DEFAULT_COURSE.name);
+    if (!course) {
+      course = {
+        id: courses.length + 1,
+        ...DEFAULT_COURSE,
+        createdBy: admin.id,
+        createdAt: new Date().toISOString()
+      };
+      courses.push(course);
+      console.log('✅ Curso padrão criado automaticamente');
+    }
+
+    if (questions.length === 0 && fs.existsSync(QUESTIONS_FILE_PATH)) {
+      const fileContent = fs.readFileSync(QUESTIONS_FILE_PATH, 'utf8');
+      const questionsData = JSON.parse(fileContent);
+
+      questionsData.forEach((q, index) => {
+        const alreadyExists = questions.some(existing => existing.id === q.id && existing.courseId === course.id);
+        if (alreadyExists) {
+          return;
+        }
+
+        questions.push({
+          id: q.id || `Q${index + 1}`,
+          courseId: course.id,
+          capacidade: q.capacidade || 'Geral',
+          context: q.context || '',
+          command: q.command || '',
+          options: q.options || [],
+          createdBy: admin.id,
+          createdAt: new Date().toISOString()
+        });
+      });
+
+      console.log(`✅ ${questions.length} questões carregadas automaticamente`);
+    }
+  } catch (error) {
+    console.error('⚠️  Falha ao carregar dados iniciais:', error.message);
+  }
+}
+
+seedInitialData();
 
 // Middleware de autenticação
 const authenticateToken = (req, res, next) => {
