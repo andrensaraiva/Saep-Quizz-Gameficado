@@ -26,6 +26,10 @@ if (process.env.OPENAI_API_KEY) {
   openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
 
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL_RAW = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+const GEMINI_MODEL = GEMINI_MODEL_RAW.replace(/^models\//i, '');
+
 // Configuração CORS para permitir requisições do Render e outros domínios
 const corsOptions = {
   origin: function (origin, callback) {
@@ -80,6 +84,129 @@ const DEFAULT_COURSE = {
 
 const QUESTIONS_FILE_PATH = path.join(__dirname, '../shared/questions.json');
 
+const POLLINATIONS_BASE_URL = 'https://image.pollinations.ai/prompt/';
+
+function sanitizeImagePromptText(text) {
+  if (!text || typeof text !== 'string') return '';
+  return text
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/["{}\[\]]/g, '')
+    .trim();
+}
+
+function fallbackImagePrompt(text, type) {
+  const base = sanitizeImagePromptText(text);
+  if (!base) return '';
+  return `${base}. Digital illustration, ${type}, no text overlay, educational style, high detail, 16:9 aspect ratio`;
+}
+
+function buildImageUrlFromPrompt(prompt, seed = null) {
+  const sanitizedPrompt = sanitizeImagePromptText(prompt);
+  if (!sanitizedPrompt) return null;
+
+  const params = new URLSearchParams({
+    width: '1024',
+    height: '576',
+    seed: seed ? String(seed) : String(Math.floor(Math.random() * 1_000_000))
+  });
+
+  return `${POLLINATIONS_BASE_URL}${encodeURIComponent(sanitizedPrompt)}?${params.toString()}`;
+}
+
+function attachGeneratedImagesToQuestion(
+  question,
+  { provider = 'pollinations', includeContext = true, includeOptions = true } = {}
+) {
+  if (!question) {
+    return question;
+  }
+
+  if (provider !== 'pollinations') {
+    throw new Error(`imageProvider "${provider}" ainda não é suportado`);
+  }
+
+  const imageMetadata = {
+    provider,
+    generatedAt: new Date().toISOString(),
+    attribution: 'Images generated on-demand via Pollinations AI (https://image.pollinations.ai)'
+  };
+
+  let generatedSomething = false;
+
+  if (includeContext && !question.contextImage) {
+    const contextPrompt = sanitizeImagePromptText(question.contextImagePrompt) ||
+      fallbackImagePrompt(question.context || question.command, 'quiz context scene');
+    const contextUrl = buildImageUrlFromPrompt(contextPrompt, `${Date.now()}-context`);
+    if (contextUrl) {
+      question.contextImage = contextUrl;
+      imageMetadata.contextPrompt = contextPrompt;
+      generatedSomething = true;
+    }
+  }
+
+  if (Array.isArray(question.options)) {
+    const optionPrompts = {};
+
+    question.options = question.options.map((option, index) => {
+      const updatedOption = { ...option };
+      const optionKey = option.letter || String.fromCharCode(65 + index);
+
+      if (includeOptions && !updatedOption.image) {
+        const optionPrompt = sanitizeImagePromptText(option.imagePrompt) ||
+          fallbackImagePrompt(updatedOption.text, `multiple choice option ${optionKey}`);
+        const optionUrl = buildImageUrlFromPrompt(optionPrompt, `${Date.now()}-${index}`);
+        if (optionUrl) {
+          updatedOption.image = optionUrl;
+          optionPrompts[optionKey] = optionPrompt;
+          generatedSomething = true;
+        }
+      }
+
+      delete updatedOption.imagePrompt;
+      return updatedOption;
+    });
+
+    if (Object.keys(optionPrompts).length > 0) {
+      imageMetadata.optionPrompts = optionPrompts;
+    }
+  }
+
+  delete question.contextImagePrompt;
+
+  if (generatedSomething) {
+    question.imageMetadata = imageMetadata;
+  } else {
+    delete question.imageMetadata;
+  }
+
+  return question;
+}
+
+function normalizeOptionsArray(options) {
+  if (!Array.isArray(options)) {
+    return [];
+  }
+
+  return options.map((option, index) => {
+    const normalized = { ...option };
+    const defaultLetter = String.fromCharCode(65 + index);
+
+    if (!normalized.letter && normalized.letter !== '') {
+      normalized.letter = defaultLetter;
+    }
+
+    if (normalized.correct !== undefined) {
+      normalized.correct = !!normalized.correct;
+    }
+
+    normalized.image = normalized.image || null;
+    delete normalized.imagePrompt;
+
+    return normalized;
+  });
+}
+
 function seedInitialData() {
   try {
     let admin = users.find(u => u.role === 'admin');
@@ -124,8 +251,9 @@ function seedInitialData() {
           courseId: course.id,
           capacidade: q.capacidade || 'Geral',
           context: q.context || '',
+          contextImage: q.contextImage || null,
           command: q.command || '',
-          options: q.options || [],
+          options: normalizeOptionsArray(q.options),
           createdBy: admin.id,
           createdAt: new Date().toISOString()
         });
@@ -425,7 +553,7 @@ app.get('/api/courses/:courseId/questions', (req, res) => {
 app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId);
-    const { id, capacidade, context, command, options } = req.body;
+    const { id, capacidade, context, contextImage, command, options } = req.body;
 
     if (!id || !context || !command || !options || options.length === 0) {
       return res.status(400).json({ error: 'Dados incompletos' });
@@ -447,8 +575,9 @@ app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, (r
       courseId,
       capacidade: capacidade || 'Geral',
       context,
+      contextImage: contextImage || null,
       command,
-      options,
+      options: normalizeOptionsArray(options),
       createdBy: req.user.id,
       createdAt: new Date().toISOString()
     };
@@ -500,8 +629,9 @@ app.post('/api/courses/:courseId/questions/import', authenticateToken, requireAd
           courseId,
           capacidade: q.capacidade || 'Geral',
           context: q.context,
+          contextImage: q.contextImage || null,
           command: q.command,
-          options: q.options,
+          options: normalizeOptionsArray(q.options),
           createdBy: req.user.id,
           createdAt: new Date().toISOString()
         };
@@ -966,7 +1096,14 @@ app.get('/api/admin/export/:type', authenticateToken, requireAdmin, (req, res) =
 // Gerar questão com IA
 app.post('/api/ai/generate-question', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { capacity, content, difficulty, provider } = req.body;
+    const {
+      capacity,
+      content,
+      difficulty,
+      provider,
+      includeImages = true,
+      imageProvider
+    } = req.body;
 
     // Validações
     if (!capacity || !content || !difficulty) {
@@ -991,18 +1128,20 @@ A questão deve ter:
 - Apenas UMA alternativa correta
 - As alternativas incorretas devem ser plausíveis
 - Uma explicação breve do porquê a resposta correta está certa
+- Sugestões de imagens em inglês para enriquecer a questão quando apropriado (descrições curtas, até 20 palavras, sem menção a texto na imagem)
 
 Retorne APENAS um JSON válido no seguinte formato (sem markdown, sem \`\`\`):
 {
   "id": "Q_GERADO_${Date.now()}",
   "capacidade": "${capacity}",
   "context": "Contexto da questão aqui (pode ser vazio se não for necessário)",
+  "contextImagePrompt": "Brief english prompt for the context illustration or null",
   "command": "A pergunta aqui?",
   "options": [
-    { "letter": "A", "text": "Primeira alternativa", "correct": false, "explanation": "Explicação se necessário" },
-    { "letter": "B", "text": "Segunda alternativa", "correct": true, "explanation": "Explicação da resposta correta" },
-    { "letter": "C", "text": "Terceira alternativa", "correct": false, "explanation": "Explicação se necessário" },
-    { "letter": "D", "text": "Quarta alternativa", "correct": false, "explanation": "Explicação se necessário" }
+    { "letter": "A", "text": "Primeira alternativa", "correct": false, "explanation": "Explicação se necessário", "imagePrompt": "Short english prompt for this option image or null" },
+    { "letter": "B", "text": "Segunda alternativa", "correct": true, "explanation": "Explicação da resposta correta", "imagePrompt": "Short english prompt for this option image or null" },
+    { "letter": "C", "text": "Terceira alternativa", "correct": false, "explanation": "Explicação se necessário", "imagePrompt": "Short english prompt for this option image or null" },
+    { "letter": "D", "text": "Quarta alternativa", "correct": false, "explanation": "Explicação se necessário", "imagePrompt": "Short english prompt for this option image or null" }
   ]
 }`;
 
@@ -1017,7 +1156,7 @@ Retorne APENAS um JSON válido no seguinte formato (sem markdown, sem \`\`\`):
         });
       }
 
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
@@ -1059,6 +1198,39 @@ Retorne APENAS um JSON válido no seguinte formato (sem markdown, sem \`\`\`):
       return res.status(400).json({ error: 'Provider inválido. Use "gemini" ou "chatgpt"' });
     }
 
+    if (generatedQuestion) {
+      let imageError = null;
+
+      if (includeImages !== false) {
+        try {
+          attachGeneratedImagesToQuestion(generatedQuestion, {
+            provider: imageProvider || 'pollinations',
+            includeContext: true,
+            includeOptions: true
+          });
+        } catch (imgErr) {
+          console.error('Erro ao gerar imagens para a questão:', imgErr);
+          imageError = imgErr.message;
+        }
+      } else {
+        delete generatedQuestion.contextImagePrompt;
+        if (Array.isArray(generatedQuestion.options)) {
+          generatedQuestion.options = generatedQuestion.options.map(option => {
+            const cleaned = { ...option };
+            delete cleaned.imagePrompt;
+            return cleaned;
+          });
+        }
+      }
+
+      generatedQuestion.contextImage = generatedQuestion.contextImage || null;
+      generatedQuestion.options = normalizeOptionsArray(generatedQuestion.options);
+
+      if (imageError) {
+        generatedQuestion.imageGenerationError = imageError;
+      }
+    }
+
     // Validar estrutura da questão gerada
     if (!generatedQuestion || !generatedQuestion.command || !generatedQuestion.options || generatedQuestion.options.length !== 4) {
       throw new Error('Questão gerada com formato inválido');
@@ -1091,12 +1263,22 @@ app.get('/api/ai/status', authenticateToken, requireAdmin, (req, res) => {
     gemini: {
       available: !!genAI,
       configured: !!process.env.GEMINI_API_KEY,
+      model: GEMINI_MODEL,
+      configuredValue: GEMINI_MODEL_RAW,
+      apiModelPath: `models/${GEMINI_MODEL}`,
+      defaultModel: DEFAULT_GEMINI_MODEL,
       info: 'Google Gemini - Gratuito com limites'
     },
     chatgpt: {
       available: !!openai,
       configured: !!process.env.OPENAI_API_KEY,
       info: 'OpenAI ChatGPT - Requer créditos'
+    },
+    images: {
+      available: true,
+      defaultProvider: 'pollinations',
+      providers: ['pollinations'],
+      info: 'Image generation via Pollinations AI (gratuito, sem necessidade de chave)'
     }
   });
 });
