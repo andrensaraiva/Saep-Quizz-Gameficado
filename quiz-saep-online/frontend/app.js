@@ -562,8 +562,12 @@ function showReport() {
         });
         wrongHtml += '</ul>';
         wrongListEl.innerHTML = wrongHtml;
+        
+        // Criar seção detalhada de respostas erradas
+        showWrongAnswersDetail(wrongQuestions);
     } else {
         wrongListEl.innerHTML = '<h3 style="color: var(--cor-correta);">🎉 Parabéns! Você acertou todas as questões!</h3>';
+        document.getElementById('wrong-answers-detail').innerHTML = '';
     }
 
     const saveScoreSection = document.getElementById('save-score-section');
@@ -574,6 +578,124 @@ function showReport() {
     }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showWrongAnswersDetail(wrongQuestions) {
+    const container = document.getElementById('wrong-answers-detail');
+    
+    if (!wrongQuestions || wrongQuestions.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = `
+        <div style="margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <h2 style="margin: 0 0 10px 0; font-size: 1.8rem;">📚 Revisão Detalhada das Questões Erradas</h2>
+            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem;">Entenda onde você errou e qual era a resposta correta</p>
+        </div>
+    `;
+
+    wrongQuestions.forEach(item => {
+        const question = window.shuffledQuizData.find(q => q.id === item.id);
+        if (!question) return;
+
+        const answerDetail = currentResults.answersDetail.find(a => a.questionId === item.id);
+        if (!answerDetail) return;
+
+        // Encontrar as opções originais
+        const userOption = question.shuffledOptions.find(opt => 
+            opt.letter === answerDetail.selectedOption || 
+            opt.text === answerDetail.selectedOptionText
+        );
+        const correctOption = question.shuffledOptions[question.correctIndex];
+
+        html += `
+            <div style="margin: 25px 0; padding: 25px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 5px solid #ef4444;">
+                <div style="display: flex; align-items: start; gap: 15px; margin-bottom: 15px;">
+                    <div style="flex-shrink: 0; width: 45px; height: 45px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">
+                        ${item.number}
+                    </div>
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 10px 0; color: #1e293b; font-size: 1.2rem; line-height: 1.5;">${question.command}</h3>
+                        ${question.context ? `<p style="color: #64748b; font-size: 0.95rem; line-height: 1.6; margin: 10px 0; padding: 15px; background: #f8fafc; border-radius: 8px; border-left: 3px solid #94a3b8;"><strong>Contexto:</strong> ${question.context}</p>` : ''}
+                        ${question.contextImage ? `<img src="${question.contextImage}" alt="Contexto da questão" style="max-width: 100%; height: auto; border-radius: 8px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">` : ''}
+                    </div>
+                </div>
+
+                <!-- SUA RESPOSTA (ERRADA) -->
+                ${userOption ? `
+                    <div style="padding: 20px; background: #fef2f2; border-radius: 10px; border: 2px solid #fca5a5; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                            <span style="background: #dc2626; color: white; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.9rem;">
+                                ✗ SUA RESPOSTA
+                            </span>
+                            <span style="background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                                ${answerDetail.selectedOption}
+                            </span>
+                        </div>
+                        <p style="margin: 0 0 12px 0; font-size: 1.05rem; color: #1e293b; line-height: 1.6; font-weight: 500;">
+                            ${userOption.text}
+                        </p>
+                        ${userOption.image ? `
+                            <img src="${userOption.image}" alt="Imagem da alternativa selecionada" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        ` : ''}
+                        ${userOption.justification || userOption.explanation ? `
+                            <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px; border-left: 4px solid #dc2626;">
+                                <strong style="color: #dc2626; display: block; margin-bottom: 8px; font-size: 1rem;">
+                                    ⚠️ Por que está incorreta:
+                                </strong>
+                                <p style="margin: 0; color: #475569; line-height: 1.7; font-size: 0.95rem;">
+                                    ${userOption.justification || userOption.explanation}
+                                </p>
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : `
+                    <div style="padding: 20px; background: #fef2f2; border-radius: 10px; border: 2px solid #fca5a5; margin-bottom: 20px;">
+                        <p style="margin: 0; color: #dc2626; font-weight: 600; font-size: 1.05rem;">
+                            ⚠️ Você não respondeu esta questão
+                        </p>
+                    </div>
+                `}
+
+                <!-- RESPOSTA CORRETA -->
+                <div style="padding: 20px; background: #f0fdf4; border-radius: 10px; border: 2px solid #86efac;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                        <span style="background: #16a34a; color: white; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.9rem;">
+                            ✓ RESPOSTA CORRETA
+                        </span>
+                        <span style="background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                            ${answerDetail.correctOption}
+                        </span>
+                    </div>
+                    <p style="margin: 0 0 12px 0; font-size: 1.05rem; color: #1e293b; line-height: 1.6; font-weight: 500;">
+                        ${correctOption.text}
+                    </p>
+                    ${correctOption.image ? `
+                        <img src="${correctOption.image}" alt="Imagem da resposta correta" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    ` : ''}
+                    ${correctOption.explanation ? `
+                        <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px; border-left: 4px solid #16a34a;">
+                            <strong style="color: #16a34a; display: block; margin-bottom: 8px; font-size: 1rem;">
+                                💡 Explicação:
+                            </strong>
+                            <p style="margin: 0; color: #475569; line-height: 1.7; font-size: 0.95rem;">
+                                ${correctOption.explanation}
+                            </p>
+                        </div>
+                    ` : ''}
+                </div>
+
+                ${question.capacity ? `
+                    <div style="margin-top: 15px; display: inline-block; background: #ede9fe; color: #7c3aed; padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; font-weight: 600;">
+                        📚 ${question.capacity}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
 }
 
 function retryQuiz() {

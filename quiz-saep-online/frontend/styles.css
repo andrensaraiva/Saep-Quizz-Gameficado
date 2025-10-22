@@ -646,17 +646,40 @@ header h1 {
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(5px);
+    overflow-y: auto;
+    padding: 20px 0;
 }
 
 .modal-content {
     background: white;
-    margin: 5% auto;
+    margin: 20px auto;
     padding: 2.5rem;
     border-radius: var(--border-radius);
     width: 90%;
     max-width: 450px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     position: relative;
+}
+
+/* Scrollbar customizada para modais */
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
 }
 
 .close {
@@ -707,6 +730,17 @@ header h1 {
 
 .switch-auth a:hover {
     text-decoration: underline;
+}
+
+/* Seção de Respostas Erradas Detalhadas */
+.wrong-answers-detail {
+    margin-top: 30px;
+}
+
+.wrong-answers-detail img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
 }
 
 /* Responsive */

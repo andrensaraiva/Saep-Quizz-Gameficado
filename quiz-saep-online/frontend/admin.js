@@ -1519,7 +1519,7 @@ async function loadQuestionsForQuiz() {
     const container = document.getElementById('quiz-questions-container');
 
     if (!courseId) {
-        container.innerHTML = '<p style="color: #94a3b8; text-align: center;">Selecione um curso primeiro...</p>';
+        container.innerHTML = '<p style="color: #94a3b8; text-align: center; padding: 30px;">Selecione um curso primeiro...</p>';
         return;
     }
 
@@ -1528,7 +1528,7 @@ async function loadQuestionsForQuiz() {
         const questions = await response.json();
 
         if (questions.length === 0) {
-            container.innerHTML = '<p style="color: #94a3b8; text-align: center;">Este curso não possui questões cadastradas</p>';
+            container.innerHTML = '<p style="color: #94a3b8; text-align: center; padding: 30px;">Este curso não possui questões cadastradas</p>';
             return;
         }
 
@@ -1536,28 +1536,125 @@ async function loadQuestionsForQuiz() {
         let selectedIds = [];
         if (editingQuizId) {
             const quiz = allQuizzes.find(q => q.id === editingQuizId);
-            selectedIds = quiz ? quiz.questionIds : [];
+            selectedIds = quiz ? quiz.questionIds.map(id => String(id)) : [];
         }
 
-        container.innerHTML = questions.map(q => `
-            <div style="margin-bottom: 10px; padding: 10px; background: white; border-radius: 6px; border: 1px solid #e2e8f0;">
-                <label style="display: flex; align-items: start; cursor: pointer;">
-                    <input type="checkbox" name="quiz-question" value="${q.id}" ${selectedIds.includes(q.id) ? 'checked' : ''} style="margin-right: 10px; margin-top: 3px;">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; color: #1e293b;">${q.command}</div>
-                        <div style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">
-                            ${q.capacity ? `<span style="background: #ede9fe; color: #7c3aed; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">${q.capacity}</span>` : ''}
-                            ${q.difficulty ? `<span style="background: #dbeafe; color: #2563eb; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-left: 4px;">${q.difficulty}</span>` : ''}
-                        </div>
+        // Agrupar questões por capacidade
+        const questionsByCapacity = {};
+        questions.forEach(q => {
+            const capacity = q.capacity || 'Geral';
+            if (!questionsByCapacity[capacity]) {
+                questionsByCapacity[capacity] = [];
+            }
+            questionsByCapacity[capacity].push(q);
+        });
+
+        // Mapear capacidades para nomes legíveis
+        const capacityMap = {
+            'C1': 'Capacidade 1: Planejamento e Documentação',
+            'C2': 'Capacidade 2: Desenvolvimento e Implementação',
+            'C3': 'Capacidade 3: Testes, Qualidade e Deploy',
+            'C4': 'Capacidade 4: Metodologias e Gestão',
+            'C5': 'Capacidade 5: Performance e Otimização'
+        };
+
+        let html = '';
+        
+        // Ordenar capacidades
+        const sortedCapacities = Object.keys(questionsByCapacity).sort();
+
+        sortedCapacities.forEach(capacity => {
+            const capacityQuestions = questionsByCapacity[capacity];
+            const capacityLabel = capacityMap[capacity] || capacity;
+            
+            html += `
+                <div style="margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="margin: 0; color: white; font-size: 1rem; font-weight: 600;">
+                            📚 ${capacityLabel}
+                        </h4>
+                        <span style="background: rgba(255,255,255,0.3); color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">
+                            ${capacityQuestions.length} questão${capacityQuestions.length > 1 ? 'ões' : ''}
+                        </span>
                     </div>
-                </label>
-            </div>
-        `).join('');
+                    
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        ${capacityQuestions.map(q => {
+                            const isSelected = selectedIds.includes(String(q.id));
+                            const difficultyLabel = q.difficulty || 'Médio';
+                            
+                            return `
+                                <div class="quiz-question-item" style="margin-bottom: 8px; padding: 16px; background: white; border-radius: 8px; border: 2px solid ${isSelected ? '#667eea' : '#e2e8f0'}; transition: all 0.2s ease; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" 
+                                     onmouseover="if(!this.querySelector('input[type=checkbox]').checked) { this.style.borderColor='#a5b4fc'; this.style.background='#f8f9ff'; }" 
+                                     onmouseout="if(!this.querySelector('input[type=checkbox]').checked) { this.style.borderColor='#e2e8f0'; this.style.background='white'; }"
+                                     onclick="toggleQuestionCheckbox(this);">
+                                    <label style="display: flex; align-items: start; cursor: pointer; width: 100%;">
+                                        <input type="checkbox" name="quiz-question" value="${q.id}" ${isSelected ? 'checked' : ''} 
+                                               style="margin-right: 12px; margin-top: 4px; width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; accent-color: #667eea;"
+                                               onclick="event.stopPropagation(); updateQuestionBorder(this);">
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-weight: 600; color: #1e293b; font-size: 0.95rem; line-height: 1.5; margin-bottom: 8px;">${q.command}</div>
+                                            <div style="font-size: 0.8rem; color: #64748b; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                                                <span style="background: #dbeafe; color: #2563eb; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 500;">
+                                                    � ${difficultyLabel}
+                                                </span>
+                                                <span style="background: #f3f4f6; color: #6b7280; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem;">
+                                                    ID: ${q.id}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
 
     } catch (error) {
         console.error('Erro ao carregar questões:', error);
-        container.innerHTML = '<p style="color: #ef4444; text-align: center;">Erro ao carregar questões</p>';
+        container.innerHTML = '<p style="color: #ef4444; text-align: center; padding: 30px;">Erro ao carregar questões</p>';
     }
+}
+
+// Função auxiliar para toggle do checkbox
+function toggleQuestionCheckbox(element) {
+    const checkbox = element.querySelector('input[type=checkbox]');
+    checkbox.checked = !checkbox.checked;
+    updateQuestionBorder(checkbox);
+}
+
+// Função auxiliar para atualizar borda quando checkbox muda
+function updateQuestionBorder(checkbox) {
+    const parent = checkbox.closest('.quiz-question-item');
+    if (checkbox.checked) {
+        parent.style.borderColor = '#667eea';
+        parent.style.background = '#f8f9ff';
+    } else {
+        parent.style.borderColor = '#e2e8f0';
+        parent.style.background = 'white';
+    }
+}
+
+// Selecionar todas as questões
+function selectAllQuestions() {
+    const checkboxes = document.querySelectorAll('#quiz-questions-container input[name="quiz-question"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+        updateQuestionBorder(checkbox);
+    });
+}
+
+// Desselecionar todas as questões
+function deselectAllQuestions() {
+    const checkboxes = document.querySelectorAll('#quiz-questions-container input[name="quiz-question"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+        updateQuestionBorder(checkbox);
+    });
 }
 
 async function handleQuizSubmit(event) {
@@ -1567,9 +1664,11 @@ async function handleQuizSubmit(event) {
     const description = document.getElementById('quiz-description').value;
     const courseId = parseInt(document.getElementById('quiz-course').value);
 
-    // Coletar IDs das questões selecionadas
+    // Coletar IDs das questões selecionadas (manter como string)
     const checkboxes = document.querySelectorAll('input[name="quiz-question"]:checked');
-    const questionIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    const questionIds = Array.from(checkboxes).map(cb => cb.value);
+
+    console.log('IDs selecionados:', questionIds);
 
     if (questionIds.length === 0) {
         alert('Selecione pelo menos uma questão para o quiz');

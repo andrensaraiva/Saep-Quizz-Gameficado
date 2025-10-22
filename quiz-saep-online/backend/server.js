@@ -282,7 +282,8 @@ function seedInitialData() {
         questions.push({
           id: q.id || `Q${index + 1}`,
           courseId: course.id,
-          capacidade: q.capacidade || 'Geral',
+          capacity: q.capacidade || q.capacity || 'Geral',
+          difficulty: q.dificuldade || q.difficulty || 'Médio',
           context: q.context || '',
           contextImage: q.contextImage || null,
           command: q.command || '',
@@ -503,6 +504,18 @@ app.get('/api/courses', (req, res) => {
     res.json({ courses: coursesWithStats });
   } catch (error) {
     console.error('Erro ao listar cursos:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Buscar questões de um curso específico
+app.get('/api/courses/:id/questions', (req, res) => {
+  try {
+    const courseId = parseInt(req.params.id);
+    const courseQuestions = questions.filter(q => q.courseId === courseId);
+    res.json(courseQuestions);
+  } catch (error) {
+    console.error('Erro ao buscar questões do curso:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -1363,11 +1376,13 @@ app.post('/api/quizzes', authenticateToken, requireAdmin, (req, res) => {
     // Validar se as questões existem e pertencem ao curso
     const validQuestionIds = questionIds || [];
     const invalidQuestions = validQuestionIds.filter(qId => {
-      const question = questions.find(q => q.id === qId);
+      const question = questions.find(q => String(q.id) === String(qId));
       return !question || question.courseId !== courseId;
     });
 
     if (invalidQuestions.length > 0) {
+      console.log('Questões inválidas:', invalidQuestions);
+      console.log('Questões do curso:', questions.filter(q => q.courseId === courseId).map(q => q.id));
       return res.status(400).json({ 
         error: 'Algumas questões são inválidas ou não pertencem ao curso selecionado',
         invalidQuestions
