@@ -68,6 +68,7 @@ const users = [];
 const scores = [];
 const courses = [];
 const questions = [];
+const quizzes = [];
 
 const DEFAULT_ADMIN = {
   username: 'admin',
@@ -79,7 +80,39 @@ const DEFAULT_COURSE = {
   name: 'Programação de Jogos Digitais',
   description: 'Curso completo sobre desenvolvimento de jogos, cobrindo conceitos fundamentais de game design, programação e mecânicas de jogo.',
   category: 'Tecnologia',
-  color: '#6366f1'
+  color: '#6366f1',
+  capacities: [
+    {
+      id: 'C1',
+      name: 'Lógica de Programação',
+      skills: [
+        'Estruturas condicionais',
+        'Estruturas de repetição',
+        'Funções e procedimentos',
+        'Algoritmos básicos'
+      ]
+    },
+    {
+      id: 'C2',
+      name: 'Programação Orientada a Objetos',
+      skills: [
+        'Classes e objetos',
+        'Herança e polimorfismo',
+        'Encapsulamento',
+        'Interfaces e abstração'
+      ]
+    },
+    {
+      id: 'C3',
+      name: 'Game Design',
+      skills: [
+        'Mecânicas de jogo',
+        'Balanceamento',
+        'Level design',
+        'Experiência do jogador'
+      ]
+    }
+  ]
 };
 
 const QUESTIONS_FILE_PATH = path.join(__dirname, '../shared/questions.json');
@@ -260,6 +293,25 @@ function seedInitialData() {
       });
 
       console.log(`✅ ${questions.length} questões carregadas automaticamente`);
+    }
+
+    // Criar quiz padrão se não existir
+    if (quizzes.length === 0 && questions.length > 0) {
+      const courseQuestions = questions.filter(q => q.courseId === course.id);
+      
+      if (courseQuestions.length > 0) {
+        const defaultQuiz = {
+          id: 1,
+          name: 'Quiz 1 - Programação de Jogos Digitais',
+          description: 'Quiz completo com todas as questões do curso de Programação de Jogos Digitais',
+          courseId: course.id,
+          questionIds: courseQuestions.map(q => q.id),
+          createdBy: admin.id,
+          createdAt: new Date().toISOString()
+        };
+        quizzes.push(defaultQuiz);
+        console.log(`✅ Quiz padrão criado com ${courseQuestions.length} questões`);
+      }
     }
   } catch (error) {
     console.error('⚠️  Falha ao carregar dados iniciais:', error.message);
@@ -458,7 +510,7 @@ app.get('/api/courses', (req, res) => {
 // Criar novo curso (apenas admin)
 app.post('/api/courses', authenticateToken, requireAdmin, (req, res) => {
   try {
-    const { name, description, category, color } = req.body;
+    const { name, description, category, color, capacities } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Nome do curso é obrigatório' });
@@ -470,6 +522,7 @@ app.post('/api/courses', authenticateToken, requireAdmin, (req, res) => {
       description: description || '',
       category: category || 'Geral',
       color: color || '#3b82f6',
+      capacities: capacities || [],
       createdBy: req.user.id,
       createdAt: new Date().toISOString()
     };
@@ -487,7 +540,7 @@ app.post('/api/courses', authenticateToken, requireAdmin, (req, res) => {
 app.put('/api/courses/:id', authenticateToken, requireAdmin, (req, res) => {
   try {
     const courseId = parseInt(req.params.id);
-    const { name, description, category, color } = req.body;
+    const { name, description, category, color, capacities } = req.body;
 
     const courseIndex = courses.findIndex(c => c.id === courseId);
     if (courseIndex === -1) {
@@ -500,6 +553,7 @@ app.put('/api/courses/:id', authenticateToken, requireAdmin, (req, res) => {
       description: description !== undefined ? description : courses[courseIndex].description,
       category: category || courses[courseIndex].category,
       color: color || courses[courseIndex].color,
+      capacities: capacities !== undefined ? capacities : courses[courseIndex].capacities,
       updatedAt: new Date().toISOString()
     };
 
@@ -1281,6 +1335,152 @@ app.get('/api/ai/status', authenticateToken, requireAdmin, (req, res) => {
       info: 'Image generation via Pollinations AI (gratuito, sem necessidade de chave)'
     }
   });
+});
+
+// ==================== ROTAS DE QUIZZES ====================
+
+// Listar todos os quizzes
+app.get('/api/quizzes', (req, res) => {
+  res.json(quizzes);
+});
+
+// Criar novo quiz (apenas admin)
+app.post('/api/quizzes', authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { name, description, courseId, questionIds } = req.body;
+
+    if (!name || !courseId) {
+      return res.status(400).json({ error: 'Nome e curso são obrigatórios' });
+    }
+
+    // Validar se o curso existe
+    const course = courses.find(c => c.id === courseId);
+    if (!course) {
+      return res.status(404).json({ error: 'Curso não encontrado' });
+    }
+
+    // Validar se as questões existem e pertencem ao curso
+    const validQuestionIds = questionIds || [];
+    const invalidQuestions = validQuestionIds.filter(qId => {
+      const question = questions.find(q => q.id === qId);
+      return !question || question.courseId !== courseId;
+    });
+
+    if (invalidQuestions.length > 0) {
+      return res.status(400).json({ 
+        error: 'Algumas questões são inválidas ou não pertencem ao curso selecionado',
+        invalidQuestions
+      });
+    }
+
+    const quiz = {
+      id: quizzes.length + 1,
+      name,
+      description: description || '',
+      courseId,
+      questionIds: validQuestionIds,
+      createdBy: req.user.id,
+      createdAt: new Date().toISOString()
+    };
+
+    quizzes.push(quiz);
+
+    res.status(201).json({ message: 'Quiz criado com sucesso', quiz });
+  } catch (error) {
+    console.error('Erro ao criar quiz:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Obter detalhes de um quiz específico
+app.get('/api/quizzes/:id', (req, res) => {
+  const quizId = parseInt(req.params.id);
+  const quiz = quizzes.find(q => q.id === quizId);
+
+  if (!quiz) {
+    return res.status(404).json({ error: 'Quiz não encontrado' });
+  }
+
+  // Incluir detalhes das questões
+  const quizQuestions = quiz.questionIds.map(qId => 
+    questions.find(q => q.id === qId)
+  ).filter(q => q !== undefined);
+
+  res.json({
+    ...quiz,
+    questions: quizQuestions,
+    course: courses.find(c => c.id === quiz.courseId)
+  });
+});
+
+// Atualizar quiz (apenas admin)
+app.put('/api/quizzes/:id', authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const quizId = parseInt(req.params.id);
+    const { name, description, questionIds } = req.body;
+
+    const quizIndex = quizzes.findIndex(q => q.id === quizId);
+    if (quizIndex === -1) {
+      return res.status(404).json({ error: 'Quiz não encontrado' });
+    }
+
+    const quiz = quizzes[quizIndex];
+
+    // Validar questões se fornecidas
+    if (questionIds !== undefined) {
+      const invalidQuestions = questionIds.filter(qId => {
+        const question = questions.find(q => q.id === qId);
+        return !question || question.courseId !== quiz.courseId;
+      });
+
+      if (invalidQuestions.length > 0) {
+        return res.status(400).json({ 
+          error: 'Algumas questões são inválidas ou não pertencem ao curso do quiz',
+          invalidQuestions
+        });
+      }
+    }
+
+    quizzes[quizIndex] = {
+      ...quiz,
+      name: name || quiz.name,
+      description: description !== undefined ? description : quiz.description,
+      questionIds: questionIds !== undefined ? questionIds : quiz.questionIds,
+      updatedAt: new Date().toISOString()
+    };
+
+    res.json({ message: 'Quiz atualizado com sucesso', quiz: quizzes[quizIndex] });
+  } catch (error) {
+    console.error('Erro ao atualizar quiz:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Deletar quiz (apenas admin)
+app.delete('/api/quizzes/:id', authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const quizId = parseInt(req.params.id);
+    
+    const quizIndex = quizzes.findIndex(q => q.id === quizId);
+    if (quizIndex === -1) {
+      return res.status(404).json({ error: 'Quiz não encontrado' });
+    }
+
+    const deletedQuiz = quizzes.splice(quizIndex, 1)[0];
+
+    res.json({ message: 'Quiz deletado com sucesso', quiz: deletedQuiz });
+  } catch (error) {
+    console.error('Erro ao deletar quiz:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Listar quizzes de um curso específico
+app.get('/api/courses/:courseId/quizzes', (req, res) => {
+  const courseId = parseInt(req.params.courseId);
+  const courseQuizzes = quizzes.filter(q => q.courseId === courseId);
+
+  res.json(courseQuizzes);
 });
 
 // ==================== ROTA DE TESTE ====================
