@@ -20,6 +20,7 @@ cmd /c "cd backend && npm install"
 2. Criar arquivo `backend/.env`:
 ```env
 GEMINI_API_KEY=sua_chave_aqui
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 ### 3️⃣ TESTAR (2 minutos)
@@ -34,7 +35,9 @@ npm start
 ### 4️⃣ DEPLOY (3 minutos)
 1. Render Dashboard
 2. Environment
-3. Add: `GEMINI_API_KEY`
+3. Add:
+   - `GEMINI_API_KEY`
+   - `GEMINI_MODEL` = `gemini-2.5-flash`
 
 ---
 

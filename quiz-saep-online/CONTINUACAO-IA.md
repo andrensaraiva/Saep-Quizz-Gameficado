@@ -54,7 +54,7 @@
 
 **Arquivo:** `backend/.env.example`
 
-✅ Variáveis `GEMINI_API_KEY` documentadas  
+✅ Variáveis `GEMINI_API_KEY` e `GEMINI_MODEL` documentadas  
 ✅ Variáveis `OPENAI_API_KEY` documentadas  
 ✅ Links para obter as chaves  
 
@@ -117,6 +117,7 @@ cmd /c "cd backend && npm install"
    
    # API do Google Gemini (GRATUITO)
    GEMINI_API_KEY=AIzaSyC...sua_chave_aqui
+   GEMINI_MODEL=gemini-2.5-flash
    ```
 
 ### Passo 3: Testar Localmente
@@ -176,7 +177,9 @@ Quando testar localmente e funcionar:
 
 2. **Configurar no Render:**
    - Dashboard → Seu serviço → Environment
-   - Adicionar variável: `GEMINI_API_KEY` = sua_chave
+   - Adicionar variáveis:
+     - `GEMINI_API_KEY` = sua_chave
+     - `GEMINI_MODEL` = `gemini-2.5-flash`
    - Salvar (redeploy automático)
 
 3. **Testar na produção:**
@@ -190,7 +193,7 @@ Quando testar localmente e funcionar:
 
 ### Local:
 - [ ] Dependências instaladas (`npm install` executado)
-- [ ] Arquivo `.env` criado com `GEMINI_API_KEY`
+- [ ] Arquivo `.env` criado com `GEMINI_API_KEY` e `GEMINI_MODEL`
 - [ ] Servidor iniciado sem erros
 - [ ] Modal de IA abre corretamente
 - [ ] API status mostra Gemini como configurado
@@ -202,7 +205,7 @@ Quando testar localmente e funcionar:
 
 ### Produção (Render):
 - [ ] Commit e push realizados
-- [ ] Variável `GEMINI_API_KEY` adicionada no Render
+- [ ] Variáveis `GEMINI_API_KEY` e `GEMINI_MODEL` adicionadas no Render
 - [ ] Deploy completado com sucesso
 - [ ] Funcionalidade testada online
 - [ ] Questões sendo geradas corretamente

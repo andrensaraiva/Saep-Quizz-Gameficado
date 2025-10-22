@@ -1244,7 +1244,8 @@ Retorne APENAS um JSON válido no seguinte formato (sem markdown, sem \`\`\`):
     res.json({
       message: 'Questão gerada com sucesso',
       question: generatedQuestion,
-      provider: aiProvider
+      provider: aiProvider,
+      model: aiProvider === 'gemini' ? GEMINI_MODEL : 'gpt-3.5-turbo'
     });
 
   } catch (error) {
