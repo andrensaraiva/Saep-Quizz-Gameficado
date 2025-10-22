@@ -131,12 +131,14 @@ npm install    ← Execute este comando
 ✅ Documentado em .env.example
 ⏳ Criar arquivo .env
 ⏳ Adicionar GEMINI_API_KEY
+⏳ Adicionar GEMINI_MODEL (gemini-2.5-flash)
 ```
 
 ### Produção (Render)
 ```
 ⏳ Adicionar no Dashboard
 ⏳ GEMINI_API_KEY = sua_chave
+⏳ GEMINI_MODEL = gemini-2.5-flash
 ```
 
 ---
@@ -169,9 +171,9 @@ npm install    ← Execute este comando
 ```
 1. [ ] npm install
 2. [ ] Obter API key Gemini
-3. [ ] Criar .env
+3. [ ] Criar .env com GEMINI_API_KEY e GEMINI_MODEL
 4. [ ] Testar local
-5. [ ] Deploy Render
+5. [ ] Deploy Render (adicionar variáveis)
 ```
 
 ### Futuro (Opcional)

@@ -21,6 +21,7 @@ PORT=3000
 JWT_SECRET=seu_secret_muito_seguro_aqui_mude_isto
 NODE_ENV=development
 GEMINI_API_KEY=COLE_SUA_CHAVE_AQUI
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 ### 3. Obter API Key Gemini
@@ -52,7 +53,9 @@ git push origin main
 ### 7. Configurar Render
 1. https://dashboard.render.com/
 2. Seu serviço → Environment
-3. Add: GEMINI_API_KEY = sua_chave
+3. Add:
+	- GEMINI_API_KEY = sua_chave
+	- GEMINI_MODEL = gemini-2.5-flash
 4. Save
 
 ---
@@ -113,6 +116,7 @@ dir .env
 1. Verificar se começa com "AIzaSy"
 2. Sem espaços antes/depois
 3. Entre aspas no .env: `GEMINI_API_KEY="sua_chave"`
+4. Confirme que `GEMINI_MODEL=gemini-2.5-flash` (ou `models/gemini-2.5-flash`)
 
 ---
 

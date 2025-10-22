@@ -13,3 +13,5 @@ services:
         generateValue: true
       - key: PORT
         value: 3000
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash

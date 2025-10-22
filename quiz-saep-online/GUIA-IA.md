@@ -59,6 +59,7 @@ O sistema agora permite gerar questões automaticamente usando Inteligência Art
    ```env
    # Para usar Gemini (Recomendado)
    GEMINI_API_KEY=AIzaSyC...suachaveaqui
+   GEMINI_MODEL=gemini-2.5-flash  # Aceita também models/gemini-2.5-flash
    
    # OU para usar ChatGPT
    OPENAI_API_KEY=sk-proj-...suachaveaqui
@@ -80,6 +81,7 @@ O sistema agora permite gerar questões automaticamente usando Inteligência Art
 2. **Vá no seu serviço → Environment**
 3. **Adicione as variáveis:**
    - `GEMINI_API_KEY` = sua chave do Gemini
+   - `GEMINI_MODEL` = `gemini-2.5-flash` (aceita também `models/gemini-2.5-flash`)
    - OU `OPENAI_API_KEY` = sua chave da OpenAI
 
 4. **Salve e aguarde o redeploy automático**
