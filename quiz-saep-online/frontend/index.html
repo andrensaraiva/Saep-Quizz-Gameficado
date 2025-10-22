@@ -12,6 +12,7 @@
         <div class="container header-content">
             <h1>🎮 Quiz SAEP</h1>
             <nav id="user-nav">
+                <button onclick="showStudentHelp()" class="btn-success" style="margin-right: 10px;">❓ Ajuda</button>
                 <div id="auth-buttons">
                     <button onclick="showAuthModal('login')" class="btn-secondary">Login</button>
                     <button onclick="showAuthModal('register')" class="btn-primary">Cadastrar</button>
@@ -32,8 +33,15 @@
             <h2>Quiz SAEP: <span id="course-name-display">Programação de Jogos Digitais</span></h2>
             <p class="subtitle" id="course-description">Teste seus conhecimentos sobre desenvolvimento de jogos!</p>
             
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="quiz-select" style="font-weight: 600; margin-bottom: 10px; display: block;">Selecione um Quiz:</label>
+                <select id="quiz-select" class="form-select" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size: 1rem;">
+                    <option value="">Carregando quizzes...</option>
+                </select>
+            </div>
+
             <div class="menu-options">
-                <button onclick="startQuiz()" class="btn-large btn-primary">
+                <button onclick="startQuiz()" class="btn-large btn-primary" id="start-quiz-btn" disabled>
                     <span class="icon">▶</span> Iniciar Quiz
                 </button>
                 <button onclick="showRanking()" class="btn-large btn-secondary">
@@ -185,6 +193,120 @@
                     <button type="submit" class="btn-large btn-primary">Cadastrar</button>
                 </form>
                 <p class="switch-auth">Já tem conta? <a href="#" onclick="showAuthModal('login')">Faça login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Ajuda para Alunos -->
+    <div id="student-help-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('student-help-modal')">&times;</span>
+            <h2 style="color: #667eea;">📚 Ajuda - Como Usar o Quiz SAEP</h2>
+            
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+                <h3 style="margin: 0 0 10px 0;">🎯 Bem-vindo ao Quiz SAEP!</h3>
+                <p style="margin: 0; opacity: 0.95;">Aprenda a usar todas as funcionalidades do sistema para testar seus conhecimentos.</p>
+            </div>
+
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">👤 1. Como se Cadastrar</h3>
+                <ol style="line-height: 1.8;">
+                    <li>Clique no botão <strong>"Cadastrar"</strong> no canto superior direito</li>
+                    <li>Preencha:
+                        <ul>
+                            <li><strong>Nome de usuário:</strong> Escolha um nome único</li>
+                            <li><strong>E-mail:</strong> Seu e-mail válido</li>
+                            <li><strong>Senha:</strong> Mínimo 6 caracteres</li>
+                        </ul>
+                    </li>
+                    <li>Clique em <strong>"Cadastrar"</strong></li>
+                    <li>Faça login com suas credenciais</li>
+                </ol>
+                <div style="background: #d1fae5; border-left: 4px solid #10b981; padding: 12px; border-radius: 6px; margin-top: 15px;">
+                    <strong>✅ Pronto!</strong> Agora você pode fazer quizzes e acompanhar seu progresso.
+                </div>
+            </div>
+
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">✏️ 2. Como Fazer um Quiz</h3>
+                <ol style="line-height: 1.8;">
+                    <li><strong>Faça login</strong> no sistema</li>
+                    <li>Na tela inicial, selecione um quiz no <strong>dropdown</strong></li>
+                    <li>Veja quantas questões o quiz possui</li>
+                    <li>Clique em <strong>"Iniciar Quiz"</strong></li>
+                    <li>Leia cada questão com atenção</li>
+                    <li>Selecione a alternativa que considerar correta</li>
+                    <li>Clique em <strong>"Enviar Respostas"</strong> ao terminar</li>
+                    <li>Veja seu resultado e pontuação!</li>
+                </ol>
+                <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 12px; border-radius: 6px; margin-top: 15px;">
+                    <strong>⏱️ Dica:</strong> O sistema cronometra automaticamente. Não há limite de tempo, mas sua velocidade conta no ranking!
+                </div>
+            </div>
+
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">🏆 3. Ranking e Perfil</h3>
+                <ul style="line-height: 1.8;">
+                    <li><strong>Ranking:</strong> Clique em "Ver Ranking" para ver sua posição comparada a outros alunos</li>
+                    <li><strong>Perfil:</strong> Acesse "Meu Perfil" para ver:
+                        <ul>
+                            <li>Seu histórico completo de quizzes</li>
+                            <li>Pontuação em cada quiz</li>
+                            <li>Tempo gasto</li>
+                            <li>Sua evolução ao longo do tempo</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">❓ 4. Durante o Quiz</h3>
+                <ul style="line-height: 1.8;">
+                    <li>Leia o <strong>contexto</strong> quando houver (texto ou imagem)</li>
+                    <li>Leia a <strong>pergunta</strong> com atenção</li>
+                    <li>Analise todas as <strong>4 alternativas</strong> antes de responder</li>
+                    <li>Algumas questões podem ter <strong>imagens</strong> nas alternativas</li>
+                    <li>Você pode mudar sua resposta antes de enviar</li>
+                </ul>
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; border-radius: 6px; margin-top: 15px;">
+                    <strong>⚠️ Importante:</strong> Após clicar em "Enviar Respostas", você não poderá mais alterar suas escolhas!
+                </div>
+            </div>
+
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">📊 5. Depois do Quiz</h3>
+                <p>Ao finalizar o quiz, você verá:</p>
+                <ul style="line-height: 1.8;">
+                    <li><strong>Sua pontuação</strong> (quantas acertou de quantas)</li>
+                    <li><strong>Tempo gasto</strong> para completar</li>
+                    <li><strong>Revisão das respostas:</strong>
+                        <ul>
+                            <li>Respostas corretas em verde ✅</li>
+                            <li>Respostas incorretas em vermelho ❌</li>
+                            <li>Explicação de cada questão</li>
+                        </ul>
+                    </li>
+                    <li><strong>Sua posição no ranking</strong></li>
+                </ul>
+            </div>
+
+            <div style="background: #ede9fe; padding: 20px; border-radius: 12px; margin-top: 25px;">
+                <h3 style="color: #7c3aed; margin-top: 0;">💡 Dicas para um Bom Desempenho</h3>
+                <ul style="margin-bottom: 0; line-height: 1.8;">
+                    <li>Leia todas as alternativas antes de responder</li>
+                    <li>Preste atenção em palavras como "EXCETO", "NÃO", "SEMPRE"</li>
+                    <li>Se houver imagens, analise-as cuidadosamente</li>
+                    <li>Não tenha pressa, mas também não demore demais</li>
+                    <li>Revise suas respostas antes de enviar</li>
+                    <li>Após ver o resultado, estude as explicações das questões erradas</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+                <p style="color: #64748b; margin: 0;">
+                    <strong>Precisa de mais ajuda?</strong><br>
+                    Entre em contato com seu instrutor ou administrador do sistema.
+                </p>
             </div>
         </div>
     </div>

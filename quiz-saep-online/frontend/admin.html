@@ -14,6 +14,7 @@
             <h1>⚙️ Painel Administrativo</h1>
             <nav>
                 <span id="admin-username"></span>
+                <button onclick="showHelpModal()" class="btn-success" style="margin-right: 10px;">❓ Ajuda</button>
                 <button onclick="backToMain()" class="btn-secondary">← Voltar ao Quiz</button>
                 <button onclick="logout()" class="btn-danger">Sair</button>
             </nav>
@@ -29,6 +30,9 @@
                 </a>
                 <a href="#" class="nav-item" onclick="showSection('courses')">
                     <span class="icon">📚</span> Cursos
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('quizzes')">
+                    <span class="icon">📝</span> Quizzes
                 </a>
                 <a href="#" class="nav-item" onclick="showSection('questions')">
                     <span class="icon">❓</span> Questões
@@ -107,6 +111,16 @@
                 <div id="courses-list"></div>
             </section>
 
+            <!-- Quizzes Section -->
+            <section id="quizzes-section" class="admin-section" style="display:none;">
+                <div class="section-header">
+                    <h2>Gerenciar Quizzes</h2>
+                    <button onclick="showAddQuizModal()" class="btn-primary">+ Novo Quiz</button>
+                </div>
+
+                <div id="quizzes-list"></div>
+            </section>
+
             <!-- Questions Section -->
             <section id="questions-section" class="admin-section" style="display:none;">
                 <div class="section-header">
@@ -158,20 +172,49 @@
         </main>
     </div>
 
-    <!-- Modal: Adicionar Curso -->
+    <!-- Modal: Adicionar/Editar Curso -->
     <div id="add-course-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-large">
             <span class="close" onclick="closeModal('add-course-modal')">&times;</span>
-            <h2>Adicionar Novo Curso</h2>
+            <h2 id="course-modal-title">Adicionar Novo Curso</h2>
             <form onsubmit="handleAddCourse(event)">
-                <input type="text" id="course-name" placeholder="Nome do Curso" required>
-                <textarea id="course-description" placeholder="Descrição"></textarea>
-                <input type="text" id="course-category" placeholder="Categoria (ex: Tecnologia, Saúde...)" required>
+                <div class="form-group">
+                    <label>Nome do Curso:</label>
+                    <input type="text" id="course-name" placeholder="Nome do Curso" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Descrição:</label>
+                    <textarea id="course-description" placeholder="Descrição do curso" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Categoria:</label>
+                    <input type="text" id="course-category" placeholder="ex: Tecnologia, Saúde..." required>
+                </div>
+                
                 <div class="form-group">
                     <label>Cor do Curso:</label>
                     <input type="color" id="course-color" value="#3b82f6">
                 </div>
-                <button type="submit" class="btn-large btn-primary">Criar Curso</button>
+
+                <div class="form-group">
+                    <label>Capacidades e Habilidades:</label>
+                    <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 15px;">
+                        Defina as capacidades do curso e as habilidades de cada capacidade. 
+                        Isso será usado para gerar questões com IA de forma mais precisa.
+                    </p>
+                    
+                    <div id="capacities-container" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #f8fafc;">
+                        <!-- Capacidades serão adicionadas aqui dinamicamente -->
+                    </div>
+                    
+                    <button type="button" onclick="addCapacity()" class="btn-secondary" style="margin-top: 10px;">
+                        + Adicionar Capacidade
+                    </button>
+                </div>
+
+                <button type="submit" class="btn-large btn-primary" style="margin-top: 20px;">Salvar Curso</button>
             </form>
         </div>
     </div>
@@ -188,13 +231,51 @@
                 <input type="text" id="question-id" placeholder="ID da Questão (ex: q1)" required>
                 <input type="text" id="question-capacity" placeholder="Capacidade/Categoria (ex: C1)" required>
                 <textarea id="question-context" placeholder="Contexto da questão" required></textarea>
+                <input type="url" id="question-context-image" placeholder="URL da imagem do contexto (opcional)">
                 <textarea id="question-command" placeholder="Pergunta" required></textarea>
                 
-                <h4>Opções (pelo menos 2):</h4>
+                <h4>Opções (pelo menos 2) — texto e imagem são opcionais, mas uma deve ser correta:</h4>
                 <div id="options-container"></div>
                 <button type="button" onclick="addOption()" class="btn-secondary">+ Adicionar Opção</button>
                 
                 <button type="submit" class="btn-large btn-primary" style="margin-top: 20px;">Criar Questão</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Criar Quiz -->
+    <div id="quiz-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('quiz-modal')">&times;</span>
+            <h2 id="quiz-modal-title">Novo Quiz</h2>
+            
+            <form id="quiz-form" onsubmit="handleQuizSubmit(event)">
+                <div class="form-group">
+                    <label>Nome do Quiz:</label>
+                    <input type="text" id="quiz-name" required placeholder="Ex: Prova Bimestral, Quiz de Lógica, etc.">
+                </div>
+
+                <div class="form-group">
+                    <label>Descrição:</label>
+                    <textarea id="quiz-description" rows="3" placeholder="Descrição opcional do quiz"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Curso:</label>
+                    <select id="quiz-course" required onchange="loadQuestionsForQuiz()">
+                        <option value="">Selecione o curso...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Questões do Quiz:</label>
+                    <div id="quiz-questions-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc;">
+                        <p style="color: #94a3b8; text-align: center;">Selecione um curso primeiro...</p>
+                    </div>
+                    <small>Selecione as questões que farão parte deste quiz</small>
+                </div>
+
+                <button type="submit" class="btn-large btn-primary" style="margin-top: 20px;">Salvar Quiz</button>
             </form>
         </div>
     </div>
@@ -221,21 +302,31 @@
 
                 <div class="form-group">
                     <label>Curso de Destino:</label>
-                    <select id="ai-course" required class="form-select">
+                    <select id="ai-course" required class="form-select" onchange="loadCapacitiesForAI()">
                         <option value="">Selecione o curso...</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label>Capacidade/Competência:</label>
-                    <input type="text" id="ai-capacity" placeholder="Ex: C1, Lógica de Programação, etc." required>
+                    <select id="ai-capacity" required class="form-select" onchange="loadSkillsForAI()">
+                        <option value="">Primeiro selecione um curso...</option>
+                    </select>
                     <small>A categoria ou competência que esta questão avalia</small>
                 </div>
 
                 <div class="form-group">
-                    <label>Conteúdo/Tema da Questão:</label>
-                    <textarea id="ai-content" placeholder="Ex: Estruturas de repetição em JavaScript, variáveis e tipos de dados, etc." rows="3" required></textarea>
-                    <small>Descreva o assunto específico que a questão deve abordar</small>
+                    <label>Habilidade Específica:</label>
+                    <select id="ai-skill" required class="form-select">
+                        <option value="">Primeiro selecione uma capacidade...</option>
+                    </select>
+                    <small>A habilidade específica dentro da capacidade escolhida</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Conteúdo/Contexto Adicional (opcional):</label>
+                    <textarea id="ai-content" placeholder="Ex: Foque em exemplos práticos com arrays, inclua cenário de jogo, etc." rows="3"></textarea>
+                    <small>Detalhes extras para personalizar a questão gerada</small>
                 </div>
 
                 <div class="form-group">
@@ -245,6 +336,23 @@
                         <option value="médio">Médio</option>
                         <option value="difícil">Difícil</option>
                     </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Imagens automáticas:</label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="ai-include-images" checked>
+                        <span>Gerar ilustrações automaticamente com IA gratuita</span>
+                    </label>
+                    <small>Ative para gerar imagens contextuais usando Pollinations AI (sem custos adicionais).</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Provedor de imagens:</label>
+                    <select id="ai-image-provider" class="form-select">
+                        <option value="pollinations">Pollinations (gratuito)</option>
+                    </select>
+                    <small>Integração com outros provedores, como Gemini Imagens, chegará em breve.</small>
                 </div>
 
                 <div class="button-group-vertical">
@@ -283,11 +391,12 @@
   {
     "id": "q1",
     "capacidade": "C1",
-    "context": "Contexto...",
+        "context": "Contexto...",
+        "contextImage": "https://exemplo.com/imagem-contexto.jpg",
     "command": "Pergunta?",
     "options": [
-      { "text": "Opção 1", "justification": "Por que está errada" },
-      { "text": "Opção 2", "correct": true }
+            { "text": "Opção 1", "justification": "Por que está errada", "image": "https://exemplo.com/opcao-1.jpg" },
+            { "text": "Opção 2", "correct": true, "image": "https://exemplo.com/opcao-2.jpg" }
     ]
   }
 ]</pre>
@@ -300,6 +409,75 @@
                 <textarea id="import-json" placeholder="Cole aqui o JSON com as questões..." rows="10" required></textarea>
                 <button type="submit" class="btn-large btn-success">Importar Questões</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal: Ajuda/Tutoriais -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeModal('help-modal')">&times;</span>
+            <h2>📚 Central de Ajuda - Painel Administrativo</h2>
+            
+            <div class="help-section">
+                <h3>🎯 Guia Rápido do Sistema</h3>
+                <p>Bem-vindo ao painel administrativo do Quiz SAEP! Aqui você pode gerenciar cursos, quizzes e questões.</p>
+            </div>
+
+            <div class="help-categories">
+                <button class="help-category-btn" onclick="showHelpContent('cadastro')">
+                    <span class="icon">👤</span>
+                    <div>
+                        <strong>Como se Cadastrar</strong>
+                        <small>Para alunos e professores</small>
+                    </div>
+                </button>
+
+                <button class="help-category-btn" onclick="showHelpContent('fazer-quiz')">
+                    <span class="icon">✏️</span>
+                    <div>
+                        <strong>Como Fazer um Quiz</strong>
+                        <small>Guia para alunos</small>
+                    </div>
+                </button>
+
+                <button class="help-category-btn" onclick="showHelpContent('criar-curso')">
+                    <span class="icon">📚</span>
+                    <div>
+                        <strong>Como Criar um Curso</strong>
+                        <small>Definir capacidades e habilidades</small>
+                    </div>
+                </button>
+
+                <button class="help-category-btn" onclick="showHelpContent('criar-quiz')">
+                    <span class="icon">📝</span>
+                    <div>
+                        <strong>Como Criar um Quiz</strong>
+                        <small>Selecionar questões personalizadas</small>
+                    </div>
+                </button>
+
+                <button class="help-category-btn" onclick="showHelpContent('gerar-questao')">
+                    <span class="icon">🤖</span>
+                    <div>
+                        <strong>Gerar Questões com IA</strong>
+                        <small>Usar Google Gemini</small>
+                    </div>
+                </button>
+
+                <button class="help-category-btn" onclick="showHelpContent('relatorios')">
+                    <span class="icon">📊</span>
+                    <div>
+                        <strong>Como Gerar Relatórios</strong>
+                        <small>Visualizar desempenho dos alunos</small>
+                    </div>
+                </button>
+            </div>
+
+            <div id="help-content" class="help-content">
+                <p style="text-align: center; color: #94a3b8; padding: 40px;">
+                    👆 Selecione uma categoria acima para ver o tutorial
+                </p>
+            </div>
         </div>
     </div>
 

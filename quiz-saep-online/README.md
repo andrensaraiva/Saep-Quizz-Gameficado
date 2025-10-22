@@ -20,6 +20,7 @@ Sistema completo de quiz online com **múltiplos cursos**, ranking, autenticaç�
 - ✅ Timer/cronômetro durante o quiz
 - ✅ Correção automática com feedback detalhado
 - ✅ Explicações para respostas incorretas
+- ✅ Ilustrações opcionais no contexto e nas alternativas
 
 ### 👤 Sistema de Usuários
 - ✅ Cadastro e login de usuários
@@ -43,6 +44,13 @@ Sistema completo de quiz online com **múltiplos cursos**, ranking, autenticaç�
 - ✅ **Exportação de dados em CSV**
 - ✅ Análise de desempenho por questão
 - ✅ Identificação de questões mais difíceis
+- ✅ Modal de IA com geração automática de texto e imagens
+
+### 🤖 IA e Ilustrações Automáticas
+- Geração de questões completas via Google Gemini ou OpenAI
+- Pollinations integrado para criar imagens livres de taxa
+- Revisão e edição antes de salvar, com preview das mídias
+- Passo a passo completo no [Guia de IA](GUIA-IA.md)
 
 ### 📊 Relatórios e Analytics
 - ✅ Estatísticas de uso do sistema
@@ -169,23 +177,24 @@ Acesse: `http://localhost:3000/admin.html`
 
 **Formato do JSON:**
 
-**Formato do JSON:**
-
 ```json
 [
   {
     "id": "Q01",
     "capacidade": "Análise",
     "context": "Contexto da questão aqui...",
+    "contextImage": "https://image.pollinations.ai/prompt/contexto-exemplo",
     "command": "Qual é a pergunta?",
     "options": [
       {
         "text": "Resposta correta",
-        "correct": true
+        "correct": true,
+        "image": "https://image.pollinations.ai/prompt/opcao-correta"
       },
       {
         "text": "Resposta incorreta 1",
-        "justification": "Explicação do erro"
+        "justification": "Explicação do erro",
+        "image": "https://image.pollinations.ai/prompt/opcao-errada-1"
       },
       {
         "text": "Resposta incorreta 2",
@@ -207,7 +216,7 @@ Acesse: `http://localhost:3000/admin.html`
 - Cada questão precisa ter: `id`, `command`, `options`
 - Cada opção precisa ter: `text`
 - **Exatamente UMA** opção deve ter `"correct": true`
-- `capacidade` e `context` são opcionais
+- `capacidade`, `context`, `contextImage`, `justification` e `image` são opcionais
 
 ### 4️⃣ Gerenciar Usuários
 - Ver lista completa de usuários
@@ -345,15 +354,37 @@ taskkill /PID [PID] /F
 ---
 
 ## 📝 Estrutura de Dados
-  ]
+
+```json
+{
+  "id": "Q25",
+  "capacidade": "C3 - Aplicação",
+  "context": "Contextualização opcional antes da pergunta.",
+  "contextImage": "https://image.pollinations.ai/prompt/contexto-aplicacao",
+  "command": "Qual instrução JavaScript exibe uma mensagem no console?",
+  "options": [
+    {
+      "text": "console.log('Olá mundo');",
+      "correct": true,
+      "image": "https://image.pollinations.ai/prompt/codigo-console-log",
+      "justification": "Mostra a chamada correta do método log."
+    },
+    {
+      "text": "print('Olá mundo');",
+      "image": "https://image.pollinations.ai/prompt/codigo-print",
+      "justification": "`print` não é suportado no JS do navegador."
+    }
+  ],
+  "explanation": "`console.log` é a forma padrão de registrar mensagens no console do navegador.",
+  "tags": ["javascript", "console"]
 }
 ```
 
 **Importante:**
-- Apenas UMA opção deve ter `"correct": true`
-- Opções incorretas devem ter o campo `"justification"`
-- A opção correta NÃO precisa de justification (mas pode ter)
-- O sistema embaralha automaticamente as questões e opções
+- Apenas UMA opção deve ter `"correct": true`.
+- Recomende `"justification"` nas opções incorretas para feedback mais rico.
+- Campos `context`, `contextImage`, `image`, `explanation` e `tags` são opcionais.
+- O sistema embaralha automaticamente as questões e alternativas.
 
 ## 🔧 API Endpoints
 

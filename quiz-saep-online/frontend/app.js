@@ -29,7 +29,9 @@ console.log('🌐 API URL configurada:', API_URL);
 // Estado Global
 let quizData = [];
 let courses = [];
+let quizzes = [];
 let currentCourse = null;
+let currentQuiz = null;
 let currentUser = null;
 let currentToken = null;
 let startTime = null;
@@ -48,6 +50,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     await loadCourses();
+    await loadAvailableQuizzes();
     await loadQuestions();
 });
 
@@ -298,55 +301,93 @@ function backToMenu() {
 
 // ==================== QUIZ ====================
 
-function startQuiz() {
-    if (quizData.length === 0) {
-        alert('Nenhuma questão disponível para este curso. Verifique o painel administrativo.');
+async function startQuiz() {
+    const quizId = parseInt(document.getElementById('quiz-select').value);
+    
+    if (!quizId) {
+        alert('Por favor, selecione um quiz primeiro.');
         return;
     }
 
-    document.getElementById('main-menu').style.display = 'none';
-    document.getElementById('quiz-container').style.display = 'block';
-    
-    buildQuiz();
-    startTimer();
+    // Buscar detalhes do quiz selecionado
+    try {
+        const response = await fetch(`${API_URL}/quizzes/${quizId}`);
+        const quizDetails = await response.json();
+
+        if (!response.ok || !quizDetails.questions || quizDetails.questions.length === 0) {
+            alert('Este quiz não possui questões disponíveis.');
+            return;
+        }
+
+        currentQuiz = quizDetails;
+        quizData = quizDetails.questions;
+        currentCourse = quizDetails.course;
+
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('quiz-container').style.display = 'block';
+        
+        buildQuiz();
+        startTimer();
+
+    } catch (error) {
+        console.error('Erro ao carregar quiz:', error);
+        alert('Erro ao carregar o quiz. Tente novamente.');
+    }
 }
 
 function buildQuiz() {
     const quizForm = document.getElementById('quiz-form');
-    let questionsHtml = '';
     
-    // Embaralhar questões e opções
-    const shuffledQuiz = [...quizData].sort(() => Math.random() - 0.5);
-    
-    shuffledQuiz.forEach((q, index) => {
-        const shuffledOptions = [...q.options].sort(() => Math.random() - 0.5);
-        q.correctIndex = shuffledOptions.findIndex(option => option.correct);
-        q.shuffledOptions = shuffledOptions;
-        
-        questionsHtml += `
-            <div class="question-block" id="${q.id}">
-                <h4>Questão ${index + 1} (Capacidade: ${q.capacidade})</h4>
-                <p class="context">${q.context}</p>
-                <p class="command">${q.command}</p>
-                <div class="options-container">
-        `;
-        
-        shuffledOptions.forEach((option, optionIndex) => {
-            questionsHtml += `
-                <label>
+    const shuffledQuiz = [...quizData]
+        .sort(() => Math.random() - 0.5)
+        .map(originalQuestion => {
+            const question = { ...originalQuestion };
+            const shuffledOptions = [...(question.options || [])].sort(() => Math.random() - 0.5);
+            question.correctIndex = shuffledOptions.findIndex(option => option.correct);
+            question.shuffledOptions = shuffledOptions;
+            return question;
+        });
+
+    const questionsHtml = shuffledQuiz.map((q, index) => {
+        const contextText = q.context ? `<p class="context">${q.context}</p>` : '';
+        const contextImage = q.contextImage
+            ? `<div class="context-media"><img src="${q.contextImage}" alt="Ilustração de contexto da questão ${index + 1}" loading="lazy"></div>`
+            : '';
+
+        const optionsHtml = q.shuffledOptions.map((option, optionIndex) => {
+            const letter = String.fromCharCode(65 + optionIndex);
+            const optionImage = option.image
+                ? `<div class="option-media"><img src="${option.image}" alt="Ilustração da alternativa ${letter} da questão ${index + 1}" loading="lazy"></div>`
+                : '';
+
+            return `
+                <label class="option-card">
                     <input type="radio" name="${q.id}" value="${optionIndex}">
-                    ${String.fromCharCode(65 + optionIndex)}) ${option.text}
+                    <div class="option-body">
+                        <div class="option-header">
+                            <span class="option-letter">${letter})</span>
+                            <span class="option-text">${option.text}</span>
+                        </div>
+                        ${optionImage}
+                    </div>
                 </label>
             `;
-        });
-        
-        questionsHtml += `
+        }).join('');
+
+        return `
+            <div class="question-block" id="${q.id}">
+                <h4>Questão ${index + 1} (Capacidade: ${q.capacidade})</h4>
+                ${contextText}
+                ${contextImage}
+                <p class="command">${q.command}</p>
+                <div class="options-container">
+                    ${optionsHtml}
                 </div>
                 <div class="feedback" id="feedback-${q.id}"></div>
             </div>
         `;
-    });
-    
+    }).join('');
+
     quizForm.innerHTML = questionsHtml;
     window.shuffledQuizData = shuffledQuiz;
 }
@@ -383,24 +424,23 @@ document.getElementById('submit-btn').addEventListener('click', function() {
         const questionBlock = document.getElementById(q.id);
         const feedbackEl = document.getElementById(`feedback-${q.id}`);
         const selectedOptionEl = document.querySelector(`input[name="${q.id}"]:checked`);
-        
+
         questionBlock.classList.remove('correct', 'incorrect');
         feedbackEl.style.display = 'none';
-        
-        // Inicializar estatística de capacidade
+
         if (!capacityStats[q.capacidade]) {
             capacityStats[q.capacidade] = { correct: 0, total: 0 };
         }
         capacityStats[q.capacidade].total++;
-        
-        const isCorrect = selectedOptionEl && parseInt(selectedOptionEl.value) === q.correctIndex;
-        
-        answersDetail.push({
-            questionId: q.id,
-            capacity: q.capacidade,
-            correct: isCorrect
-        });
-        
+
+        const userAnswerIndex = selectedOptionEl ? parseInt(selectedOptionEl.value, 10) : -1;
+        const isCorrect = userAnswerIndex === q.correctIndex;
+        const chosenOption = userAnswerIndex >= 0 ? q.shuffledOptions[userAnswerIndex] : null;
+        const correctOption = q.shuffledOptions[q.correctIndex];
+        const chosenLetter = chosenOption ? (chosenOption.letter || String.fromCharCode(65 + userAnswerIndex)) : null;
+        const correctLetter = correctOption ? (correctOption.letter || String.fromCharCode(65 + q.correctIndex)) : null;
+        const correctText = correctOption ? correctOption.text : 'Resposta indisponível';
+
         if (isCorrect) {
             score++;
             capacityStats[q.capacidade].correct++;
@@ -408,32 +448,64 @@ document.getElementById('submit-btn').addEventListener('click', function() {
         } else {
             questionBlock.classList.add('incorrect');
             wrongQuestions.push({ number: index + 1, id: q.id });
-            
-            const userAnswerIndex = selectedOptionEl ? parseInt(selectedOptionEl.value) : -1;
-            const chosenOption = userAnswerIndex >= 0 ? q.shuffledOptions[userAnswerIndex] : null;
-            const correctOption = q.shuffledOptions[q.correctIndex];
-            
+
             let feedbackHtml = `
-                <p class="correct-answer-text">✓ Resposta Correta: ${correctOption.text}</p>
+                <p class="correct-answer-text">✓ Resposta Correta: ${correctText}</p>
             `;
-            
-            if (chosenOption) {
+
+            if (correctOption && correctOption.image) {
                 feedbackHtml += `
-                    <div class="justification">
-                        <strong>Por que sua resposta está incorreta:</strong>
-                        <p>${chosenOption.justification}</p>
+                    <div class="feedback-media">
+                        <img src="${correctOption.image}" alt="Imagem da resposta correta da questão ${index + 1}" loading="lazy">
                     </div>
                 `;
+            }
+
+            if (correctOption && correctOption.explanation) {
+                feedbackHtml += `
+                    <p class="correct-explanation"><strong>Por que está correta:</strong> ${correctOption.explanation}</p>
+                `;
+            }
+
+            if (chosenOption) {
+                if (chosenOption.justification) {
+                    feedbackHtml += `
+                        <div class="justification">
+                            <strong>Por que sua resposta está incorreta:</strong>
+                            <p>${chosenOption.justification}</p>
+                        </div>
+                    `;
+                }
+
+                if (chosenOption.image && chosenOption !== correctOption) {
+                    feedbackHtml += `
+                        <div class="feedback-media">
+                            <span class="feedback-label">Sua resposta:</span>
+                            <img src="${chosenOption.image}" alt="Imagem da alternativa escolhida da questão ${index + 1}" loading="lazy">
+                        </div>
+                    `;
+                }
             } else {
                 feedbackHtml += `<p><strong>Você não respondeu esta questão.</strong></p>`;
             }
-            
+
             feedbackEl.innerHTML = feedbackHtml;
             feedbackEl.style.display = 'block';
         }
+
+        answersDetail.push({
+            questionId: q.id,
+            capacity: q.capacidade,
+            correct: isCorrect,
+            selectedOption: chosenLetter,
+            selectedOptionText: chosenOption ? chosenOption.text : null,
+            selectedOptionImage: chosenOption && chosenOption.image ? chosenOption.image : null,
+            correctOption: correctLetter,
+            correctOptionText: correctOption ? correctOption.text : null,
+            correctOptionImage: correctOption && correctOption.image ? correctOption.image : null,
+            contextImage: q.contextImage || null
+        });
     });
-    
-    // Salvar resultados
     currentResults = {
         score,
         totalQuestions: window.shuffledQuizData.length,
@@ -442,39 +514,32 @@ document.getElementById('submit-btn').addEventListener('click', function() {
         capacityStats,
         wrongQuestions
     };
-    
+
     showReport();
 });
-
-// ==================== RELATÓRIO ====================
 
 function showReport() {
     document.getElementById('quiz-container').style.display = 'none';
     document.getElementById('report-container').style.display = 'block';
     
     const { score, totalQuestions, timeSpent, capacityStats, wrongQuestions } = currentResults;
-    const percentage = ((score / totalQuestions) * 100).toFixed(1);
-    
-    // Pontuação
+    const percentage = totalQuestions > 0 ? ((score / totalQuestions) * 100).toFixed(1) : '0.0';
+
     document.getElementById('percentage-display').textContent = `${percentage}%`;
     document.getElementById('score-text').textContent = `${score} de ${totalQuestions} questões`;
-    
-    // Tempo
+
     const minutes = Math.floor(timeSpent / 60);
     const seconds = timeSpent % 60;
-    document.getElementById('time-spent').textContent = 
-        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    
-    // Contadores
+    document.getElementById('time-spent').textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
     document.getElementById('correct-count').textContent = score;
     document.getElementById('wrong-count').textContent = totalQuestions - score;
-    
-    // Estatísticas por capacidade
+
     const capacityStatsHtml = Object.keys(capacityStats)
         .sort()
         .map(cap => {
             const stat = capacityStats[cap];
-            const capPercentage = ((stat.correct / stat.total) * 100).toFixed(0);
+            const capPercentage = stat.total > 0 ? ((stat.correct / stat.total) * 100).toFixed(0) : '0';
             return `
                 <div class="capacity-item">
                     <span class="capacity-name">${cap}</span>
@@ -483,13 +548,12 @@ function showReport() {
             `;
         })
         .join('');
-    
+
     document.getElementById('capacity-stats').innerHTML = `
         <h3>📊 Desempenho por Capacidade</h3>
         ${capacityStatsHtml}
     `;
-    
-    // Lista de questões erradas
+
     const wrongListEl = document.getElementById('wrong-questions-list');
     if (wrongQuestions.length > 0) {
         let wrongHtml = '<h3>❌ Questões para revisar:</h3><ul>';
@@ -501,16 +565,14 @@ function showReport() {
     } else {
         wrongListEl.innerHTML = '<h3 style="color: var(--cor-correta);">🎉 Parabéns! Você acertou todas as questões!</h3>';
     }
-    
-    // Mostrar botão de salvar se usuário estiver logado
+
     const saveScoreSection = document.getElementById('save-score-section');
     if (currentUser) {
         saveScoreSection.style.display = 'block';
     } else {
         saveScoreSection.style.display = 'none';
     }
-    
-    // Scroll para o topo
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -722,6 +784,58 @@ function displayHistory(scores) {
     });
     
     historyList.innerHTML = html;
+}
+
+// ==================== QUIZZES ====================
+
+async function loadAvailableQuizzes() {
+    try {
+        const response = await fetch(`${API_URL}/quizzes`);
+        quizzes = await response.json();
+
+        const quizSelect = document.getElementById('quiz-select');
+        const startBtn = document.getElementById('start-quiz-btn');
+
+        if (quizzes.length === 0) {
+            quizSelect.innerHTML = '<option value="">Nenhum quiz disponível</option>';
+            startBtn.disabled = true;
+            return;
+        }
+
+        quizSelect.innerHTML = '<option value="">Selecione um quiz...</option>';
+        quizzes.forEach(quiz => {
+            const course = courses.find(c => c.id === quiz.courseId);
+            const option = document.createElement('option');
+            option.value = quiz.id;
+            option.textContent = `${quiz.name} (${course ? course.name : 'Curso desconhecido'}) - ${quiz.questionIds.length} questões`;
+            quizSelect.appendChild(option);
+        });
+
+        // Habilitar botão quando um quiz for selecionado
+        quizSelect.addEventListener('change', function() {
+            startBtn.disabled = !this.value;
+        });
+
+    } catch (error) {
+        console.error('Erro ao carregar quizzes:', error);
+        const quizSelect = document.getElementById('quiz-select');
+        quizSelect.innerHTML = '<option value="">Erro ao carregar quizzes</option>';
+        document.getElementById('start-quiz-btn').disabled = true;
+    }
+}
+
+// ==================== AJUDA PARA ALUNOS ====================
+
+function showStudentHelp() {
+    const modal = document.getElementById('student-help-modal');
+    modal.style.display = 'block';
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
 }
 
 // Fechar modal ao clicar fora

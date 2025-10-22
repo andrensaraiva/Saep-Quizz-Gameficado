@@ -191,27 +191,84 @@ header h1 {
     color: var(--cor-texto);
 }
 
-/* Options */
-.options-container label {
-    display: block;
-    margin-bottom: 0.8rem;
-    padding: 1rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background: #ffffff;
+/* Context & Media */
+.context-media {
+    margin: 1.2rem 0 1rem;
+    text-align: center;
 }
 
-.options-container label:hover {
+.context-media img {
+    max-width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+    object-fit: cover;
+}
+
+/* Options */
+.options-container {
+    display: grid;
+    gap: 1rem;
+}
+
+.options-container .option-card {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.1rem 1.3rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.options-container .option-card:hover {
     background: #f8fafc;
     border-color: var(--cor-primaria);
     transform: translateX(5px);
+    box-shadow: 0 10px 24px rgba(59, 130, 246, 0.15);
 }
 
-.options-container input[type="radio"] {
-    margin-right: 0.8rem;
+.options-container .option-card input[type="radio"] {
+    margin-top: 0.35rem;
     cursor: pointer;
+    transform: scale(1.15);
+}
+
+.option-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.option-header {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    font-weight: 500;
+    color: var(--cor-texto);
+}
+
+.option-letter {
+    font-weight: 700;
+    color: var(--cor-primaria);
+}
+
+.option-text {
+    flex: 1;
+}
+
+.option-media {
+    margin-top: 0.5rem;
+}
+
+.option-media img {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
 }
 
 /* Feedback */
@@ -235,6 +292,29 @@ header h1 {
 .feedback .justification {
     margin-top: 1rem;
     color: #374151;
+}
+
+.correct-explanation {
+    margin-top: 1rem;
+    color: #1f2937;
+}
+
+.feedback-media {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.feedback-media img {
+    max-width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.25);
+}
+
+.feedback-media .feedback-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--cor-secundaria);
 }
 
 /* Buttons */
