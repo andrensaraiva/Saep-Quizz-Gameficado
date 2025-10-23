@@ -494,9 +494,46 @@ function showAddQuestionModal() {
     if (contextImageInput) {
         contextImageInput.value = '';
     }
+    
+    // Limpar e desabilitar campo de ID (será gerado automaticamente)
+    const questionIdInput = document.getElementById('question-id');
+    if (questionIdInput) {
+        questionIdInput.value = '';
+        questionIdInput.placeholder = 'Será gerado automaticamente';
+        questionIdInput.readOnly = true;
+        questionIdInput.style.backgroundColor = '#f0f0f0';
+    }
+    
+    // Atualizar preview do próximo ID quando o curso for selecionado
+    const courseSelect = document.getElementById('question-course');
+    if (courseSelect) {
+        courseSelect.addEventListener('change', updateNextQuestionId, { once: true });
+    }
+    
     addOption();
     addOption();
     openModal('add-question-modal');
+}
+
+async function updateNextQuestionId() {
+    const courseId = parseInt(document.getElementById('question-course').value);
+    const questionIdInput = document.getElementById('question-id');
+    
+    if (!courseId || !questionIdInput) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/courses/${courseId}/next-question-id`, {
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            questionIdInput.value = data.nextId;
+            questionIdInput.placeholder = `Próximo ID: ${data.nextId}`;
+        }
+    } catch (error) {
+        console.error('Erro ao obter próximo ID:', error);
+    }
 }
 
 function addOption() {
@@ -526,7 +563,7 @@ async function handleAddQuestion(event) {
     event.preventDefault();
 
     const courseId = parseInt(document.getElementById('question-course').value);
-    const questionId = document.getElementById('question-id').value;
+    const questionId = document.getElementById('question-id').value.trim();
     const capacity = document.getElementById('question-capacity').value;
     const context = document.getElementById('question-context').value;
     const contextImage = document.getElementById('question-context-image').value.trim();
@@ -579,12 +616,17 @@ async function handleAddQuestion(event) {
     }
 
     const questionData = {
-        id: questionId,
+        // Se ID estiver vazio, não envia (backend vai gerar automaticamente)
         capacidade: capacity,
         context,
         command,
         options
     };
+
+    // Só adiciona ID se foi fornecido (para compatibilidade retroativa)
+    if (questionId) {
+        questionData.id = questionId;
+    }
 
     if (contextImage) {
         questionData.contextImage = contextImage;
@@ -607,7 +649,7 @@ async function handleAddQuestion(event) {
             return;
         }
 
-        alert('Questão criada com sucesso!');
+        alert(`✅ Questão criada com sucesso!\n\nID gerado: ${data.question.id}`);
         closeModal('add-question-modal');
         event.target.reset();
         loadQuestionsByCourse();

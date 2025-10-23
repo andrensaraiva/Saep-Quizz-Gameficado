@@ -78,6 +78,7 @@ const DEFAULT_ADMIN = {
 
 const DEFAULT_COURSE = {
   name: 'Programação de Jogos Digitais',
+  abbreviation: 'JD', // Abreviação para geração de IDs
   description: 'Curso completo sobre desenvolvimento de jogos, cobrindo conceitos fundamentais de game design, programação e mecânicas de jogo.',
   category: 'Tecnologia',
   color: '#6366f1',
@@ -114,6 +115,64 @@ const DEFAULT_COURSE = {
     }
   ]
 };
+
+// Mapeamento de abreviações de cursos para geração de IDs
+const COURSE_ABBREVIATIONS = {
+  'Programação de Jogos Digitais': 'JD',
+  'Jogos Digitais': 'JD',
+  'Desenvolvimento de Games': 'DG',
+  'Tecnologia': 'TEC',
+  'Programação': 'PROG'
+};
+
+// Função para obter abreviação do curso
+function getCourseAbbreviation(course) {
+  // Priorizar abreviação definida no próprio curso
+  if (course.abbreviation) {
+    return course.abbreviation;
+  }
+  
+  // Buscar no mapeamento
+  if (COURSE_ABBREVIATIONS[course.name]) {
+    return COURSE_ABBREVIATIONS[course.name];
+  }
+  
+  // Fallback: pegar iniciais das palavras
+  return course.name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .substring(0, 3);
+}
+
+// Função para gerar próximo ID de questão para um curso
+function generateNextQuestionId(courseId) {
+  const course = courses.find(c => c.id === courseId);
+  if (!course) {
+    throw new Error('Curso não encontrado');
+  }
+  
+  const abbreviation = getCourseAbbreviation(course);
+  const courseQuestions = questions.filter(q => q.courseId === courseId);
+  
+  // Extrair números das questões existentes
+  const existingNumbers = courseQuestions
+    .map(q => {
+      // Tentar extrair número do ID (ex: "q1-JD" -> 1, "q15-JD" -> 15)
+      const match = q.id.match(/q(\d+)/i);
+      return match ? parseInt(match[1]) : 0;
+    })
+    .filter(n => n > 0);
+  
+  // Próximo número é o maior + 1, ou 1 se não houver questões
+  const nextNumber = existingNumbers.length > 0 
+    ? Math.max(...existingNumbers) + 1 
+    : 1;
+  
+  return `q${nextNumber}-${abbreviation}`;
+}
+
 
 const QUESTIONS_FILE_PATH = path.join(__dirname, '../shared/questions.json');
 
@@ -242,6 +301,8 @@ function normalizeOptionsArray(options) {
 
 function seedInitialData() {
   try {
+    console.log('🚀 Iniciando seed de dados...');
+    
     let admin = users.find(u => u.role === 'admin');
     if (!admin) {
       const hashedPassword = bcrypt.hashSync(DEFAULT_ADMIN.password, 10);
@@ -255,6 +316,10 @@ function seedInitialData() {
       };
       users.push(admin);
       console.log('✅ Admin padrão criado automaticamente');
+      console.log(`   📧 Email: ${admin.email}`);
+      console.log(`   🔑 Senha: ${DEFAULT_ADMIN.password}`);
+    } else {
+      console.log('ℹ️  Admin já existe');
     }
 
     let course = courses.find(c => c.name === DEFAULT_COURSE.name);
@@ -266,12 +331,18 @@ function seedInitialData() {
         createdAt: new Date().toISOString()
       };
       courses.push(course);
-      console.log('✅ Curso padrão criado automaticamente');
+      console.log(`✅ Curso padrão criado automaticamente: "${course.name}"`);
+      console.log(`   📚 ID: ${course.id}`);
+      console.log(`   🏷️  Abreviação: ${course.abbreviation}`);
+    } else {
+      console.log(`ℹ️  Curso "${course.name}" já existe (ID: ${course.id})`);
     }
 
     if (questions.length === 0 && fs.existsSync(QUESTIONS_FILE_PATH)) {
+      console.log(`📂 Carregando questões de: ${QUESTIONS_FILE_PATH}`);
       const fileContent = fs.readFileSync(QUESTIONS_FILE_PATH, 'utf8');
       const questionsData = JSON.parse(fileContent);
+      console.log(`📝 ${questionsData.length} questões encontradas no arquivo`);
 
       questionsData.forEach((q, index) => {
         const alreadyExists = questions.some(existing => existing.id === q.id && existing.courseId === course.id);
@@ -282,7 +353,7 @@ function seedInitialData() {
         questions.push({
           id: q.id || `Q${index + 1}`,
           courseId: course.id,
-          capacity: q.capacidade || q.capacity || 'Geral',
+          capacidade: q.capacidade || q.capacity || 'Geral',
           difficulty: q.dificuldade || q.difficulty || 'Médio',
           context: q.context || '',
           contextImage: q.contextImage || null,
@@ -294,6 +365,10 @@ function seedInitialData() {
       });
 
       console.log(`✅ ${questions.length} questões carregadas automaticamente`);
+    } else if (questions.length > 0) {
+      console.log(`ℹ️  ${questions.length} questões já existem na memória`);
+    } else {
+      console.log(`⚠️  Arquivo de questões não encontrado: ${QUESTIONS_FILE_PATH}`);
     }
 
     // Criar quiz padrão se não existir
@@ -313,9 +388,19 @@ function seedInitialData() {
         quizzes.push(defaultQuiz);
         console.log(`✅ Quiz padrão criado com ${courseQuestions.length} questões`);
       }
+    } else if (quizzes.length > 0) {
+      console.log(`ℹ️  ${quizzes.length} quizzes já existem`);
     }
+    
+    console.log('📊 Resumo do seed:');
+    console.log(`   👥 Usuários: ${users.length} (Admin: ${users.filter(u => u.role === 'admin').length})`);
+    console.log(`   📚 Cursos: ${courses.length}`);
+    console.log(`   ❓ Questões: ${questions.length}`);
+    console.log(`   📝 Quizzes: ${quizzes.length}`);
+    console.log('✅ Seed concluído com sucesso!\n');
   } catch (error) {
-    console.error('⚠️  Falha ao carregar dados iniciais:', error.message);
+    console.error('❌ ERRO CRÍTICO ao carregar dados iniciais:', error);
+    console.error('Stack trace:', error.stack);
   }
 }
 
@@ -487,9 +572,21 @@ app.post('/api/auth/create-admin', async (req, res) => {
 
 // ==================== ROTAS DE CURSOS ====================
 
+// Rota de debug para verificar status dos cursos (pode remover após deploy)
+app.get('/api/debug/courses', (req, res) => {
+  res.json({
+    totalCourses: courses.length,
+    courses: courses.map(c => ({ id: c.id, name: c.name, abbreviation: c.abbreviation })),
+    totalQuestions: questions.length,
+    totalUsers: users.length,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Listar todos os cursos
 app.get('/api/courses', (req, res) => {
   try {
+    console.log(`📚 GET /api/courses - Retornando ${courses.length} cursos`);
     const coursesWithStats = courses.map(course => {
       const courseQuestions = questions.filter(q => q.courseId === course.id);
       const courseScores = scores.filter(s => s.courseId === course.id);
@@ -620,9 +717,9 @@ app.get('/api/courses/:courseId/questions', (req, res) => {
 app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId);
-    const { id, capacidade, context, contextImage, command, options } = req.body;
+    let { id, capacidade, context, contextImage, command, options } = req.body;
 
-    if (!id || !context || !command || !options || options.length === 0) {
+    if (!context || !command || !options || options.length === 0) {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
 
@@ -630,6 +727,11 @@ app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, (r
     const course = courses.find(c => c.id === courseId);
     if (!course) {
       return res.status(404).json({ error: 'Curso não encontrado' });
+    }
+
+    // Se ID não foi fornecido, gerar automaticamente
+    if (!id) {
+      id = generateNextQuestionId(courseId);
     }
 
     // Verificar se ID já existe
@@ -658,6 +760,30 @@ app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, (r
   }
 });
 
+// Obter próximo ID disponível para um curso
+app.get('/api/courses/:courseId/next-question-id', authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const courseId = parseInt(req.params.courseId);
+    
+    // Verificar se curso existe
+    const course = courses.find(c => c.id === courseId);
+    if (!course) {
+      return res.status(404).json({ error: 'Curso não encontrado' });
+    }
+
+    const nextId = generateNextQuestionId(courseId);
+    
+    res.json({ 
+      nextId,
+      courseAbbreviation: getCourseAbbreviation(course),
+      courseName: course.name
+    });
+  } catch (error) {
+    console.error('Erro ao gerar próximo ID:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 // Importar questões em lote (JSON ou CSV) (apenas admin)
 app.post('/api/courses/:courseId/questions/import', authenticateToken, requireAdmin, (req, res) => {
   try {
@@ -680,19 +806,25 @@ app.post('/api/courses/:courseId/questions/import', authenticateToken, requireAd
     questionsData.forEach((q, index) => {
       try {
         // Validar questão
-        if (!q.id || !q.context || !q.command || !q.options) {
+        if (!q.context || !q.command || !q.options) {
           errors.push({ index: index + 1, error: 'Dados incompletos', question: q });
           return;
         }
 
+        // Se ID não foi fornecido, gerar automaticamente
+        let questionId = q.id;
+        if (!questionId) {
+          questionId = generateNextQuestionId(courseId);
+        }
+
         // Verificar se ID já existe
-        if (questions.find(existingQ => existingQ.id === q.id && existingQ.courseId === courseId)) {
-          errors.push({ index: index + 1, error: 'ID já existe', id: q.id });
+        if (questions.find(existingQ => existingQ.id === questionId && existingQ.courseId === courseId)) {
+          errors.push({ index: index + 1, error: 'ID já existe', id: questionId });
           return;
         }
 
         const question = {
-          id: q.id,
+          id: questionId,
           courseId,
           capacidade: q.capacidade || 'Geral',
           context: q.context,
