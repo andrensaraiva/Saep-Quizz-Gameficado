@@ -717,9 +717,15 @@ app.get('/api/courses/:courseId/questions', (req, res) => {
 app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId);
-    let { id, capacidade, context, contextImage, command, options } = req.body;
+    let { id, capacidade, capacity, dificuldade, difficulty, context, contexto, contextImage, command, comando, options } = req.body;
 
-    if (!context || !command || !options || options.length === 0) {
+    // Aceitar campos em português ou inglês
+    const finalCapacity = capacidade || capacity || 'Geral';
+    const finalDifficulty = dificuldade || difficulty || 'Médio';
+    const finalContext = contexto || context || '';
+    const finalCommand = comando || command;
+
+    if (!finalContext || !finalCommand || !options || options.length === 0) {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
 
@@ -742,10 +748,11 @@ app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, (r
     const question = {
       id,
       courseId,
-      capacidade: capacidade || 'Geral',
-      context,
+      capacity: finalCapacity,
+      difficulty: finalDifficulty,
+      context: finalContext,
       contextImage: contextImage || null,
-      command,
+      command: finalCommand,
       options: normalizeOptionsArray(options),
       createdBy: req.user.id,
       createdAt: new Date().toISOString()
@@ -826,10 +833,11 @@ app.post('/api/courses/:courseId/questions/import', authenticateToken, requireAd
         const question = {
           id: questionId,
           courseId,
-          capacidade: q.capacidade || 'Geral',
-          context: q.context,
+          capacity: q.capacidade || q.capacity || 'Geral',
+          difficulty: q.dificuldade || q.difficulty || 'Médio',
+          context: q.contexto || q.context || '',
           contextImage: q.contextImage || null,
-          command: q.command,
+          command: q.comando || q.command,
           options: normalizeOptionsArray(q.options),
           createdBy: req.user.id,
           createdAt: new Date().toISOString()
