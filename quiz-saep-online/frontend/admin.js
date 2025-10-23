@@ -456,12 +456,15 @@ async function loadQuestionsByCourse() {
         const response = await fetch(`${API_URL}/courses/${courseId}/questions`);
         const data = await response.json();
 
-        if (data.questions.length === 0) {
+        // Aceitar tanto array direto quanto objeto { questions: [...] }
+        const questionsList = Array.isArray(data) ? data : (data.questions || []);
+
+        if (questionsList.length === 0) {
             document.getElementById('questions-list').innerHTML = '<p>Nenhuma questão cadastrada neste curso.</p>';
             return;
         }
 
-        const questionsHtml = data.questions.map(q => {
+        const questionsHtml = questionsList.map(q => {
             const hasImages = q.contextImage || (Array.isArray(q.options) && q.options.some(opt => opt.image));
 
             return `

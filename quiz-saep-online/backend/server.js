@@ -605,18 +605,6 @@ app.get('/api/courses', (req, res) => {
   }
 });
 
-// Buscar questões de um curso específico
-app.get('/api/courses/:id/questions', (req, res) => {
-  try {
-    const courseId = parseInt(req.params.id);
-    const courseQuestions = questions.filter(q => q.courseId === courseId);
-    res.json(courseQuestions);
-  } catch (error) {
-    console.error('Erro ao buscar questões do curso:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-});
-
 // Criar novo curso (apenas admin)
 app.post('/api/courses', authenticateToken, requireAdmin, (req, res) => {
   try {
