@@ -1311,38 +1311,103 @@ app.post('/api/ai/generate-question', authenticateToken, requireAdmin, async (re
 
     const aiProvider = provider || 'gemini'; // Default: Gemini
 
-    // Montar o prompt
-    const prompt = `Você é um especialista em criar questões de múltipla escolha para avaliações educacionais.
+    // Montar o prompt detalhado padrão SAEP
+    const prompt = `# Atenção: Sua tarefa é criar UM item de avaliação (uma questão de múltipla escolha) para o Sistema de Avaliação da Educação Profissional (SAEP). Siga rigorosamente todas as instruções e a estrutura definidas abaixo.
 
-Crie uma questão de múltipla escolha com as seguintes características:
+## 1. Definição dos Metadados da Questão:
 
-**Capacidade/Competência:** ${capacity}
-**Conteúdo:** ${content}
-**Dificuldade:** ${difficulty}
+**Curso Técnico:** Técnico em Programação de Jogos Digitais.
 
-A questão deve ter:
-- Um contexto claro e relevante (se necessário)
-- Uma pergunta objetiva e bem formulada
-- Exatamente 4 alternativas (A, B, C, D)
-- Apenas UMA alternativa correta
-- As alternativas incorretas devem ser plausíveis
-- Uma explicação breve do porquê a resposta correta está certa
-- Sugestões de imagens em inglês para enriquecer a questão quando apropriado (descrições curtas, até 20 palavras, sem menção a texto na imagem)
+**Capacidade Alvo:** ${capacity}
 
-Retorne APENAS um JSON válido no seguinte formato (sem markdown, sem \`\`\`):
+**Conhecimento Avaliado:** ${content}
+
+**Nível de Dificuldade:** ${difficulty}
+
+## 2. Diretrizes de Construção do Item:
+
+**Princípio Fundamental:** O item deve simular um cenário de trabalho realista e plausível para um técnico da área. O estudante deve se sentir como um profissional resolvendo um problema real.
+
+**Vínculo Contexto-Comando:** O Contexto deve apresentar um problema com detalhes e restrições específicas. O Comando deve ser formulado de tal maneira que a sua resolução dependa diretamente da análise das informações e restrições apresentadas no Contexto. Não deve ser possível responder ao comando apenas com conhecimento teórico isolado.
+
+**Qualidade das Alternativas:**
+- **Gabarito (Resposta Correta):** Deve ser a solução tecnicamente mais correta, eficiente e adequada para o problema específico apresentado no contexto.
+- **Distratores (Alternativas Incorretas):** Cada distrator deve representar um erro de raciocínio comum ou uma solução parcialmente correta, mas inadequada para o cenário. Eles devem ser plausíveis o suficiente para que um estudante com conhecimento incompleto ou que interpretou mal o contexto possa escolhê-los. NÃO use "pegadinhas", alternativas absurdas ou que testem apenas memorização de termos.
+
+## 3. Estrutura de Geração:
+
+### A. Contexto:
+Crie um parágrafo descrevendo uma situação-problema detalhada. Inclua o tipo de jogo, a mecânica envolvida e o desafio técnico específico. O contexto deve ser rico em detalhes que justifiquem a escolha da resposta correta.
+
+### B. Comando:
+Crie uma pergunta clara e objetiva que conecte o problema do contexto à solução técnica necessária. A pergunta deve forçar o estudante a analisar o cenário apresentado.
+
+### C. Alternativas (5 opções - A, B, C, D, E):
+1. **Alternativa Correta:** A solução ideal para o problema
+2. **Distrator 1 (Erro Comum):** Solução que parece correta, mas tem uma falha sutil ou é menos eficiente
+3. **Distrator 2 (Conceito Relacionado):** Termo/conceito correto da área, mas que não se aplica ao problema específico
+4. **Distrator 3 (Solução Simplista):** Abordagem que um iniciante poderia pensar, mas que não escala ou ignora complexidades
+5. **Distrator 4 (Conceito de Outra Área):** Padrão/técnica válida em outro domínio, mas não é a prática padrão em jogos para este cenário
+
+### D. Justificativas:
+- **Para a alternativa CORRETA:** Explique tecnicamente por que esta é a melhor solução
+- **Para cada DISTRATOR:** Explique o erro de raciocínio que levaria um estudante a escolhê-la. Seja específico sobre qual conceito ou aspecto do contexto foi mal interpretado.
+
+### E. Sugestões de Imagens (opcional):
+- **contextImagePrompt:** Prompt em inglês (máx 20 palavras) para ilustrar o contexto, se aplicável
+- **imagePrompt** para cada opção: Prompt em inglês (máx 15 palavras) para ilustrar a alternativa, se aplicável
+
+## 4. Formato de Saída:
+
+Retorne APENAS um JSON válido (sem markdown, sem \`\`\`):
+
 {
   "id": "Q_GERADO_${Date.now()}",
   "capacidade": "${capacity}",
-  "context": "Contexto da questão aqui (pode ser vazio se não for necessário)",
-  "contextImagePrompt": "Brief english prompt for the context illustration or null",
-  "command": "A pergunta aqui?",
+  "context": "Contexto detalhado da situação-problema",
+  "contextImagePrompt": "Brief english prompt for context illustration or null",
+  "command": "Pergunta objetiva conectada ao contexto?",
   "options": [
-    { "letter": "A", "text": "Primeira alternativa", "correct": false, "explanation": "Explicação se necessário", "imagePrompt": "Short english prompt for this option image or null" },
-    { "letter": "B", "text": "Segunda alternativa", "correct": true, "explanation": "Explicação da resposta correta", "imagePrompt": "Short english prompt for this option image or null" },
-    { "letter": "C", "text": "Terceira alternativa", "correct": false, "explanation": "Explicação se necessário", "imagePrompt": "Short english prompt for this option image or null" },
-    { "letter": "D", "text": "Quarta alternativa", "correct": false, "explanation": "Explicação se necessário", "imagePrompt": "Short english prompt for this option image or null" }
+    { 
+      "letter": "A", 
+      "text": "Texto da alternativa", 
+      "correct": true, 
+      "explanation": "Explicação técnica de por que está correta",
+      "justification": "Justificativa detalhada (para distratores: explique o erro de raciocínio)",
+      "imagePrompt": "Short english prompt or null" 
+    },
+    { 
+      "letter": "B", 
+      "text": "Distrator 1 - Erro Comum", 
+      "correct": false, 
+      "justification": "Incorreta. O estudante provavelmente escolheu esta porque...",
+      "imagePrompt": null 
+    },
+    { 
+      "letter": "C", 
+      "text": "Distrator 2 - Conceito Relacionado", 
+      "correct": false, 
+      "justification": "Incorreta. Este conceito é válido mas não se aplica porque...",
+      "imagePrompt": null 
+    },
+    { 
+      "letter": "D", 
+      "text": "Distrator 3 - Solução Simplista", 
+      "correct": false, 
+      "justification": "Incorreta. Esta abordagem não funciona porque...",
+      "imagePrompt": null 
+    },
+    { 
+      "letter": "E", 
+      "text": "Distrator 4 - Conceito de Outra Área", 
+      "correct": false, 
+      "justification": "Incorreta. Embora seja usado em [área], não é adequado aqui porque...",
+      "imagePrompt": null 
+    }
   ]
-}`;
+}
+
+**IMPORTANTE:** Gere uma questão completa e bem fundamentada seguindo RIGOROSAMENTE todas as diretrizes acima. A qualidade dos distratores é tão importante quanto a resposta correta.`;
 
     let generatedQuestion = null;
 
@@ -1431,8 +1496,8 @@ Retorne APENAS um JSON válido no seguinte formato (sem markdown, sem \`\`\`):
     }
 
     // Validar estrutura da questão gerada
-    if (!generatedQuestion || !generatedQuestion.command || !generatedQuestion.options || generatedQuestion.options.length !== 4) {
-      throw new Error('Questão gerada com formato inválido');
+    if (!generatedQuestion || !generatedQuestion.command || !generatedQuestion.options || generatedQuestion.options.length < 4) {
+      throw new Error('Questão gerada com formato inválido - deve ter pelo menos 4 opções');
     }
 
     // Adicionar metadados
