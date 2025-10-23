@@ -566,6 +566,7 @@ async function handleAddQuestion(event) {
     const courseId = parseInt(document.getElementById('question-course').value);
     const questionId = document.getElementById('question-id').value.trim();
     const capacity = document.getElementById('question-capacity').value;
+    const difficulty = document.getElementById('question-difficulty').value;
     const context = document.getElementById('question-context').value;
     const contextImage = document.getElementById('question-context-image').value.trim();
     const command = document.getElementById('question-command').value;
@@ -619,6 +620,7 @@ async function handleAddQuestion(event) {
     const questionData = {
         // Se ID estiver vazio, não envia (backend vai gerar automaticamente)
         capacidade: capacity,
+        dificuldade: difficulty,
         context,
         command,
         options

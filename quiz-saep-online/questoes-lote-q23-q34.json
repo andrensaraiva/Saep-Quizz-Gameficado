@@ -1,0 +1,170 @@
+[
+  {
+    "id": "q23",
+    "capacidade": "C5",
+    "dificuldade": "Fácil",
+    "contexto": "Um artista 3D finalizou a modelagem de uma espada. O modelo está completamente cinza. Ele precisa aplicar uma imagem 2D, que contém as cores e os detalhes do metal, sobre a superfície da malha 3D para que ela tenha a aparência correta no jogo.",
+    "comando": "Qual é o nome do processo fundamental que consiste em 'desembrulhar' a malha 3D em um plano 2D para permitir a aplicação correta da imagem (textura)?",
+    "options": [
+      { "text": "Rigging.", "justification": "Incorreta. Rigging é o processo de criar um esqueleto para animar o modelo, não de aplicar texturas." },
+      { "text": "Mapeamento UV (UV Mapping).", "correct": true },
+      { "text": "Modelagem por Caixa (Box Modeling).", "justification": "Incorreta. Box Modeling é uma técnica para criar a forma 3D da malha, não para texturizá-la." },
+      { "text": "Renderização.", "justification": "Incorreta. Renderização é o processo de gerar a imagem final a partir da cena 3D, o que acontece depois que a texturização já foi feita." },
+      { "text": "Escultura Digital.", "justification": "Incorreta. Escultura Digital é uma técnica para modelar formas orgânicas de alta resolução." }
+    ]
+  },
+  {
+    "id": "q24",
+    "capacidade": "C5",
+    "dificuldade": "Média",
+    "contexto": "Ao aplicar uma textura quadriculada em um personagem 3D, um artista percebe que em certas áreas, como o rosto e as mãos, os quadrados da textura aparecem esticados e distorcidos. Em outras áreas, como o peito, eles parecem normais.",
+    "comando": "Considerando o problema de distorção na textura, qual é a causa técnica mais provável e que etapa do processo de Mapeamento UV precisa ser corrigida?",
+    "options": [
+      { "text": "A resolução da imagem da textura é muito baixa.", "justification": "Incorreta. Uma resolução baixa deixaria a textura embaçada ou pixelizada, mas não causaria a distorção e o esticamento localizados." },
+      { "text": "As UVs naquelas áreas estão esticadas ou sobrepostas no editor de UV.", "correct": true },
+      { "text": "O formato do arquivo da textura (ex: .JPG em vez de .PNG) está incorreto.", "justification": "Incorreta. O formato do arquivo afeta a qualidade e a transparência, mas não causa a distorção da projeção da textura na malha." },
+      { "text": "A iluminação da cena está muito forte naquelas áreas.", "justification": "Incorreta. A iluminação afeta como as cores e sombras aparecem, mas não deforma a imagem da textura que está sendo projetada na malha." },
+      { "text": "O modelo 3D tem poucos polígonos nessas áreas.", "justification": "Incorreta. Uma baixa contagem de polígonos afeta a silhueta do modelo, mas a distorção da textura está diretamente ligada à qualidade do Mapeamento UV." }
+    ]
+  },
+  {
+    "id": "q25",
+    "capacidade": "C5",
+    "dificuldade": "Difícil",
+    "contexto": "Um animador está fazendo o 'rig' de um personagem humanoide. Ele usa Cinemática Inversa (IK) para controlar as pernas. Durante os testes de animação, ao mover o pé do personagem para cima, o joelho dobra para trás de forma bizarra e não natural. O esqueleto (cadeia de ossos) está estruturado corretamente (quadril -> coxa -> canela -> pé).",
+    "comando": "Qual elemento de controle, específico de um sistema de IK, o animador precisa adicionar e posicionar corretamente para ditar a direção para a qual o joelho deve dobrar?",
+    "options": [
+      { "text": "Um osso adicional na ponta do pé para controlar os dedos.", "justification": "Incorreta. Ossos dos dedos afetam a animação do pé, mas não têm influência sobre a direção em que o joelho dobra." },
+      { "text": "Um Vetor Polar (Pole Vector) ou Alvo Polar (Pole Target).", "correct": true },
+      { "text": "Aumentar a Ponderação de Vértices (Vertex Weighting) na área do joelho.", "justification": "Incorreta. A ponderação de vértices controla como a malha se deforma ao redor do osso, mas não controla a direção em que o próprio osso se dobra." },
+      { "text": "O próprio Controlador de IK (IK Handle) que está no pé.", "justification": "Incorreta. O controlador de IK determina a posição final da cadeia (o pé), mas não a orientação da articulação do meio (o joelho)." },
+      { "text": "Uma restrição 'Limit Rotation' no osso da coxa.", "justification": "Incorreta. Limitar a rotação pode impedir que o joelho dobre demais, mas não resolve o problema de ele dobrar na direção errada." }
+    ]
+  },
+  {
+    "id": "q26",
+    "capacidade": "C4",
+    "dificuldade": "Fácil",
+    "contexto": "Uma equipe de desenvolvimento de jogos está decidindo qual metodologia de gerenciamento de projetos usar. Eles precisam de uma abordagem que seja altamente flexível, focada na colaboração e que permita entregar versões funcionais do jogo em ciclos curtos e regulares, adaptando-se a mudanças e feedback constante.",
+    "comando": "Qual metodologia ágil, baseada em ciclos de trabalho chamados 'Sprints', é a mais popular e adequada para este cenário de desenvolvimento iterativo?",
+    "options": [
+      { "text": "Modelo Cascata (Waterfall).", "justification": "Incorreta. O modelo Cascata é o oposto de flexível, sendo uma metodologia rígida e sequencial." },
+      { "text": "Scrum.", "correct": true },
+      { "text": "Análise de Requisitos.", "justification": "Incorreta. Análise de Requisitos é uma fase dentro de uma metodologia, não a metodologia em si." },
+      { "text": "Controle de Qualidade (QA).", "justification": "Incorreta. QA é a disciplina de testes, não uma metodologia de gerenciamento de projetos." },
+      { "text": "Diagrama de Gantt.", "justification": "Incorreta. O Diagrama de Gantt é uma ferramenta para visualizar cronogramas, frequentemente usada no modelo Cascata, mas não é uma metodologia." }
+    ]
+  },
+  {
+    "id": "q27",
+    "capacidade": "C4",
+    "dificuldade": "Média",
+    "contexto": "Uma equipe Scrum está na metade de uma Sprint de duas semanas. Durante a Reunião Diária (Daily Scrum), o Product Owner (PO) apresenta uma nova funcionalidade que um stakeholder pediu e insiste que a equipe comece a trabalhar nela imediatamente, pois é 'urgente'. A equipe argumenta que isso irá comprometer a meta da Sprint que foi planejada.",
+    "comando": "De acordo com os princípios do Scrum, qual é a atitude correta que o Scrum Master e a equipe de desenvolvimento devem tomar em relação ao pedido do PO?",
+    "options": [
+      { "text": "Aceitar a nova tarefa e trabalhar horas extras para tentar entregar tudo, tanto o planejado quanto o novo item.", "justification": "Incorreta. Isso leva ao esgotamento da equipe e viola o princípio de ritmo sustentável. O propósito da Sprint é ter um escopo protegido." },
+      { "text": "Explicar ao PO que o escopo da Sprint é fixo após o planejamento e que a nova funcionalidade deve ser adicionada ao Product Backlog para ser priorizada para a próxima Sprint.", "correct": true },
+      { "text": "Parar a Sprint atual imediatamente e iniciar uma nova Sprint de planejamento para incluir a nova funcionalidade.", "justification": "Incorreta. Cancelar uma Sprint é um evento raro e drástico, reservado para quando o objetivo da Sprint se torna obsoleto, o que não é o caso aqui." },
+      { "text": "Ignorar o pedido do PO e continuar trabalhando, sem dar uma resposta.", "justification": "Incorreta. Ignorar o PO prejudica a comunicação e a colaboração, que são pilares do Scrum." },
+      { "text": "Remover uma tarefa de mesma dificuldade da Sprint atual para dar lugar à nova tarefa urgente.", "justification": "Incorreta. Embora seja uma negociação, a prática padrão do Scrum é proteger a meta da Sprint. A troca de escopo no meio da Sprint é uma exceção que deve ser evitada e, se ocorrer, deve ser uma negociação transparente, mas a regra geral é adicionar ao backlog." }
+    ]
+  },
+  {
+    "id": "q28",
+    "capacidade": "C6",
+    "dificuldade": "Difícil",
+    "contexto": "Um programador está implementando a funcionalidade de 'desfazer' (undo) em um editor de níveis. Cada ação do usuário (criar um bloco, mover um inimigo, deletar uma parede) precisa ser registrada para que possa ser revertida na ordem inversa. Se o usuário cria A, depois B, depois C, o primeiro 'desfazer' deve reverter a ação C.",
+    "comando": "Considerando o comportamento 'Último a Entrar, Primeiro a Sair' (LIFO) necessário para a funcionalidade de 'desfazer', qual estrutura de dados é a mais apropriada para armazenar o histórico de ações do usuário?",
+    "options": [
+      { "text": "Uma Fila (Queue), adicionando cada nova ação ao final da fila.", "justification": "Incorreta. Uma Fila opera como 'Primeiro a Entrar, Primeiro a Sair' (FIFO), o que reverteria as ações na ordem em que foram feitas (A primeiro), implementando uma funcionalidade de 'replay', não de 'desfazer'." },
+      { "text": "Uma Pilha (Stack).", "correct": true },
+      { "text": "Uma Lista Encadeada (Linked List) ordenada por data e hora.", "justification": "Incorreta. Embora uma lista encadeada possa ser usada para implementar uma pilha, a estrutura de dados conceitualmente correta e projetada para a operação LIFO é a Pilha." },
+      { "text": "Um Algoritmo de Busca em Largura (BFS).", "justification": "Incorreta. BFS é um algoritmo para percorrer grafos ou árvores, não uma estrutura para armazenar dados sequenciais." },
+      { "text": "Um Dicionário (Hash Map), usando um timestamp como chave.", "justification": "Incorreta. Um dicionário permite acesso rápido por chave, mas não mantém inerentemente a ordem necessária para uma operação de desfazer." }
+    ]
+  },
+  {
+    "id": "q29",
+    "capacidade": "C6",
+    "dificuldade": "Fácil",
+    "contexto": "Um desenvolvedor de jogos está criando um sistema de inventário onde cada item (Espada, Poção, Armadura) possui atributos (dano, cura, defesa) e comportamentos (Atacar, Beber, Equipar). Ele precisa de um modelo de programação que agrupe esses dados e comportamentos em uma única entidade.",
+    "comando": "Qual paradigma de programação se baseia na criação de 'Classes' que servem como moldes para 'Objetos', encapsulando dados e comportamentos relacionados?",
+    "options": [
+      { "text": "Programação Procedural.", "justification": "Incorreta. A programação procedural foca em uma sequência de procedimentos ou funções que operam em dados, mas não agrupa dados e comportamentos em objetos." },
+      { "text": "Programação Orientada a Objetos (POO).", "correct": true },
+      { "text": "Programação Funcional.", "justification": "Incorreta. A programação funcional trata a computação como a avaliação de funções matemáticas e evita a mudança de estado e dados mutáveis." },
+      { "text": "Programação Estruturada.", "justification": "Incorreta. A programação estruturada é uma precursora da POO que foca no uso de sub-rotinas e estruturas de controle como for, while e if/else." },
+      { "text": "Linguagem de Script.", "justification": "Incorreta. Linguagem de Script descreve o tipo de linguagem (ex: Python, JavaScript), não o paradigma de programação que ela pode implementar (muitas linguagens de script suportam POO)." }
+    ]
+  },
+  {
+    "id": "q30",
+    "capacidade": "C6",
+    "dificuldade": "Média",
+    "contexto": "Em um jogo 2D, o nível é construído usando um sistema de Tilemap, onde a colisão é definida por uma grade. Um programador precisa implementar um ataque de projétil que percorre o mapa em linha reta e deve parar e causar uma explosão ao atingir a primeira parede (um tile de colisão).",
+    "comando": "Qual algoritmo de busca ou técnica é o mais eficiente para verificar, a partir da posição do projétil, se há um tile de colisão em uma linha reta em uma determinada direção, sem precisar checar todos os tiles do mapa?",
+    "options": [
+      { "text": "Um algoritmo de Pathfinding A* para encontrar o caminho até a parede.", "justification": "Incorreta. A* é usado para encontrar um caminho que desvia de obstáculos, não para detectar a primeira colisão em linha reta." },
+      { "text": "Um algoritmo de Raycasting na grade (ou Digital Differential Analyzer - DDA).", "correct": true },
+      { "text": "Uma verificação de colisão com Bounding Box em todos os tiles do mapa.", "justification": "Incorreta. Verificar a colisão com todos os tiles do mapa seria extremamente ineficiente. O objetivo é checar apenas os tiles no caminho do projétil." },
+      { "text": "Percorrer toda a matriz do Tilemap com dois laços `for` aninhados.", "justification": "Incorreta. Esta é a abordagem de 'força bruta' e a menos performática possível, pois verifica tiles que estão completamente fora da trajetória do projétil." },
+      { "text": "Um algoritmo de Busca em Profundidade (DFS).", "justification": "Incorreta. DFS é um algoritmo para explorar grafos e não se aplica a uma verificação linear de colisão." }
+    ]
+  },
+  {
+    "id": "q31",
+    "capacidade": "C6",
+    "dificuldade": "Difícil",
+    "contexto": "Um programador está criando um sistema de combate. Existem vários tipos de armas: `Espada`, `Machado` e `Lança`. Todas são 'Armas', mas cada uma tem um método `Atacar()` com um comportamento diferente (a espada é rápida, o machado é lento e forte, a lança tem longo alcance). O personagem do jogador tem uma variável `armaEquipada`, que pode conter qualquer um desses tipos de arma.",
+    "comando": "Usando os conceitos de Programação Orientada a Objetos, qual mecanismo permite que o código chame `armaEquipada.Atacar()` e o comportamento correto (da Espada, do Machado ou da Lança) seja executado automaticamente, sem a necessidade de usar um `if` ou `switch` para verificar o tipo da arma?",
+    "options": [
+      { "text": "Encapsulamento, escondendo os dados da arma do resto do código.", "justification": "Incorreta. O encapsulamento protege os dados, mas não determina qual versão de um método será chamada." },
+      { "text": "Polimorfismo, através do uso de uma classe base `Arma` com um método virtual `Atacar()` que é sobrescrito (override) pelas classes filhas.", "correct": true },
+      { "text": "Uma Classe Estática `GerenciadorDeArmas` que contém todos os tipos de ataque.", "justification": "Incorreta. Isso centralizaria a lógica e exigiria um `if` ou `switch` para decidir qual ataque executar, que é exatamente o que o polimorfismo evita." },
+      { "text": "Herança Múltipla, fazendo a classe do jogador herdar de todas as classes de armas.", "justification": "Incorreta. Herança múltipla aqui seria um mau uso do conceito e não resolveria o problema de qual ataque executar. O jogador *tem* uma arma, ele não *é* uma arma." },
+      { "text": "Construtores, que são usados para inicializar os objetos das armas.", "justification": "Incorreta. Construtores criam o objeto, mas não estão envolvidos na chamada de métodos após a criação." }
+    ]
+  },
+  {
+    "id": "q32",
+    "capacidade": "C7",
+    "dificuldade": "Média",
+    "contexto": "Após a implementação de uma nova habilidade para o personagem principal, a equipe de QA precisa garantir que essa mudança não quebrou, acidentalmente, funcionalidades que já existiam e funcionavam bem, como o sistema de pulo, a interação com itens e o combate básico.",
+    "comando": "Qual é o nome do tipo de teste que é executado especificamente para verificar se modificações recentes no código não introduziram novos bugs em funcionalidades já existentes?",
+    "options": [
+      { "text": "Teste de Aceitação.", "justification": "Incorreta. O teste de aceitação é realizado para verificar se os requisitos do cliente foram atendidos, geralmente no final do desenvolvimento." },
+      { "text": "Teste de Regressão.", "correct": true },
+      { "text": "Teste de Fumaça (Smoke Test).", "justification": "Incorreta. O teste de fumaça é um teste rápido e superficial para garantir que a build do jogo ao menos inicia e as funcionalidades mais básicas estão operantes, mas não é um teste aprofundado de funcionalidades antigas." },
+      { "text": "Teste de Performance.", "justification": "Incorreta. O teste de performance mede a velocidade e o uso de recursos do jogo, não a correção funcional de recursos antigos." },
+      { "text": "Teste Exploratório.", "justification": "Incorreta. O teste exploratório é um teste livre e não estruturado onde o testador aprende sobre o sistema enquanto o testa. O teste de regressão é, por definição, estruturado para re-validar funcionalidades específicas." }
+    ]
+  },
+  {
+    "id": "q33",
+    "capacidade": "C2",
+    "dificuldade": "Difícil",
+    "contexto": "Uma equipe de design de UI está realizando uma avaliação de um menu de inventário complexo de um RPG, mas está sem tempo e orçamento para conduzir testes formais com usuários reais. Eles precisam de um método rápido e barato para identificar os problemas de usabilidade mais óbvios.",
+    "comando": "Qual método de inspeção de usabilidade, onde um ou mais especialistas avaliam a interface com base em um conjunto de princípios de design reconhecidos (como os 10 de Jakob Nielsen), seria o mais apropriado para este cenário?",
+    "options": [
+      { "text": "Teste de Usabilidade em laboratório.", "justification": "Incorreta. O contexto especifica que não há tempo ou orçamento para testes com usuários reais, que é a base de um teste de usabilidade em laboratório." },
+      { "text": "Análise Heurística.", "correct": true },
+      { "text": "Teste A/B.", "justification": "Incorreta. O Teste A/B compara duas versões diferentes de uma interface com usuários reais para ver qual performa melhor, o que vai contra as restrições do cenário." },
+      { "text": "Card Sorting.", "justification": "Incorreta. Card Sorting é uma técnica usada *antes* do design da interface para ajudar a definir a arquitetura da informação, não para avaliar uma interface já existente." },
+      { "text": "Pesquisas de Satisfação (Surveys).", "justification": "Incorreta. Pesquisas coletam a opinião subjetiva de usuários, mas o contexto exige um método de avaliação por especialistas, sem envolver usuários." }
+    ]
+  },
+  {
+    "id": "q34",
+    "capacidade": "C7",
+    "dificuldade": "Difícil",
+    "contexto": "Um jogo está prestes a ser lançado. Ele passou por testes de unidade, integração e sistema, e a equipe de QA interna considera o jogo estável. No entanto, a empresa quer obter feedback sobre balanceamento, diversão e descobrir bugs raros que só apareceriam com milhares de pessoas jogando em uma variedade imensa de hardwares e estilos de jogo.",
+    "comando": "Qual fase de teste, que envolve a distribuição de uma versão quase final do jogo para um grande público externo (a comunidade de jogadores), é a mais adequada para atingir esses objetivos antes do lançamento oficial?",
+    "options": [
+      { "text": "Teste Alfa.", "justification": "Incorreta. O Teste Alfa é tipicamente a primeira fase de teste do sistema completo, mas ainda é realizado internamente pela equipe de QA ou por um grupo muito restrito e controlado." },
+      { "text": "Teste Beta (Público ou Fechado).", "correct": true },
+      { "text": "Teste de Regressão Automatizado.", "justification": "Incorreta. Testes automatizados são ótimos para verificar a funcionalidade, mas não conseguem fornecer feedback qualitativo sobre diversão e balanceamento, que é um requisito chave do contexto." },
+      { "text": "Teste de Fumaça (Smoke Test) da build de lançamento.", "justification": "Incorreta. O teste de fumaça apenas garante que a versão final não tem um erro catastrófico que a impeça de iniciar, mas não serve para coletar feedback em larga escala." },
+      { "text": "Teste de Caixa Branca (White-box Test).", "justification": "Incorreta. O teste de caixa branca envolve o conhecimento do código interno e é realizado por programadores ou QA técnico, não pelo público externo." }
+    ]
+  }
+]

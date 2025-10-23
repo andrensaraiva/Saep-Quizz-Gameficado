@@ -230,6 +230,14 @@
                 </select>
                 <input type="text" id="question-id" placeholder="ID da Questão (ex: q1)" required>
                 <input type="text" id="question-capacity" placeholder="Capacidade/Categoria (ex: C1)" required>
+                
+                <label for="question-difficulty">Dificuldade:</label>
+                <select id="question-difficulty" required class="form-select">
+                    <option value="Fácil">Fácil</option>
+                    <option value="Médio" selected>Médio</option>
+                    <option value="Difícil">Difícil</option>
+                </select>
+                
                 <textarea id="question-context" placeholder="Contexto da questão" required></textarea>
                 <input type="url" id="question-context-image" placeholder="URL da imagem do contexto (opcional)">
                 <textarea id="question-command" placeholder="Pergunta" required></textarea>
