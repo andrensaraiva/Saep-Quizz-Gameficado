@@ -812,9 +812,18 @@ app.post('/api/courses/:courseId/questions/import', authenticateToken, requireAd
 
     questionsData.forEach((q, index) => {
       try {
-        // Validar questão
-        if (!q.context || !q.command || !q.options) {
-          errors.push({ index: index + 1, error: 'Dados incompletos', question: q });
+        // Validar questão - aceitar campos em português ou inglês
+        const hasContext = (q.contexto && String(q.contexto).trim() !== '') || (q.context && String(q.context).trim() !== '');
+        const hasCommand = (q.comando && String(q.comando).trim() !== '') || (q.command && String(q.command).trim() !== '');
+        const hasOptions = Array.isArray(q.options) && q.options.length > 0;
+
+        if (!hasContext || !hasCommand || !hasOptions) {
+          const missing = [];
+          if (!hasContext) missing.push('context/contexto');
+          if (!hasCommand) missing.push('command/comando');
+          if (!hasOptions) missing.push('options');
+
+          errors.push({ index: index + 1, error: 'Dados incompletos - campos faltando: ' + missing.join(', '), question: q });
           return;
         }
 
