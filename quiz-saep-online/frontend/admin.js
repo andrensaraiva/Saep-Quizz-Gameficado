@@ -124,6 +124,9 @@ function showSection(sectionName) {
         case 'users':
             loadUsers();
             break;
+        case 'feedbacks':
+            loadFeedbacks();
+            break;
         case 'reports':
             loadReportSection();
             break;
@@ -2125,5 +2128,143 @@ GEMINI_MODEL=gemini-2.5-flash</pre>
     };
     
     contentDiv.innerHTML = tutorials[category] || '<p style="text-align: center; color: #94a3b8;">Conteúdo não encontrado.</p>';
+}
+
+// ==================== FEEDBACKS ====================
+
+async function loadFeedbacks(status = null) {
+    try {
+        const url = status ? `${API_URL}/admin/feedbacks?status=${status}` : `${API_URL}/admin/feedbacks`;
+        
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert('Erro ao carregar feedbacks');
+            return;
+        }
+
+        // Atualizar contadores
+        document.getElementById('feedback-novo').textContent = data.novo || 0;
+        document.getElementById('feedback-lido').textContent = data.lido || 0;
+        document.getElementById('feedback-respondido').textContent = data.respondido || 0;
+        document.getElementById('feedback-total').textContent = data.total || 0;
+
+        if (data.feedbacks.length === 0) {
+            document.getElementById('feedbacks-list').innerHTML = '<p>Nenhum feedback encontrado.</p>';
+            return;
+        }
+
+        const feedbacksHtml = data.feedbacks.map(feedback => {
+            const typeEmoji = {
+                'sugestao': '💡',
+                'bug': '🐞',
+                'elogio': '👍',
+                'reclamacao': '📝'
+            };
+
+            const statusBadge = {
+                'novo': '<span class="role-badge" style="background: #fef3c7; color: #d97706;">🆕 Novo</span>',
+                'lido': '<span class="role-badge" style="background: #dbeafe; color: #1e40af;">👁️ Lido</span>',
+                'respondido': '<span class="role-badge" style="background: #dcfce7; color: #15803d;">✅ Respondido</span>'
+            };
+
+            return `
+                <div class="user-item" style="background: ${feedback.status === 'novo' ? '#fffbeb' : 'white'};">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <strong style="font-size: 1.1rem;">${typeEmoji[feedback.type] || '💬'} ${feedback.name}</strong>
+                            ${statusBadge[feedback.status]}
+                        </div>
+                        
+                        ${feedback.email ? `<div style="color: #64748b; font-size: 0.9rem; margin-bottom: 5px;">📧 ${feedback.email}</div>` : ''}
+                        
+                        <div style="margin: 10px 0; padding: 12px; background: #f8fafc; border-left: 4px solid #667eea; border-radius: 6px;">
+                            <p style="margin: 0; white-space: pre-wrap;">${feedback.message}</p>
+                        </div>
+                        
+                        <div style="color: #94a3b8; font-size: 0.875rem;">
+                            📅 ${new Date(feedback.createdAt).toLocaleString('pt-BR')}
+                        </div>
+                    </div>
+                    
+                    <div class="course-actions" style="flex-direction: column; gap: 8px;">
+                        ${feedback.status === 'novo' ? `
+                            <button onclick="updateFeedbackStatus(${feedback.id}, 'lido')" class="btn-icon btn-edit" style="width: 140px;">
+                                👁️ Marcar como Lido
+                            </button>
+                        ` : ''}
+                        ${feedback.status === 'lido' ? `
+                            <button onclick="updateFeedbackStatus(${feedback.id}, 'respondido')" class="btn-icon btn-success" style="width: 140px;">
+                                ✅ Marcar Respondido
+                            </button>
+                        ` : ''}
+                        <button onclick="deleteFeedback(${feedback.id})" class="btn-icon btn-delete" style="width: 140px;">
+                            🗑️ Excluir
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('feedbacks-list').innerHTML = feedbacksHtml;
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao carregar feedbacks');
+    }
+}
+
+async function updateFeedbackStatus(feedbackId, newStatus) {
+    try {
+        const response = await fetch(`${API_URL}/admin/feedbacks/${feedbackId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert(data.error || 'Erro ao atualizar status');
+            return;
+        }
+
+        // Recarregar feedbacks
+        loadFeedbacks();
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao conectar com o servidor');
+    }
+}
+
+async function deleteFeedback(feedbackId) {
+    if (!confirm('Tem certeza que deseja excluir este feedback?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/admin/feedbacks/${feedbackId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            alert(data.error || 'Erro ao deletar feedback');
+            return;
+        }
+
+        alert('Feedback deletado com sucesso!');
+        loadFeedbacks();
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao conectar com o servidor');
+    }
 }
 

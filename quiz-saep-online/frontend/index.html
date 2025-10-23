@@ -13,6 +13,7 @@
             <h1>🎮 Quiz SAEP</h1>
             <nav id="user-nav">
                 <button onclick="showStudentHelp()" class="btn-success" style="margin-right: 10px;">❓ Ajuda</button>
+                <button onclick="showFeedbackModal()" class="btn-secondary" style="margin-right: 10px;">💬 Enviar Feedback</button>
                 <div id="auth-buttons">
                     <button onclick="showAuthModal('login')" class="btn-secondary">Login</button>
                     <button onclick="showAuthModal('register')" class="btn-primary">Cadastrar</button>
@@ -311,6 +312,54 @@
                     Entre em contato com seu instrutor ou administrador do sistema.
                 </p>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal: Enviar Feedback -->
+    <div id="feedback-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('feedback-modal')">&times;</span>
+            <h2>💬 Enviar Feedback ou Sugestão</h2>
+            
+            <div class="info-box" style="margin-bottom: 20px;">
+                <p>Sua opinião é muito importante para nós! Use este formulário para:</p>
+                <ul style="line-height: 1.8; margin-top: 10px;">
+                    <li>⭐ Enviar sugestões de melhorias</li>
+                    <li>🐞 Reportar bugs ou problemas</li>
+                    <li>👍 Dar elogios ou feedback positivo</li>
+                    <li>📝 Fazer reclamações construtivas</li>
+                </ul>
+            </div>
+
+            <form onsubmit="handleSendFeedback(event)">
+                <div class="form-group">
+                    <label>Seu Nome (opcional):</label>
+                    <input type="text" id="feedback-name" placeholder="Digite seu nome ou deixe em branco para ser anônimo">
+                </div>
+
+                <div class="form-group">
+                    <label>Seu Email (opcional):</label>
+                    <input type="email" id="feedback-email" placeholder="seu@email.com">
+                    <small style="color: #64748b; font-size: 0.875rem;">Caso queira receber uma resposta</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de Feedback:</label>
+                    <select id="feedback-type" class="form-select" required>
+                        <option value="sugestao">💡 Sugestão</option>
+                        <option value="bug">🐞 Bug/Problema</option>
+                        <option value="elogio">👍 Elogio</option>
+                        <option value="reclamacao">📝 Reclamação</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Sua Mensagem: *</label>
+                    <textarea id="feedback-message" rows="6" placeholder="Descreva seu feedback, sugestão ou problema..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn-large btn-primary">🚀 Enviar Feedback</button>
+            </form>
         </div>
     </div>
 

@@ -40,6 +40,9 @@
                 <a href="#" class="nav-item" onclick="showSection('users')">
                     <span class="icon">👥</span> Usuários
                 </a>
+                <a href="#" class="nav-item" onclick="showSection('feedbacks')">
+                    <span class="icon">💬</span> Feedbacks
+                </a>
                 <a href="#" class="nav-item" onclick="showSection('reports')">
                     <span class="icon">📈</span> Relatórios
                 </a>
@@ -142,6 +145,44 @@
             <section id="users-section" class="admin-section" style="display:none;">
                 <h2>Gerenciar Usuários</h2>
                 <div id="users-list"></div>
+            </section>
+
+            <!-- Feedbacks Section -->
+            <section id="feedbacks-section" class="admin-section" style="display:none;">
+                <div class="section-header">
+                    <h2>Feedbacks e Sugestões</h2>
+                    <div class="button-group-horizontal">
+                        <button onclick="loadFeedbacks('novo')" class="btn-secondary">Novos</button>
+                        <button onclick="loadFeedbacks('lido')" class="btn-secondary">Lidos</button>
+                        <button onclick="loadFeedbacks('respondido')" class="btn-success">Respondidos</button>
+                        <button onclick="loadFeedbacks()" class="btn-primary">Todos</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid-admin" style="margin-bottom: 20px;">
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">🆕</div>
+                        <div class="stat-value-admin" id="feedback-novo">0</div>
+                        <div class="stat-label-admin">Novos</div>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">👁️</div>
+                        <div class="stat-value-admin" id="feedback-lido">0</div>
+                        <div class="stat-label-admin">Lidos</div>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">✅</div>
+                        <div class="stat-value-admin" id="feedback-respondido">0</div>
+                        <div class="stat-label-admin">Respondidos</div>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">💬</div>
+                        <div class="stat-value-admin" id="feedback-total">0</div>
+                        <div class="stat-label-admin">Total</div>
+                    </div>
+                </div>
+
+                <div id="feedbacks-list"></div>
             </section>
 
             <!-- Reports Section -->

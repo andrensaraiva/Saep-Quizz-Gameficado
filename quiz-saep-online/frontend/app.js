@@ -979,3 +979,53 @@ window.onclick = function(event) {
 function openAdminPanel() {
     window.location.href = 'admin.html';
 }
+
+// ==================== FEEDBACK ====================
+
+function showFeedbackModal() {
+    const modal = document.getElementById('feedback-modal');
+    modal.style.display = 'block';
+}
+
+async function handleSendFeedback(event) {
+    event.preventDefault();
+
+    const name = document.getElementById('feedback-name').value.trim();
+    const email = document.getElementById('feedback-email').value.trim();
+    const type = document.getElementById('feedback-type').value;
+    const message = document.getElementById('feedback-message').value.trim();
+
+    if (!message) {
+        alert('Por favor, escreva uma mensagem.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/feedback`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, email, type, message })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert(data.error || 'Erro ao enviar feedback');
+            return;
+        }
+
+        alert('✅ Feedback enviado com sucesso! Obrigado pela sua contribuição.');
+        closeModal('feedback-modal');
+        
+        // Limpar formulário
+        document.getElementById('feedback-name').value = '';
+        document.getElementById('feedback-email').value = '';
+        document.getElementById('feedback-type').value = 'sugestao';
+        document.getElementById('feedback-message').value = '';
+    } catch (error) {
+        console.error('Erro ao enviar feedback:', error);
+        alert('Erro ao conectar com o servidor. Tente novamente mais tarde.');
+    }
+}

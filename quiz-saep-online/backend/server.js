@@ -69,6 +69,7 @@ const scores = [];
 const courses = [];
 const questions = [];
 const quizzes = [];
+const feedbacks = [];
 
 const DEFAULT_ADMIN = {
   username: 'admin',
@@ -1699,6 +1700,110 @@ app.get('/api/courses/:courseId/quizzes', (req, res) => {
   const courseQuizzes = quizzes.filter(q => q.courseId === courseId);
 
   res.json(courseQuizzes);
+});
+
+// ==================== ROTAS DE FEEDBACK ====================
+
+// Enviar feedback (qualquer usuário, autenticado ou não)
+app.post('/api/feedback', (req, res) => {
+  try {
+    const { name, email, message, type } = req.body;
+
+    if (!message || message.trim() === '') {
+      return res.status(400).json({ error: 'Mensagem é obrigatória' });
+    }
+
+    const feedback = {
+      id: feedbacks.length + 1,
+      name: name || 'Anônimo',
+      email: email || null,
+      message: message.trim(),
+      type: type || 'sugestao', // 'sugestao', 'bug', 'elogio', 'reclamacao'
+      status: 'novo', // 'novo', 'lido', 'respondido'
+      createdAt: new Date().toISOString()
+    };
+
+    feedbacks.push(feedback);
+
+    res.status(201).json({ 
+      message: 'Feedback enviado com sucesso! Obrigado pela contribuição.',
+      feedback 
+    });
+  } catch (error) {
+    console.error('Erro ao enviar feedback:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Listar todos os feedbacks (apenas admin)
+app.get('/api/admin/feedbacks', authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const status = req.query.status; // Filtrar por status (opcional)
+    
+    let filteredFeedbacks = [...feedbacks];
+    
+    if (status) {
+      filteredFeedbacks = filteredFeedbacks.filter(f => f.status === status);
+    }
+    
+    // Ordenar por data (mais recente primeiro)
+    filteredFeedbacks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    res.json({ 
+      feedbacks: filteredFeedbacks, 
+      total: filteredFeedbacks.length,
+      novo: feedbacks.filter(f => f.status === 'novo').length,
+      lido: feedbacks.filter(f => f.status === 'lido').length,
+      respondido: feedbacks.filter(f => f.status === 'respondido').length
+    });
+  } catch (error) {
+    console.error('Erro ao listar feedbacks:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Atualizar status do feedback (apenas admin)
+app.put('/api/admin/feedbacks/:id', authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const feedbackId = parseInt(req.params.id);
+    const { status } = req.body;
+    
+    if (!['novo', 'lido', 'respondido'].includes(status)) {
+      return res.status(400).json({ error: 'Status inválido' });
+    }
+    
+    const feedbackIndex = feedbacks.findIndex(f => f.id === feedbackId);
+    if (feedbackIndex === -1) {
+      return res.status(404).json({ error: 'Feedback não encontrado' });
+    }
+    
+    feedbacks[feedbackIndex].status = status;
+    feedbacks[feedbackIndex].updatedAt = new Date().toISOString();
+    
+    res.json({ message: 'Status atualizado com sucesso', feedback: feedbacks[feedbackIndex] });
+  } catch (error) {
+    console.error('Erro ao atualizar feedback:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Deletar feedback (apenas admin)
+app.delete('/api/admin/feedbacks/:id', authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const feedbackId = parseInt(req.params.id);
+    
+    const feedbackIndex = feedbacks.findIndex(f => f.id === feedbackId);
+    if (feedbackIndex === -1) {
+      return res.status(404).json({ error: 'Feedback não encontrado' });
+    }
+    
+    feedbacks.splice(feedbackIndex, 1);
+    
+    res.json({ message: 'Feedback deletado com sucesso' });
+  } catch (error) {
+    console.error('Erro ao deletar feedback:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
 });
 
 // ==================== ROTA DE TESTE ====================
