@@ -369,7 +369,8 @@ async function editCourse(courseId) {
     try {
         // Buscar dados do curso
         const response = await fetch(`${API_URL}/courses`);
-        const courses = await response.json();
+        const data = await response.json();
+        const courses = data.courses || [];
         const course = courses.find(c => c.id === courseId);
         
         if (!course) {

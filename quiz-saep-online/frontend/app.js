@@ -281,8 +281,16 @@ function updateCourseDetails() {
 }
 
 function updateQuestionCounters() {
-    document.getElementById('total-questions').textContent = quizData.length;
-    document.getElementById('total-questions-display').textContent = quizData.length;
+    // Usar a contagem do curso se disponível, senão usar quizData.length
+    const count = currentCourse && currentCourse.questionsCount !== undefined 
+        ? currentCourse.questionsCount 
+        : quizData.length;
+    
+    const totalQuestionsEl = document.getElementById('total-questions');
+    const totalQuestionsDisplayEl = document.getElementById('total-questions-display');
+    
+    if (totalQuestionsEl) totalQuestionsEl.textContent = count;
+    if (totalQuestionsDisplayEl) totalQuestionsDisplayEl.textContent = count;
 }
 
 // ==================== NAVEGAÇÃO ====================
