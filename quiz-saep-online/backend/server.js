@@ -778,7 +778,7 @@ app.delete('/api/courses/:id', authenticateToken, requireAdmin, async (req, res)
     const questionIds = questions.filter(q => q.courseId === courseId).map(q => q.id);
     
     for (const qId of questionIds) {
-      await db.deleteQuestion(qId);
+      await db.deleteQuestion(courseId, qId);
     }
     
     const scores = await db.getScores();
@@ -988,7 +988,7 @@ app.delete('/api/courses/:courseId/questions/:questionId', authenticateToken, re
       return res.status(404).json({ error: 'Questão não encontrada' });
     }
 
-    await db.deleteQuestion(questionId);
+    await db.deleteQuestion(courseId, questionId);
 
     res.json({ message: 'Questão deletada com sucesso' });
   } catch (error) {

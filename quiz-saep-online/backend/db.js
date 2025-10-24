@@ -353,6 +353,19 @@ class Database {
     return score;
   }
 
+  async deleteScore(id) {
+    if (this.firebase) {
+      await db.ref(`scores/${id}`).remove();
+      return true;
+    }
+    const index = this.memory.scores.findIndex(s => s.id === id);
+    if (index !== -1) {
+      this.memory.scores.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
   async deleteScoresByUser(userId) {
     if (this.firebase) {
       const snapshot = await db.ref('scores').orderByChild('userId').equalTo(userId).once('value');
@@ -395,6 +408,14 @@ class Database {
       return snapshot.val() ? Object.values(snapshot.val()) : [];
     }
     return this.memory.feedbacks;
+  }
+
+  async getFeedbackById(id) {
+    if (this.firebase) {
+      const snapshot = await db.ref(`feedbacks/${id}`).once('value');
+      return snapshot.val();
+    }
+    return this.memory.feedbacks.find(f => f.id === id);
   }
 
   async getFeedbacksByStatus(status) {
