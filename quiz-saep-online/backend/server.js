@@ -6,6 +6,9 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+// Importar módulo de banco de dados (Firebase ou memória)
+const db = require('./db');
+
 // Importar APIs de IA
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const OpenAI = require('openai');
@@ -63,13 +66,8 @@ const sharedPath = path.join(__dirname, '../shared');
 app.use(express.static(frontendPath));
 app.use('/shared', express.static(sharedPath));
 
-// "Banco de dados" em memória (para produção, usar MongoDB, PostgreSQL, etc.)
-const users = [];
-const scores = [];
-const courses = [];
-const questions = [];
-const quizzes = [];
-const feedbacks = [];
+// Banco de dados gerenciado pelo módulo db.js (Firebase ou memória)
+// As operações agora são assíncronas e chamam db.getUsers(), db.createUser(), etc.
 
 const DEFAULT_ADMIN = {
   username: 'admin',
@@ -300,22 +298,27 @@ function normalizeOptionsArray(options) {
   });
 }
 
-function seedInitialData() {
+async function seedInitialData() {
   try {
     console.log('🚀 Iniciando seed de dados...');
+    console.log(`💾 Modo de armazenamento: ${db.isFirebaseEnabled() ? 'Firebase Realtime Database' : 'Memória Local (temporário)'}`);
     
+    // Buscar admin existente
+    const users = await db.getUsers();
     let admin = users.find(u => u.role === 'admin');
+    
     if (!admin) {
       const hashedPassword = bcrypt.hashSync(DEFAULT_ADMIN.password, 10);
+      const nextId = await db.getNextId('users');
       admin = {
-        id: users.length + 1,
+        id: nextId,
         username: DEFAULT_ADMIN.username,
         email: DEFAULT_ADMIN.email,
         password: hashedPassword,
         role: 'admin',
         createdAt: new Date().toISOString()
       };
-      users.push(admin);
+      await db.createUser(admin);
       console.log('✅ Admin padrão criado automaticamente');
       console.log(`   📧 Email: ${admin.email}`);
       console.log(`   🔑 Senha: ${DEFAULT_ADMIN.password}`);
@@ -323,15 +326,19 @@ function seedInitialData() {
       console.log('ℹ️  Admin já existe');
     }
 
+    // Buscar curso existente
+    const courses = await db.getCourses();
     let course = courses.find(c => c.name === DEFAULT_COURSE.name);
+    
     if (!course) {
+      const nextId = await db.getNextId('courses');
       course = {
-        id: courses.length + 1,
+        id: nextId,
         ...DEFAULT_COURSE,
         createdBy: admin.id,
         createdAt: new Date().toISOString()
       };
-      courses.push(course);
+      await db.createCourse(course);
       console.log(`✅ Curso padrão criado automaticamente: "${course.name}"`);
       console.log(`   📚 ID: ${course.id}`);
       console.log(`   🏷️  Abreviação: ${course.abbreviation}`);
@@ -339,20 +346,23 @@ function seedInitialData() {
       console.log(`ℹ️  Curso "${course.name}" já existe (ID: ${course.id})`);
     }
 
+    // Carregar questões do arquivo se não existirem
+    const questions = await db.getQuestions();
+    
     if (questions.length === 0 && fs.existsSync(QUESTIONS_FILE_PATH)) {
       console.log(`📂 Carregando questões de: ${QUESTIONS_FILE_PATH}`);
       const fileContent = fs.readFileSync(QUESTIONS_FILE_PATH, 'utf8');
       const questionsData = JSON.parse(fileContent);
       console.log(`📝 ${questionsData.length} questões encontradas no arquivo`);
 
-      questionsData.forEach((q, index) => {
+      for (const q of questionsData) {
         const alreadyExists = questions.some(existing => existing.id === q.id && existing.courseId === course.id);
         if (alreadyExists) {
-          return;
+          continue;
         }
 
-        questions.push({
-          id: q.id || `Q${index + 1}`,
+        const question = {
+          id: q.id || `Q${questions.length + 1}`,
           courseId: course.id,
           capacidade: q.capacidade || q.capacity || 'Geral',
           difficulty: q.dificuldade || q.difficulty || 'Médio',
@@ -362,23 +372,29 @@ function seedInitialData() {
           options: normalizeOptionsArray(q.options),
           createdBy: admin.id,
           createdAt: new Date().toISOString()
-        });
-      });
+        };
+        
+        await db.createQuestion(question);
+        questions.push(question); // Para contagem local
+      }
 
       console.log(`✅ ${questions.length} questões carregadas automaticamente`);
     } else if (questions.length > 0) {
-      console.log(`ℹ️  ${questions.length} questões já existem na memória`);
+      console.log(`ℹ️  ${questions.length} questões já existem no banco`);
     } else {
       console.log(`⚠️  Arquivo de questões não encontrado: ${QUESTIONS_FILE_PATH}`);
     }
 
     // Criar quiz padrão se não existir
+    const quizzes = await db.getQuizzes();
+    
     if (quizzes.length === 0 && questions.length > 0) {
       const courseQuestions = questions.filter(q => q.courseId === course.id);
       
       if (courseQuestions.length > 0) {
+        const nextId = await db.getNextId('quizzes');
         const defaultQuiz = {
-          id: 1,
+          id: nextId,
           name: 'Quiz 1 - Programação de Jogos Digitais',
           description: 'Quiz completo com todas as questões do curso de Programação de Jogos Digitais',
           courseId: course.id,
@@ -386,18 +402,24 @@ function seedInitialData() {
           createdBy: admin.id,
           createdAt: new Date().toISOString()
         };
-        quizzes.push(defaultQuiz);
+        await db.createQuiz(defaultQuiz);
         console.log(`✅ Quiz padrão criado com ${courseQuestions.length} questões`);
       }
     } else if (quizzes.length > 0) {
       console.log(`ℹ️  ${quizzes.length} quizzes já existem`);
     }
     
+    // Contadores finais
+    const finalUsers = await db.getUsers();
+    const finalCourses = await db.getCourses();
+    const finalQuestions = await db.getQuestions();
+    const finalQuizzes = await db.getQuizzes();
+    
     console.log('📊 Resumo do seed:');
-    console.log(`   👥 Usuários: ${users.length} (Admin: ${users.filter(u => u.role === 'admin').length})`);
-    console.log(`   📚 Cursos: ${courses.length}`);
-    console.log(`   ❓ Questões: ${questions.length}`);
-    console.log(`   📝 Quizzes: ${quizzes.length}`);
+    console.log(`   👥 Usuários: ${finalUsers.length} (Admin: ${finalUsers.filter(u => u.role === 'admin').length})`);
+    console.log(`   📚 Cursos: ${finalCourses.length}`);
+    console.log(`   ❓ Questões: ${finalQuestions.length}`);
+    console.log(`   📝 Quizzes: ${finalQuizzes.length}`);
     console.log('✅ Seed concluído com sucesso!\n');
   } catch (error) {
     console.error('❌ ERRO CRÍTICO ao carregar dados iniciais:', error);
@@ -405,7 +427,10 @@ function seedInitialData() {
   }
 }
 
-seedInitialData();
+// Executar seed de forma assíncrona
+seedInitialData().catch(error => {
+  console.error('❌ Falha fatal no seed:', error);
+});
 
 // Middleware de autenticação
 const authenticateToken = (req, res, next) => {
