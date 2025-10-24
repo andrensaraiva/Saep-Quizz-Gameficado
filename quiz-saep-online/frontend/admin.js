@@ -124,6 +124,9 @@ function showSection(sectionName) {
         case 'users':
             loadUsers();
             break;
+        case 'results':
+            loadResultsSection();
+            break;
         case 'feedbacks':
             loadFeedbacks();
             break;
@@ -2129,6 +2132,135 @@ GEMINI_MODEL=gemini-2.5-flash</pre>
     };
     
     contentDiv.innerHTML = tutorials[category] || '<p style="text-align: center; color: #94a3b8;">Conteúdo não encontrado.</p>';
+}
+
+// ==================== RESULTADOS ANÔNIMOS ====================
+
+async function loadResultsSection() {
+    // Carregar cursos no filtro
+    const courseFilter = document.getElementById('results-course-filter');
+    courseFilter.innerHTML = '<option value="">Todos os Cursos</option>';
+    
+    try {
+        const response = await fetch(`${API_URL}/courses`);
+        if (response.ok) {
+            const courses = await response.json();
+            courses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course.id;
+                option.textContent = course.name;
+                courseFilter.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.warn('Erro ao carregar cursos para filtro:', error);
+    }
+
+    // Carregar resultados iniciais
+    loadAnonymousResults();
+}
+
+async function loadAnonymousResults() {
+    try {
+        const courseFilter = document.getElementById('results-course-filter').value;
+        let url = `${API_URL}/admin/anonymous-results?limit=100`;
+        
+        if (courseFilter) {
+            url += `&courseId=${courseFilter}`;
+        }
+
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao carregar resultados');
+        }
+
+        const data = await response.json();
+        displayAnonymousResults(data.results, data.stats);
+
+    } catch (error) {
+        console.error('Erro ao carregar resultados:', error);
+        document.getElementById('results-list').innerHTML = 
+            '<p style="color: #ef4444; text-align: center;">Erro ao carregar resultados</p>';
+    }
+}
+
+function displayAnonymousResults(results, stats) {
+    // Atualizar estatísticas
+    document.getElementById('results-total').textContent = stats.total || 0;
+    document.getElementById('results-avg-score').textContent = stats.avgScore + '%' || '0%';
+    
+    // Calcular tempo médio
+    const avgTimeSeconds = results.length > 0 ? Math.floor(stats.totalTimeSpent / results.length) : 0;
+    const avgTimeMinutes = Math.floor(avgTimeSeconds / 60);
+    const avgTimeSecondsRem = avgTimeSeconds % 60;
+    document.getElementById('results-avg-time').textContent = 
+        `${String(avgTimeMinutes).padStart(2, '0')}:${String(avgTimeSecondsRem).padStart(2, '0')}`;
+
+    // Melhor resultado
+    const bestScore = results.length > 0 ? Math.max(...results.map(r => parseFloat(r.percentage))) : 0;
+    document.getElementById('results-best-score').textContent = bestScore.toFixed(1) + '%';
+
+    // Lista de resultados
+    const resultsContainer = document.getElementById('results-list');
+
+    if (results.length === 0) {
+        resultsContainer.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px;">Nenhum resultado encontrado</p>';
+        return;
+    }
+
+    const html = results.map(result => {
+        const date = new Date(result.createdAt);
+        const timeSpent = result.timeSpent;
+        const minutes = Math.floor(timeSpent / 60);
+        const seconds = timeSpent % 60;
+        const timeDisplay = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+        const scoreClass = parseFloat(result.percentage) >= 70 ? 'success' : parseFloat(result.percentage) >= 50 ? 'warning' : 'danger';
+
+        return `
+            <div class="result-item" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; background: white;">
+                <div style="display: flex; justify-content: between; align-items: start; gap: 16px;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <strong style="color: #1e293b; font-size: 1rem;">${result.userInfo}</strong>
+                            <span class="badge ${scoreClass}" style="padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
+                                ${result.score}/${result.totalQuestions} (${result.percentage}%)
+                            </span>
+                        </div>
+                        
+                        <div style="display: flex; flex-wrap: wrap; gap: 16px; color: #64748b; font-size: 0.9rem;">
+                            <span><strong>Curso:</strong> ${result.courseName}</span>
+                            ${result.quizName ? `<span><strong>Quiz:</strong> ${result.quizName}</span>` : ''}
+                            <span><strong>Tempo:</strong> ${timeDisplay}</span>
+                            <span><strong>Data:</strong> ${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>
+                        </div>
+
+                        ${result.ip && result.ip !== 'unknown' ? `
+                            <div style="margin-top: 8px; font-size: 0.8rem; color: #94a3b8;">
+                                <span><strong>IP:</strong> ${result.ip}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; align-items: end; gap: 8px;">
+                        <button onclick="showResultDetails('${result.id}')" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">
+                            Ver Detalhes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    resultsContainer.innerHTML = html;
+}
+
+function showResultDetails(resultId) {
+    // TODO: Implementar modal com detalhes das respostas
+    alert(`Detalhes do resultado ${resultId} (funcionalidade em desenvolvimento)`);
 }
 
 // ==================== FEEDBACKS ====================

@@ -924,6 +924,74 @@ app.post('/api/scores', authenticateToken, (req, res) => {
   }
 });
 
+// Salvar resultado anônimo (sem autenticação) - apenas para admin
+app.post('/api/results/anonymous', (req, res) => {
+  try {
+    const { courseId, quizId, score, totalQuestions, timeSpent, answersDetail, userInfo } = req.body;
+
+    // Validações
+    if (score === undefined || !totalQuestions || !courseId) {
+      return res.status(400).json({ error: 'Dados incompletos' });
+    }
+
+    // Verificar se curso existe
+    const course = courses.find(c => c.id === courseId);
+    if (!course) {
+      return res.status(404).json({ error: 'Curso não encontrado' });
+    }
+
+    // Verificar se quiz existe (opcional)
+    let quizName = null;
+    if (quizId) {
+      const quiz = quizzes.find(q => q.id === quizId);
+      if (quiz) {
+        quizName = quiz.name;
+      }
+    }
+
+    const resultEntry = {
+      id: Date.now(), // ID único baseado em timestamp
+      type: 'anonymous',
+      userInfo: userInfo || 'Usuário Anônimo',
+      courseId,
+      courseName: course.name,
+      quizId: quizId || null,
+      quizName: quizName,
+      score,
+      totalQuestions,
+      percentage: ((score / totalQuestions) * 100).toFixed(2),
+      timeSpent: timeSpent || 0,
+      answersDetail: answersDetail || [],
+      createdAt: new Date().toISOString(),
+      ip: req.ip || req.connection.remoteAddress || 'unknown'
+    };
+
+    // Adicionar à lista de resultados anônimos (ou usar array separado)
+    if (!global.anonymousResults) {
+      global.anonymousResults = [];
+    }
+    global.anonymousResults.push(resultEntry);
+
+    console.log('📊 Resultado anônimo salvo:', {
+      id: resultEntry.id,
+      course: resultEntry.courseName,
+      quiz: resultEntry.quizName,
+      score: `${resultEntry.score}/${resultEntry.totalQuestions}`,
+      percentage: `${resultEntry.percentage}%`,
+      timeSpent: `${Math.floor(resultEntry.timeSpent / 60)}:${String(resultEntry.timeSpent % 60).padStart(2, '0')}`
+    });
+
+    res.status(201).json({
+      message: 'Resultado salvo com sucesso',
+      id: resultEntry.id,
+      success: true
+    });
+  } catch (error) {
+    console.error('Erro ao salvar resultado anônimo:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 // Obter histórico de pontuações do usuário
 app.get('/api/scores/user', authenticateToken, (req, res) => {
   try {
@@ -1105,6 +1173,49 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao buscar dashboard:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Obter resultados anônimos (admin)
+app.get('/api/admin/anonymous-results', authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const courseId = req.query.courseId ? parseInt(req.query.courseId) : null;
+
+    if (!global.anonymousResults) {
+      global.anonymousResults = [];
+    }
+
+    let results = [...global.anonymousResults];
+
+    // Filtrar por curso se especificado
+    if (courseId) {
+      results = results.filter(r => r.courseId === courseId);
+    }
+
+    // Ordenar por data (mais recente primeiro) e limitar
+    results = results
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, limit);
+
+    // Estatísticas resumidas
+    const stats = {
+      total: global.anonymousResults.length,
+      filtered: results.length,
+      avgScore: results.length > 0 
+        ? (results.reduce((sum, r) => sum + parseFloat(r.percentage), 0) / results.length).toFixed(2)
+        : 0,
+      totalTimeSpent: results.reduce((sum, r) => sum + (r.timeSpent || 0), 0)
+    };
+
+    res.json({
+      results,
+      stats,
+      success: true
+    });
+  } catch (error) {
+    console.error('Erro ao buscar resultados anônimos:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });

@@ -415,7 +415,7 @@ function updateTimer() {
 
 // ==================== VERIFICAR RESPOSTAS ====================
 
-document.getElementById('submit-btn').addEventListener('click', function() {
+document.getElementById('submit-btn').addEventListener('click', async function() {
     if (!confirm('Deseja finalizar e verificar suas respostas?')) {
         return;
     }
@@ -522,6 +522,9 @@ document.getElementById('submit-btn').addEventListener('click', function() {
         capacityStats,
         wrongQuestions
     };
+
+    // Enviar resultado automaticamente para o painel admin (mesmo sem login)
+    await submitResultToAdmin();
 
     showReport();
 });
@@ -758,6 +761,61 @@ async function saveScore() {
     } catch (error) {
         console.error('Erro:', error);
         alert('Erro ao conectar com o servidor');
+    }
+}
+
+// ==================== ENVIAR RESULTADO PARA ADMIN ====================
+
+async function submitResultToAdmin() {
+    if (!currentResults) {
+        console.log('Nenhum resultado para enviar');
+        return;
+    }
+
+    const courseId = currentCourse ? currentCourse.id : null;
+    const quizId = currentQuiz ? currentQuiz.id : null;
+
+    if (!courseId) {
+        console.log('Nenhum curso selecionado, não é possível enviar resultado');
+        return;
+    }
+
+    try {
+        // Gerar um identificador anônimo baseado na sessão
+        let anonymousId = sessionStorage.getItem('anonymousId');
+        if (!anonymousId) {
+            anonymousId = 'Anônimo-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('anonymousId', anonymousId);
+        }
+
+        const resultData = {
+            courseId: courseId,
+            quizId: quizId,
+            score: currentResults.score,
+            totalQuestions: currentResults.totalQuestions,
+            timeSpent: currentResults.timeSpent,
+            answersDetail: currentResults.answersDetail,
+            userInfo: currentUser ? `${currentUser.username} (${currentUser.email})` : anonymousId
+        };
+
+        const response = await fetch(`${API_URL}/results/anonymous`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(resultData)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            console.log('✅ Resultado enviado para o painel admin:', data.id);
+        } else {
+            console.warn('⚠️ Erro ao enviar resultado para admin:', data.error);
+        }
+    } catch (error) {
+        console.warn('⚠️ Erro de conexão ao enviar resultado para admin:', error);
+        // Não exibe erro para o usuário, apenas registra no console
     }
 }
 

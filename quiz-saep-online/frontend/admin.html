@@ -40,6 +40,9 @@
                 <a href="#" class="nav-item" onclick="showSection('users')">
                     <span class="icon">👥</span> Usuários
                 </a>
+                <a href="#" class="nav-item" onclick="showSection('results')">
+                    <span class="icon">📊</span> Resultados
+                </a>
                 <a href="#" class="nav-item" onclick="showSection('feedbacks')">
                     <span class="icon">💬</span> Feedbacks
                 </a>
@@ -145,6 +148,51 @@
             <section id="users-section" class="admin-section" style="display:none;">
                 <h2>Gerenciar Usuários</h2>
                 <div id="users-list"></div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="results-section" class="admin-section" style="display:none;">
+                <div class="section-header">
+                    <h2>Resultados dos Quizzes</h2>
+                    <div class="button-group-horizontal">
+                        <button onclick="loadAnonymousResults()" class="btn-primary">Carregar Resultados</button>
+                        <select id="results-course-filter" onchange="loadAnonymousResults()" class="form-control" style="width: auto; margin-left: 10px;">
+                            <option value="">Todos os Cursos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="stats-grid-admin" style="margin-bottom: 20px;">
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">📝</div>
+                        <div class="stat-value-admin" id="results-total">0</div>
+                        <div class="stat-label-admin">Total de Tentativas</div>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">📊</div>
+                        <div class="stat-value-admin" id="results-avg-score">0%</div>
+                        <div class="stat-label-admin">Média de Acertos</div>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">⏱️</div>
+                        <div class="stat-value-admin" id="results-avg-time">00:00</div>
+                        <div class="stat-label-admin">Tempo Médio</div>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">🎯</div>
+                        <div class="stat-value-admin" id="results-best-score">0%</div>
+                        <div class="stat-label-admin">Melhor Resultado</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Resultados Recentes</h3>
+                    <div id="results-list">
+                        <p style="text-align: center; color: #94a3b8; padding: 20px;">
+                            Clique em "Carregar Resultados" para ver as tentativas dos usuários
+                        </p>
+                    </div>
+                </div>
             </section>
 
             <!-- Feedbacks Section -->
