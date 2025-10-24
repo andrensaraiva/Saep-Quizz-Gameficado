@@ -146,13 +146,14 @@ function getCourseAbbreviation(course) {
 }
 
 // Função para gerar próximo ID de questão para um curso
-function generateNextQuestionId(courseId) {
-  const course = courses.find(c => c.id === courseId);
+async function generateNextQuestionId(courseId) {
+  const course = await db.getCourseById(courseId);
   if (!course) {
     throw new Error('Curso não encontrado');
   }
   
   const abbreviation = getCourseAbbreviation(course);
+  const questions = await db.getQuestions();
   const courseQuestions = questions.filter(q => q.courseId === courseId);
   
   // Extrair números das questões existentes
@@ -467,8 +468,10 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     // Verificar se usuário já existe
-    const userExists = users.find(u => u.email === email || u.username === username);
-    if (userExists) {
+    const emailExists = await db.getUserByEmail(email);
+    const usernameExists = await db.getUserByUsername(username);
+    
+    if (emailExists || usernameExists) {
       return res.status(400).json({ error: 'Usuário ou email já cadastrado' });
     }
 
@@ -476,8 +479,9 @@ app.post('/api/auth/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Criar usuário
+    const nextId = await db.getNextId('users');
     const user = {
-      id: users.length + 1,
+      id: nextId,
       username,
       email,
       password: hashedPassword,
@@ -485,7 +489,7 @@ app.post('/api/auth/register', async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    users.push(user);
+    await db.createUser(user);
 
     // Gerar token
     const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
@@ -512,7 +516,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     // Buscar usuário
-    const user = users.find(u => u.email === email);
+    const user = await db.getUserByEmail(email);
     if (!user) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
@@ -538,12 +542,17 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // Verificar token
-app.get('/api/auth/verify', authenticateToken, (req, res) => {
-  const user = users.find(u => u.id === req.user.id);
-  if (!user) {
-    return res.status(404).json({ error: 'Usuário não encontrado' });
+app.get('/api/auth/verify', authenticateToken, async (req, res) => {
+  try {
+    const user = await db.getUserById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    res.json({ user: { id: user.id, username: user.username, email: user.email, role: user.role } });
+  } catch (error) {
+    console.error('Erro ao verificar token:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
-  res.json({ user: { id: user.id, username: user.username, email: user.email, role: user.role } });
 });
 
 // Middleware para verificar se é admin
@@ -565,6 +574,7 @@ app.post('/api/auth/create-admin', async (req, res) => {
     }
 
     // Verificar se já existe admin
+    const users = await db.getUsers();
     const adminExists = users.find(u => u.role === 'admin');
     if (adminExists) {
       return res.status(400).json({ error: 'Admin já existe' });
@@ -572,8 +582,9 @@ app.post('/api/auth/create-admin', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     
+    const nextId = await db.getNextId('users');
     const admin = {
-      id: users.length + 1,
+      id: nextId,
       username,
       email,
       password: hashedPassword,
@@ -581,7 +592,7 @@ app.post('/api/auth/create-admin', async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    users.push(admin);
+    await db.createUser(admin);
 
     const token = jwt.sign({ id: admin.id, username: admin.username, role: admin.role }, JWT_SECRET, { expiresIn: '7d' });
 
@@ -599,20 +610,34 @@ app.post('/api/auth/create-admin', async (req, res) => {
 // ==================== ROTAS DE CURSOS ====================
 
 // Rota de debug para verificar status dos cursos (pode remover após deploy)
-app.get('/api/debug/courses', (req, res) => {
-  res.json({
-    totalCourses: courses.length,
-    courses: courses.map(c => ({ id: c.id, name: c.name, abbreviation: c.abbreviation })),
-    totalQuestions: questions.length,
-    totalUsers: users.length,
-    timestamp: new Date().toISOString()
-  });
+app.get('/api/debug/courses', async (req, res) => {
+  try {
+    const courses = await db.getCourses();
+    const questions = await db.getQuestions();
+    const users = await db.getUsers();
+    
+    res.json({
+      totalCourses: courses.length,
+      courses: courses.map(c => ({ id: c.id, name: c.name, abbreviation: c.abbreviation })),
+      totalQuestions: questions.length,
+      totalUsers: users.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Erro:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
 });
 
 // Listar todos os cursos
-app.get('/api/courses', (req, res) => {
+app.get('/api/courses', async (req, res) => {
   try {
+    const courses = await db.getCourses();
+    const questions = await db.getQuestions();
+    const scores = await db.getScores();
+    
     console.log(`📚 GET /api/courses - Retornando ${courses.length} cursos`);
+    
     const coursesWithStats = courses.map(course => {
       const courseQuestions = questions.filter(q => q.courseId === course.id);
       const courseScores = scores.filter(s => s.courseId === course.id);
@@ -632,7 +657,7 @@ app.get('/api/courses', (req, res) => {
 });
 
 // Criar novo curso (apenas admin)
-app.post('/api/courses', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/courses', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { name, description, category, color, capacities } = req.body;
 
@@ -640,8 +665,9 @@ app.post('/api/courses', authenticateToken, requireAdmin, (req, res) => {
       return res.status(400).json({ error: 'Nome do curso é obrigatório' });
     }
 
+    const nextId = await db.getNextId('courses');
     const course = {
-      id: courses.length + 1,
+      id: nextId,
       name,
       description: description || '',
       category: category || 'Geral',
@@ -651,7 +677,7 @@ app.post('/api/courses', authenticateToken, requireAdmin, (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    courses.push(course);
+    await db.createCourse(course);
 
     res.status(201).json({ message: 'Curso criado com sucesso', course });
   } catch (error) {
@@ -661,27 +687,28 @@ app.post('/api/courses', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Atualizar curso (apenas admin)
-app.put('/api/courses/:id', authenticateToken, requireAdmin, (req, res) => {
+app.put('/api/courses/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const courseId = parseInt(req.params.id);
     const { name, description, category, color, capacities } = req.body;
 
-    const courseIndex = courses.findIndex(c => c.id === courseId);
-    if (courseIndex === -1) {
+    const course = await db.getCourseById(courseId);
+    if (!course) {
       return res.status(404).json({ error: 'Curso não encontrado' });
     }
 
-    courses[courseIndex] = {
-      ...courses[courseIndex],
-      name: name || courses[courseIndex].name,
-      description: description !== undefined ? description : courses[courseIndex].description,
-      category: category || courses[courseIndex].category,
-      color: color || courses[courseIndex].color,
-      capacities: capacities !== undefined ? capacities : courses[courseIndex].capacities,
+    const updates = {
+      name: name || course.name,
+      description: description !== undefined ? description : course.description,
+      category: category || course.category,
+      color: color || course.color,
+      capacities: capacities !== undefined ? capacities : course.capacities,
       updatedAt: new Date().toISOString()
     };
 
-    res.json({ message: 'Curso atualizado com sucesso', course: courses[courseIndex] });
+    const updatedCourse = await db.updateCourse(courseId, updates);
+
+    res.json({ message: 'Curso atualizado com sucesso', course: updatedCourse });
   } catch (error) {
     console.error('Erro ao atualizar curso:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -689,21 +716,31 @@ app.put('/api/courses/:id', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Deletar curso (apenas admin)
-app.delete('/api/courses/:id', authenticateToken, requireAdmin, (req, res) => {
+app.delete('/api/courses/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const courseId = parseInt(req.params.id);
     
-    const courseIndex = courses.findIndex(c => c.id === courseId);
-    if (courseIndex === -1) {
+    const course = await db.getCourseById(courseId);
+    if (!course) {
       return res.status(404).json({ error: 'Curso não encontrado' });
     }
 
     // Remover questões e pontuações do curso
+    const questions = await db.getQuestions();
     const questionIds = questions.filter(q => q.courseId === courseId).map(q => q.id);
-    questions.splice(0, questions.length, ...questions.filter(q => q.courseId !== courseId));
-    scores.splice(0, scores.length, ...scores.filter(s => s.courseId !== courseId));
+    
+    for (const qId of questionIds) {
+      await db.deleteQuestion(qId);
+    }
+    
+    const scores = await db.getScores();
+    const scoreIds = scores.filter(s => s.courseId === courseId).map(s => s.id);
+    
+    for (const sId of scoreIds) {
+      await db.deleteScore(sId);
+    }
 
-    courses.splice(courseIndex, 1);
+    await db.deleteCourse(courseId);
 
     res.json({ message: 'Curso deletado com sucesso' });
   } catch (error) {
@@ -715,9 +752,10 @@ app.delete('/api/courses/:id', authenticateToken, requireAdmin, (req, res) => {
 // ==================== ROTAS DE QUESTÕES ====================
 
 // Listar questões de um curso
-app.get('/api/courses/:courseId/questions', (req, res) => {
+app.get('/api/courses/:courseId/questions', async (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId);
+    const questions = await db.getQuestions();
     const courseQuestions = questions.filter(q => q.courseId === courseId);
     
     res.json({ questions: courseQuestions, total: courseQuestions.length });
@@ -728,7 +766,7 @@ app.get('/api/courses/:courseId/questions', (req, res) => {
 });
 
 // Adicionar questão (apenas admin)
-app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId);
     let { id, capacidade, capacity, dificuldade, difficulty, context, contexto, contextImage, command, comando, options } = req.body;
@@ -744,17 +782,18 @@ app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, (r
     }
 
     // Verificar se curso existe
-    const course = courses.find(c => c.id === courseId);
+    const course = await db.getCourseById(courseId);
     if (!course) {
       return res.status(404).json({ error: 'Curso não encontrado' });
     }
 
     // Se ID não foi fornecido, gerar automaticamente
     if (!id) {
-      id = generateNextQuestionId(courseId);
+      id = await generateNextQuestionId(courseId);
     }
 
     // Verificar se ID já existe
+    const questions = await db.getQuestions();
     if (questions.find(q => q.id === id && q.courseId === courseId)) {
       return res.status(400).json({ error: 'ID de questão já existe neste curso' });
     }
@@ -772,7 +811,7 @@ app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, (r
       createdAt: new Date().toISOString()
     };
 
-    questions.push(question);
+    await db.createQuestion(question);
 
     res.status(201).json({ message: 'Questão criada com sucesso', question });
   } catch (error) {
@@ -782,17 +821,17 @@ app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, (r
 });
 
 // Obter próximo ID disponível para um curso
-app.get('/api/courses/:courseId/next-question-id', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/courses/:courseId/next-question-id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId);
     
     // Verificar se curso existe
-    const course = courses.find(c => c.id === courseId);
+    const course = await db.getCourseById(courseId);
     if (!course) {
       return res.status(404).json({ error: 'Curso não encontrado' });
     }
 
-    const nextId = generateNextQuestionId(courseId);
+    const nextId = await generateNextQuestionId(courseId);
     
     res.json({ 
       nextId,
@@ -806,7 +845,7 @@ app.get('/api/courses/:courseId/next-question-id', authenticateToken, requireAdm
 });
 
 // Importar questões em lote (JSON ou CSV) (apenas admin)
-app.post('/api/courses/:courseId/questions/import', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/courses/:courseId/questions/import', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId);
     const { questionsData, format } = req.body;
@@ -816,7 +855,7 @@ app.post('/api/courses/:courseId/questions/import', authenticateToken, requireAd
     }
 
     // Verificar se curso existe
-    const course = courses.find(c => c.id === courseId);
+    const course = await db.getCourseById(courseId);
     if (!course) {
       return res.status(404).json({ error: 'Curso não encontrado' });
     }
@@ -824,7 +863,10 @@ app.post('/api/courses/:courseId/questions/import', authenticateToken, requireAd
     let imported = 0;
     let errors = [];
 
-    questionsData.forEach((q, index) => {
+    const existingQuestions = await db.getQuestions();
+
+    for (let index = 0; index < questionsData.length; index++) {
+      const q = questionsData[index];
       try {
         // Validar questão - aceitar campos em português ou inglês
         const hasContext = (q.contexto && String(q.contexto).trim() !== '') || (q.context && String(q.context).trim() !== '');
@@ -838,19 +880,19 @@ app.post('/api/courses/:courseId/questions/import', authenticateToken, requireAd
           if (!hasOptions) missing.push('options');
 
           errors.push({ index: index + 1, error: 'Dados incompletos - campos faltando: ' + missing.join(', '), question: q });
-          return;
+          continue;
         }
 
         // Se ID não foi fornecido, gerar automaticamente
         let questionId = q.id;
         if (!questionId) {
-          questionId = generateNextQuestionId(courseId);
+          questionId = await generateNextQuestionId(courseId);
         }
 
         // Verificar se ID já existe
-        if (questions.find(existingQ => existingQ.id === questionId && existingQ.courseId === courseId)) {
+        if (existingQuestions.find(existingQ => existingQ.id === questionId && existingQ.courseId === courseId)) {
           errors.push({ index: index + 1, error: 'ID já existe', id: questionId });
-          return;
+          continue;
         }
 
         const question = {
@@ -866,12 +908,13 @@ app.post('/api/courses/:courseId/questions/import', authenticateToken, requireAd
           createdAt: new Date().toISOString()
         };
 
-        questions.push(question);
+        await db.createQuestion(question);
+        existingQuestions.push(question); // Adicionar ao array local para verificação de duplicatas
         imported++;
       } catch (err) {
         errors.push({ index: index + 1, error: err.message });
       }
-    });
+    }
 
     res.json({
       message: `Importação concluída`,
@@ -886,17 +929,18 @@ app.post('/api/courses/:courseId/questions/import', authenticateToken, requireAd
 });
 
 // Deletar questão (apenas admin)
-app.delete('/api/courses/:courseId/questions/:questionId', authenticateToken, requireAdmin, (req, res) => {
+app.delete('/api/courses/:courseId/questions/:questionId', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId);
     const questionId = req.params.questionId;
 
-    const questionIndex = questions.findIndex(q => q.id === questionId && q.courseId === courseId);
-    if (questionIndex === -1) {
+    const questions = await db.getQuestions();
+    const question = questions.find(q => q.id === questionId && q.courseId === courseId);
+    if (!question) {
       return res.status(404).json({ error: 'Questão não encontrada' });
     }
 
-    questions.splice(questionIndex, 1);
+    await db.deleteQuestion(questionId);
 
     res.json({ message: 'Questão deletada com sucesso' });
   } catch (error) {
@@ -908,7 +952,7 @@ app.delete('/api/courses/:courseId/questions/:questionId', authenticateToken, re
 // ==================== ROTAS DE PONTUAÇÃO ====================
 
 // Salvar pontuação
-app.post('/api/scores', authenticateToken, (req, res) => {
+app.post('/api/scores', authenticateToken, async (req, res) => {
   try {
     const { courseId, score, totalQuestions, timeSpent, answersDetail } = req.body;
 
@@ -918,13 +962,14 @@ app.post('/api/scores', authenticateToken, (req, res) => {
     }
 
     // Verificar se curso existe
-    const course = courses.find(c => c.id === courseId);
+    const course = await db.getCourseById(courseId);
     if (!course) {
       return res.status(404).json({ error: 'Curso não encontrado' });
     }
 
+    const nextId = await db.getNextId('scores');
     const scoreEntry = {
-      id: scores.length + 1,
+      id: nextId,
       userId: req.user.id,
       username: req.user.username,
       courseId,
@@ -937,7 +982,7 @@ app.post('/api/scores', authenticateToken, (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    scores.push(scoreEntry);
+    await db.createScore(scoreEntry);
 
     res.status(201).json({
       message: 'Pontuação salva com sucesso',
@@ -950,7 +995,7 @@ app.post('/api/scores', authenticateToken, (req, res) => {
 });
 
 // Salvar resultado anônimo (sem autenticação) - apenas para admin
-app.post('/api/results/anonymous', (req, res) => {
+app.post('/api/results/anonymous', async (req, res) => {
   try {
     const { courseId, quizId, score, totalQuestions, timeSpent, answersDetail, userInfo } = req.body;
 
@@ -960,7 +1005,7 @@ app.post('/api/results/anonymous', (req, res) => {
     }
 
     // Verificar se curso existe
-    const course = courses.find(c => c.id === courseId);
+    const course = await db.getCourseById(courseId);
     if (!course) {
       return res.status(404).json({ error: 'Curso não encontrado' });
     }
@@ -968,7 +1013,7 @@ app.post('/api/results/anonymous', (req, res) => {
     // Verificar se quiz existe (opcional)
     let quizName = null;
     if (quizId) {
-      const quiz = quizzes.find(q => q.id === quizId);
+      const quiz = await db.getQuizById(quizId);
       if (quiz) {
         quizName = quiz.name;
       }
@@ -1018,8 +1063,9 @@ app.post('/api/results/anonymous', (req, res) => {
 });
 
 // Obter histórico de pontuações do usuário
-app.get('/api/scores/user', authenticateToken, (req, res) => {
+app.get('/api/scores/user', authenticateToken, async (req, res) => {
   try {
+    const scores = await db.getScores();
     const userScores = scores
       .filter(s => s.userId === req.user.id)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -1032,12 +1078,13 @@ app.get('/api/scores/user', authenticateToken, (req, res) => {
 });
 
 // Obter ranking global
-app.get('/api/ranking', (req, res) => {
+app.get('/api/ranking', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 100;
     const period = req.query.period || 'all'; // all, today, week, month
     const courseId = req.query.courseId ? parseInt(req.query.courseId) : null;
 
+    const scores = await db.getScores();
     let filteredScores = [...scores];
 
     // Filtrar por curso
@@ -1099,9 +1146,14 @@ app.get('/api/ranking', (req, res) => {
 });
 
 // Obter estatísticas gerais
-app.get('/api/stats', (req, res) => {
+app.get('/api/stats', async (req, res) => {
   try {
     const courseId = req.query.courseId ? parseInt(req.query.courseId) : null;
+    
+    const scores = await db.getScores();
+    const users = await db.getUsers();
+    const courses = await db.getCourses();
+    const questions = await db.getQuestions();
     
     let relevantScores = courseId ? scores.filter(s => s.courseId === courseId) : scores;
     
@@ -1148,8 +1200,13 @@ app.get('/api/stats', (req, res) => {
 // ==================== ROTAS ADMINISTRATIVAS ====================
 
 // Dashboard admin - estatísticas gerais
-app.get('/api/admin/dashboard', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res) => {
   try {
+    const users = await db.getUsers();
+    const courses = await db.getCourses();
+    const questions = await db.getQuestions();
+    const scores = await db.getScores();
+    
     const totalUsers = users.length;
     const totalCourses = courses.length;
     const totalQuestions = questions.length;
@@ -1246,8 +1303,11 @@ app.get('/api/admin/anonymous-results', authenticateToken, requireAdmin, (req, r
 });
 
 // Listar todos os usuários (admin)
-app.get('/api/admin/users', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
+    const users = await db.getUsers();
+    const scores = await db.getScores();
+    
     const usersWithStats = users.map(user => {
       const userScores = scores.filter(s => s.userId === user.id);
       const avgScore = userScores.length > 0
@@ -1273,7 +1333,7 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Alterar role de usuário (admin)
-app.put('/api/admin/users/:id/role', authenticateToken, requireAdmin, (req, res) => {
+app.put('/api/admin/users/:id/role', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
     const { role } = req.body;
@@ -1282,14 +1342,14 @@ app.put('/api/admin/users/:id/role', authenticateToken, requireAdmin, (req, res)
       return res.status(400).json({ error: 'Role inválida' });
     }
     
-    const userIndex = users.findIndex(u => u.id === userId);
-    if (userIndex === -1) {
+    const user = await db.getUserById(userId);
+    if (!user) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
     
-    users[userIndex].role = role;
+    const updatedUser = await db.updateUser(userId, { role });
     
-    res.json({ message: 'Role atualizada com sucesso', user: users[userIndex] });
+    res.json({ message: 'Role atualizada com sucesso', user: updatedUser });
   } catch (error) {
     console.error('Erro ao atualizar role:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -1297,7 +1357,7 @@ app.put('/api/admin/users/:id/role', authenticateToken, requireAdmin, (req, res)
 });
 
 // Deletar usuário (admin)
-app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, (req, res) => {
+app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
     
@@ -1305,15 +1365,19 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, (req, res) =
       return res.status(400).json({ error: 'Você não pode deletar sua própria conta' });
     }
     
-    const userIndex = users.findIndex(u => u.id === userId);
-    if (userIndex === -1) {
+    const user = await db.getUserById(userId);
+    if (!user) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
     
     // Remover pontuações do usuário
-    scores.splice(0, scores.length, ...scores.filter(s => s.userId !== userId));
+    const scores = await db.getScores();
+    const userScoreIds = scores.filter(s => s.userId === userId).map(s => s.id);
+    for (const scoreId of userScoreIds) {
+      await db.deleteScore(scoreId);
+    }
     
-    users.splice(userIndex, 1);
+    await db.deleteUser(userId);
     
     res.json({ message: 'Usuário deletado com sucesso' });
   } catch (error) {
@@ -1323,14 +1387,17 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, (req, res) =
 });
 
 // Relatório detalhado por curso (admin)
-app.get('/api/admin/reports/course/:courseId', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/reports/course/:courseId', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId);
     
-    const course = courses.find(c => c.id === courseId);
+    const course = await db.getCourseById(courseId);
     if (!course) {
       return res.status(404).json({ error: 'Curso não encontrado' });
     }
+    
+    const questions = await db.getQuestions();
+    const scores = await db.getScores();
     
     const courseQuestions = questions.filter(q => q.courseId === courseId);
     const courseScores = scores.filter(s => s.courseId === courseId);
@@ -1389,9 +1456,14 @@ app.get('/api/admin/reports/course/:courseId', authenticateToken, requireAdmin, 
 });
 
 // Exportar dados (CSV simplificado)
-app.get('/api/admin/export/:type', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/export/:type', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const type = req.params.type; // 'users', 'scores', 'courses'
+    
+    const users = await db.getUsers();
+    const scores = await db.getScores();
+    const courses = await db.getCourses();
+    const questions = await db.getQuestions();
     
     let data = [];
     let headers = [];
@@ -1693,12 +1765,18 @@ app.get('/api/ai/status', authenticateToken, requireAdmin, (req, res) => {
 // ==================== ROTAS DE QUIZZES ====================
 
 // Listar todos os quizzes
-app.get('/api/quizzes', (req, res) => {
-  res.json(quizzes);
+app.get('/api/quizzes', async (req, res) => {
+  try {
+    const quizzes = await db.getQuizzes();
+    res.json(quizzes);
+  } catch (error) {
+    console.error('Erro ao listar quizzes:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
 });
 
 // Criar novo quiz (apenas admin)
-app.post('/api/quizzes', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/quizzes', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { name, description, courseId, questionIds } = req.body;
 
@@ -1707,13 +1785,14 @@ app.post('/api/quizzes', authenticateToken, requireAdmin, (req, res) => {
     }
 
     // Validar se o curso existe
-    const course = courses.find(c => c.id === courseId);
+    const course = await db.getCourseById(courseId);
     if (!course) {
       return res.status(404).json({ error: 'Curso não encontrado' });
     }
 
     // Validar se as questões existem e pertencem ao curso
     const validQuestionIds = questionIds || [];
+    const questions = await db.getQuestions();
     const invalidQuestions = validQuestionIds.filter(qId => {
       const question = questions.find(q => String(q.id) === String(qId));
       return !question || question.courseId !== courseId;
@@ -1728,8 +1807,9 @@ app.post('/api/quizzes', authenticateToken, requireAdmin, (req, res) => {
       });
     }
 
+    const nextId = await db.getNextId('quizzes');
     const quiz = {
-      id: quizzes.length + 1,
+      id: nextId,
       name,
       description: description || '',
       courseId,
@@ -1738,7 +1818,7 @@ app.post('/api/quizzes', authenticateToken, requireAdmin, (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    quizzes.push(quiz);
+    await db.createQuiz(quiz);
 
     res.status(201).json({ message: 'Quiz criado com sucesso', quiz });
   } catch (error) {
@@ -1748,41 +1828,48 @@ app.post('/api/quizzes', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Obter detalhes de um quiz específico
-app.get('/api/quizzes/:id', (req, res) => {
-  const quizId = parseInt(req.params.id);
-  const quiz = quizzes.find(q => q.id === quizId);
+app.get('/api/quizzes/:id', async (req, res) => {
+  try {
+    const quizId = parseInt(req.params.id);
+    const quiz = await db.getQuizById(quizId);
 
-  if (!quiz) {
-    return res.status(404).json({ error: 'Quiz não encontrado' });
+    if (!quiz) {
+      return res.status(404).json({ error: 'Quiz não encontrado' });
+    }
+
+    // Incluir detalhes das questões
+    const questions = await db.getQuestions();
+    const quizQuestions = quiz.questionIds.map(qId => 
+      questions.find(q => q.id === qId)
+    ).filter(q => q !== undefined);
+
+    const course = await db.getCourseById(quiz.courseId);
+
+    res.json({
+      ...quiz,
+      questions: quizQuestions,
+      course
+    });
+  } catch (error) {
+    console.error('Erro ao obter quiz:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
-
-  // Incluir detalhes das questões
-  const quizQuestions = quiz.questionIds.map(qId => 
-    questions.find(q => q.id === qId)
-  ).filter(q => q !== undefined);
-
-  res.json({
-    ...quiz,
-    questions: quizQuestions,
-    course: courses.find(c => c.id === quiz.courseId)
-  });
 });
 
 // Atualizar quiz (apenas admin)
-app.put('/api/quizzes/:id', authenticateToken, requireAdmin, (req, res) => {
+app.put('/api/quizzes/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const quizId = parseInt(req.params.id);
     const { name, description, questionIds } = req.body;
 
-    const quizIndex = quizzes.findIndex(q => q.id === quizId);
-    if (quizIndex === -1) {
+    const quiz = await db.getQuizById(quizId);
+    if (!quiz) {
       return res.status(404).json({ error: 'Quiz não encontrado' });
     }
 
-    const quiz = quizzes[quizIndex];
-
     // Validar questões se fornecidas
     if (questionIds !== undefined) {
+      const questions = await db.getQuestions();
       const invalidQuestions = questionIds.filter(qId => {
         const question = questions.find(q => q.id === qId);
         return !question || question.courseId !== quiz.courseId;
@@ -1796,15 +1883,16 @@ app.put('/api/quizzes/:id', authenticateToken, requireAdmin, (req, res) => {
       }
     }
 
-    quizzes[quizIndex] = {
-      ...quiz,
+    const updates = {
       name: name || quiz.name,
       description: description !== undefined ? description : quiz.description,
       questionIds: questionIds !== undefined ? questionIds : quiz.questionIds,
       updatedAt: new Date().toISOString()
     };
 
-    res.json({ message: 'Quiz atualizado com sucesso', quiz: quizzes[quizIndex] });
+    const updatedQuiz = await db.updateQuiz(quizId, updates);
+
+    res.json({ message: 'Quiz atualizado com sucesso', quiz: updatedQuiz });
   } catch (error) {
     console.error('Erro ao atualizar quiz:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -1812,18 +1900,18 @@ app.put('/api/quizzes/:id', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Deletar quiz (apenas admin)
-app.delete('/api/quizzes/:id', authenticateToken, requireAdmin, (req, res) => {
+app.delete('/api/quizzes/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const quizId = parseInt(req.params.id);
     
-    const quizIndex = quizzes.findIndex(q => q.id === quizId);
-    if (quizIndex === -1) {
+    const quiz = await db.getQuizById(quizId);
+    if (!quiz) {
       return res.status(404).json({ error: 'Quiz não encontrado' });
     }
 
-    const deletedQuiz = quizzes.splice(quizIndex, 1)[0];
+    await db.deleteQuiz(quizId);
 
-    res.json({ message: 'Quiz deletado com sucesso', quiz: deletedQuiz });
+    res.json({ message: 'Quiz deletado com sucesso', quiz });
   } catch (error) {
     console.error('Erro ao deletar quiz:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -1831,17 +1919,23 @@ app.delete('/api/quizzes/:id', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Listar quizzes de um curso específico
-app.get('/api/courses/:courseId/quizzes', (req, res) => {
-  const courseId = parseInt(req.params.courseId);
-  const courseQuizzes = quizzes.filter(q => q.courseId === courseId);
+app.get('/api/courses/:courseId/quizzes', async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.courseId);
+    const quizzes = await db.getQuizzes();
+    const courseQuizzes = quizzes.filter(q => q.courseId === courseId);
 
-  res.json(courseQuizzes);
+    res.json(courseQuizzes);
+  } catch (error) {
+    console.error('Erro ao listar quizzes do curso:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
 });
 
 // ==================== ROTAS DE FEEDBACK ====================
 
 // Enviar feedback (qualquer usuário, autenticado ou não)
-app.post('/api/feedback', (req, res) => {
+app.post('/api/feedback', async (req, res) => {
   try {
     const { name, email, message, type } = req.body;
 
@@ -1849,8 +1943,9 @@ app.post('/api/feedback', (req, res) => {
       return res.status(400).json({ error: 'Mensagem é obrigatória' });
     }
 
+    const nextId = await db.getNextId('feedbacks');
     const feedback = {
-      id: feedbacks.length + 1,
+      id: nextId,
       name: name || 'Anônimo',
       email: email || null,
       message: message.trim(),
@@ -1859,7 +1954,7 @@ app.post('/api/feedback', (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    feedbacks.push(feedback);
+    await db.createFeedback(feedback);
 
     res.status(201).json({ 
       message: 'Feedback enviado com sucesso! Obrigado pela contribuição.',
@@ -1872,10 +1967,11 @@ app.post('/api/feedback', (req, res) => {
 });
 
 // Listar todos os feedbacks (apenas admin)
-app.get('/api/admin/feedbacks', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/feedbacks', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const status = req.query.status; // Filtrar por status (opcional)
     
+    const feedbacks = await db.getFeedbacks();
     let filteredFeedbacks = [...feedbacks];
     
     if (status) {
@@ -1899,7 +1995,7 @@ app.get('/api/admin/feedbacks', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Atualizar status do feedback (apenas admin)
-app.put('/api/admin/feedbacks/:id', authenticateToken, requireAdmin, (req, res) => {
+app.put('/api/admin/feedbacks/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const feedbackId = parseInt(req.params.id);
     const { status } = req.body;
@@ -1908,15 +2004,19 @@ app.put('/api/admin/feedbacks/:id', authenticateToken, requireAdmin, (req, res) 
       return res.status(400).json({ error: 'Status inválido' });
     }
     
-    const feedbackIndex = feedbacks.findIndex(f => f.id === feedbackId);
-    if (feedbackIndex === -1) {
+    const feedback = await db.getFeedbackById(feedbackId);
+    if (!feedback) {
       return res.status(404).json({ error: 'Feedback não encontrado' });
     }
     
-    feedbacks[feedbackIndex].status = status;
-    feedbacks[feedbackIndex].updatedAt = new Date().toISOString();
+    const updates = {
+      status,
+      updatedAt: new Date().toISOString()
+    };
     
-    res.json({ message: 'Status atualizado com sucesso', feedback: feedbacks[feedbackIndex] });
+    const updatedFeedback = await db.updateFeedback(feedbackId, updates);
+    
+    res.json({ message: 'Status atualizado com sucesso', feedback: updatedFeedback });
   } catch (error) {
     console.error('Erro ao atualizar feedback:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -1924,16 +2024,16 @@ app.put('/api/admin/feedbacks/:id', authenticateToken, requireAdmin, (req, res) 
 });
 
 // Deletar feedback (apenas admin)
-app.delete('/api/admin/feedbacks/:id', authenticateToken, requireAdmin, (req, res) => {
+app.delete('/api/admin/feedbacks/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const feedbackId = parseInt(req.params.id);
     
-    const feedbackIndex = feedbacks.findIndex(f => f.id === feedbackId);
-    if (feedbackIndex === -1) {
+    const feedback = await db.getFeedbackById(feedbackId);
+    if (!feedback) {
       return res.status(404).json({ error: 'Feedback não encontrado' });
     }
     
-    feedbacks.splice(feedbackIndex, 1);
+    await db.deleteFeedback(feedbackId);
     
     res.json({ message: 'Feedback deletado com sucesso' });
   } catch (error) {
