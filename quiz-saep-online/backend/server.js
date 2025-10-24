@@ -386,25 +386,73 @@ async function seedInitialData() {
       console.log(`⚠️  Arquivo de questões não encontrado: ${QUESTIONS_FILE_PATH}`);
     }
 
-    // Criar quiz padrão se não existir
+    // Criar quizzes padrão se não existirem
     const quizzes = await db.getQuizzes();
     
     if (quizzes.length === 0 && questions.length > 0) {
       const courseQuestions = questions.filter(q => q.courseId === course.id);
       
       if (courseQuestions.length > 0) {
-        const nextId = await db.getNextId('quizzes');
-        const defaultQuiz = {
-          id: nextId,
-          name: 'Quiz 1 - Programação de Jogos Digitais',
-          description: 'Quiz completo com todas as questões do curso de Programação de Jogos Digitais',
+        // Quiz 1: SAEP 2024/2 - Questões 1 a 8
+        const quiz1Questions = courseQuestions.filter(q => {
+          const match = q.id.match(/q(\d+)/i);
+          if (match) {
+            const num = parseInt(match[1]);
+            return num >= 1 && num <= 8;
+          }
+          return false;
+        });
+
+        if (quiz1Questions.length > 0) {
+          const quiz1 = {
+            id: await db.getNextId('quizzes'),
+            name: 'SAEP 2024/2 - Parte 1',
+            description: 'Questões 1 a 8 do SAEP 2024/2',
+            courseId: course.id,
+            questionIds: quiz1Questions.map(q => q.id),
+            createdBy: admin.id,
+            createdAt: new Date().toISOString()
+          };
+          await db.createQuiz(quiz1);
+          console.log(`✅ Quiz 1 criado: SAEP 2024/2 - Parte 1 (${quiz1Questions.length} questões)`);
+        }
+
+        // Quiz 2: SAEP 2024/2 - Questões 9 a 16
+        const quiz2Questions = courseQuestions.filter(q => {
+          const match = q.id.match(/q(\d+)/i);
+          if (match) {
+            const num = parseInt(match[1]);
+            return num >= 9 && num <= 16;
+          }
+          return false;
+        });
+
+        if (quiz2Questions.length > 0) {
+          const quiz2 = {
+            id: await db.getNextId('quizzes'),
+            name: 'SAEP 2024/2 - Parte 2',
+            description: 'Questões 9 a 16 do SAEP 2024/2',
+            courseId: course.id,
+            questionIds: quiz2Questions.map(q => q.id),
+            createdBy: admin.id,
+            createdAt: new Date().toISOString()
+          };
+          await db.createQuiz(quiz2);
+          console.log(`✅ Quiz 2 criado: SAEP 2024/2 - Parte 2 (${quiz2Questions.length} questões)`);
+        }
+
+        // Quiz 3: SAEP 2024/2 - Completo (todas as questões)
+        const quiz3 = {
+          id: await db.getNextId('quizzes'),
+          name: 'SAEP 2024/2 - Simulado Completo',
+          description: 'Todas as questões do SAEP 2024/2 - Programação de Jogos Digitais',
           courseId: course.id,
           questionIds: courseQuestions.map(q => q.id),
           createdBy: admin.id,
           createdAt: new Date().toISOString()
         };
-        await db.createQuiz(defaultQuiz);
-        console.log(`✅ Quiz padrão criado com ${courseQuestions.length} questões`);
+        await db.createQuiz(quiz3);
+        console.log(`✅ Quiz 3 criado: SAEP 2024/2 - Simulado Completo (${courseQuestions.length} questões)`);
       }
     } else if (quizzes.length > 0) {
       console.log(`ℹ️  ${quizzes.length} quizzes já existem`);
