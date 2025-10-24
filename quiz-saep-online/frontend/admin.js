@@ -1576,9 +1576,10 @@ async function loadQuestionsForQuiz() {
 
     try {
         const response = await fetch(`${API_URL}/courses/${courseId}/questions`);
-        const questions = await response.json();
+        const data = await response.json();
+        const questions = data.questions || data; // Aceita tanto { questions: [...] } quanto array direto
 
-        if (questions.length === 0) {
+        if (!Array.isArray(questions) || questions.length === 0) {
             container.innerHTML = '<p style="color: #94a3b8; text-align: center; padding: 30px;">Este curso não possui questões cadastradas</p>';
             return;
         }
