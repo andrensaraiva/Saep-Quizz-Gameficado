@@ -795,6 +795,7 @@ async function submitResultToAdmin() {
             totalQuestions: currentResults.totalQuestions,
             timeSpent: currentResults.timeSpent,
             answersDetail: currentResults.answersDetail,
+            capacityStats: currentResults.capacityStats,
             userInfo: currentUser ? `${currentUser.username} (${currentUser.email})` : anonymousId
         };
 

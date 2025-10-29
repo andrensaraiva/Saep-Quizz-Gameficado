@@ -2161,6 +2161,8 @@ async function loadResultsSection() {
 }
 
 async function loadAnonymousResults() {
+    console.log('🔍 Carregando resultados anônimos...');
+    
     try {
         const courseFilter = document.getElementById('results-course-filter').value;
         let url = `${API_URL}/admin/anonymous-results?limit=100`;
@@ -2169,15 +2171,22 @@ async function loadAnonymousResults() {
             url += `&courseId=${courseFilter}`;
         }
 
+        console.log('📡 Chamando URL:', url);
+
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${currentToken}` }
         });
 
+        console.log('📥 Response status:', response.status);
+
         if (!response.ok) {
+            const errorData = await response.json();
+            console.error('❌ Erro na resposta:', errorData);
             throw new Error('Erro ao carregar resultados');
         }
 
         const data = await response.json();
+        console.log('✅ Dados recebidos:', data);
         displayAnonymousResults(data.results, data.stats);
 
     } catch (error) {
@@ -2188,9 +2197,11 @@ async function loadAnonymousResults() {
 }
 
 function displayAnonymousResults(results, stats) {
+    console.log('📊 Exibindo resultados:', { results, stats });
+    
     // Atualizar estatísticas
     document.getElementById('results-total').textContent = stats.total || 0;
-    document.getElementById('results-avg-score').textContent = stats.avgScore + '%' || '0%';
+    document.getElementById('results-avg-score').textContent = (stats.avgScore || 0) + '%';
     
     // Calcular tempo médio
     const avgTimeSeconds = results.length > 0 ? Math.floor(stats.totalTimeSpent / results.length) : 0;
@@ -2206,7 +2217,8 @@ function displayAnonymousResults(results, stats) {
     // Lista de resultados
     const resultsContainer = document.getElementById('results-list');
 
-    if (results.length === 0) {
+    if (!results || results.length === 0) {
+        console.log('⚠️ Nenhum resultado para exibir');
         resultsContainer.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px;">Nenhum resultado encontrado</p>';
         return;
     }
@@ -2219,6 +2231,12 @@ function displayAnonymousResults(results, stats) {
         const timeDisplay = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
         const scoreClass = parseFloat(result.percentage) >= 70 ? 'success' : parseFloat(result.percentage) >= 50 ? 'warning' : 'danger';
+
+        // Armazenar resultado no objeto window para acesso na função de detalhes
+        if (!window.anonymousResultsCache) {
+            window.anonymousResultsCache = {};
+        }
+        window.anonymousResultsCache[result.id] = result;
 
         return `
             <div class="result-item" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; background: white;">
@@ -2237,6 +2255,28 @@ function displayAnonymousResults(results, stats) {
                             <span><strong>Tempo:</strong> ${timeDisplay}</span>
                             <span><strong>Data:</strong> ${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>
                         </div>
+
+                        ${result.questionsCorrect && result.questionsWrong ? `
+                            <div style="margin-top: 12px; display: flex; gap: 16px; font-size: 0.85rem;">
+                                <span style="color: #16a34a;">✅ Acertos: ${result.questionsCorrect.length}</span>
+                                <span style="color: #dc2626;">❌ Erros: ${result.questionsWrong.length}</span>
+                            </div>
+                        ` : ''}
+
+                        ${result.capacityPerformance && Object.keys(result.capacityPerformance).length > 0 ? `
+                            <div style="margin-top: 12px; padding: 10px; background: #f8fafc; border-radius: 6px;">
+                                <strong style="font-size: 0.85rem; color: #64748b;">Desempenho por Capacidade:</strong>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
+                                    ${Object.entries(result.capacityPerformance).map(([cap, stats]) => `
+                                        <span style="background: ${parseFloat(stats.percentage) >= 70 ? '#dcfce7' : parseFloat(stats.percentage) >= 50 ? '#fef3c7' : '#fecaca'}; 
+                                                     color: ${parseFloat(stats.percentage) >= 70 ? '#166534' : parseFloat(stats.percentage) >= 50 ? '#92400e' : '#991b1b'};
+                                                     padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                                            ${cap}: ${stats.correct}/${stats.total} (${stats.percentage}%)
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
 
                         ${result.ip && result.ip !== 'unknown' ? `
                             <div style="margin-top: 8px; font-size: 0.8rem; color: #94a3b8;">
@@ -2259,8 +2299,107 @@ function displayAnonymousResults(results, stats) {
 }
 
 function showResultDetails(resultId) {
-    // TODO: Implementar modal com detalhes das respostas
-    alert(`Detalhes do resultado ${resultId} (funcionalidade em desenvolvimento)`);
+    // Buscar o resultado do cache
+    const result = window.anonymousResultsCache ? window.anonymousResultsCache[resultId] : null;
+    
+    if (!result) {
+        alert('Resultado não encontrado');
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    modal.id = 'result-details-modal';
+
+    const date = new Date(result.createdAt);
+    const timeDisplay = `${Math.floor(result.timeSpent / 60)}:${String(result.timeSpent % 60).padStart(2, '0')}`;
+
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <span class="close" onclick="document.getElementById('result-details-modal').remove()">&times;</span>
+            
+            <h2 style="margin-bottom: 20px;">📊 Detalhes do Resultado</h2>
+            
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 10px 0;">${result.userInfo}</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <div>
+                        <div style="opacity: 0.9; font-size: 0.85rem;">Pontuação</div>
+                        <div style="font-size: 1.5rem; font-weight: bold;">${result.score}/${result.totalQuestions}</div>
+                    </div>
+                    <div>
+                        <div style="opacity: 0.9; font-size: 0.85rem;">Percentual</div>
+                        <div style="font-size: 1.5rem; font-weight: bold;">${result.percentage}%</div>
+                    </div>
+                    <div>
+                        <div style="opacity: 0.9; font-size: 0.85rem;">Tempo</div>
+                        <div style="font-size: 1.5rem; font-weight: bold;">${timeDisplay}</div>
+                    </div>
+                    <div>
+                        <div style="opacity: 0.9; font-size: 0.85rem;">Data</div>
+                        <div style="font-size: 0.9rem;">${date.toLocaleString()}</div>
+                    </div>
+                </div>
+            </div>
+
+            ${result.capacityPerformance && Object.keys(result.capacityPerformance).length > 0 ? `
+                <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                    <h3 style="margin: 0 0 15px 0;">📈 Desempenho por Capacidade</h3>
+                    ${Object.entries(result.capacityPerformance).map(([cap, stats]) => {
+                        const percentage = parseFloat(stats.percentage);
+                        const color = percentage >= 70 ? '#16a34a' : percentage >= 50 ? '#f59e0b' : '#dc2626';
+                        const bgColor = percentage >= 70 ? '#dcfce7' : percentage >= 50 ? '#fef3c7' : '#fecaca';
+                        
+                        return `
+                            <div style="margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <strong>${cap}</strong>
+                                    <span>${stats.correct}/${stats.total} (${stats.percentage}%)</span>
+                                </div>
+                                <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+                                    <div style="width: ${stats.percentage}%; height: 100%; background: ${color}; transition: width 0.3s;"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            ` : ''}
+
+            ${result.questionsWrong && result.questionsWrong.length > 0 ? `
+                <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                    <h3 style="margin: 0 0 15px 0; color: #dc2626;">❌ Questões Erradas (${result.questionsWrong.length})</h3>
+                    ${result.questionsWrong.map((q, index) => `
+                        <div style="padding: 12px; background: #fef2f2; border-left: 3px solid #dc2626; border-radius: 6px; margin-bottom: 10px;">
+                            <div style="font-weight: 600; margin-bottom: 5px;">Questão ${index + 1} - ${q.capacity}</div>
+                            <div style="font-size: 0.9rem; color: #64748b;">
+                                <div><strong>Respondeu:</strong> ${q.selectedOption || 'Não respondeu'} ${q.selectedText ? `- ${q.selectedText.substring(0, 50)}...` : ''}</div>
+                                <div style="color: #16a34a;"><strong>Correto:</strong> ${q.correctOption} ${q.correctText ? `- ${q.correctText.substring(0, 50)}...` : ''}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+
+            ${result.questionsCorrect && result.questionsCorrect.length > 0 ? `
+                <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <h3 style="margin: 0 0 10px 0; color: #16a34a;">✅ Questões Corretas (${result.questionsCorrect.length})</h3>
+                    <div style="color: #64748b; font-size: 0.9rem;">
+                        ${result.questionsCorrect.map(q => `<span style="background: #dcfce7; padding: 4px 8px; border-radius: 4px; margin: 4px; display: inline-block;">${q.capacity}</span>`).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Fechar ao clicar fora
+    modal.onclick = function(event) {
+        if (event.target === modal) {
+            modal.remove();
+        }
+    };
 }
 
 // ==================== FEEDBACKS ====================

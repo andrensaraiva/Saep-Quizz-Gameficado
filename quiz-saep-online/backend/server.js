@@ -301,12 +301,35 @@ function normalizeOptionsArray(options) {
 
 async function seedInitialData() {
   try {
-    console.log('🚀 Iniciando seed de dados...');
+    console.log('🚀 Verificando dados iniciais...');
     console.log(`💾 Modo de armazenamento: ${db.isFirebaseEnabled() ? 'Firebase Realtime Database' : 'Memória Local (temporário)'}`);
     
+    // Inicializar array global para resultados anônimos
+    if (!global.anonymousResults) {
+      global.anonymousResults = [];
+      console.log('📊 Inicializado array global de resultados anônimos');
+    }
+    
+    // Buscar dados existentes
+    const existingUsers = await db.getUsers();
+    const existingCourses = await db.getCourses();
+    const existingQuestions = await db.getQuestions();
+    const existingQuizzes = await db.getQuizzes();
+    
+    // Se já existe dados no Firebase, não fazer seed
+    if (db.isFirebaseEnabled() && (existingUsers.length > 0 || existingCourses.length > 0 || existingQuestions.length > 0)) {
+      console.log('✅ Dados já existem no Firebase - pulando seed');
+      console.log(`   👥 Usuários: ${existingUsers.length}`);
+      console.log(`   📚 Cursos: ${existingCourses.length}`);
+      console.log(`   ❓ Questões: ${existingQuestions.length}`);
+      console.log(`   📝 Quizzes: ${existingQuizzes.length}`);
+      return;
+    }
+    
+    console.log('🌱 Iniciando seed de dados iniciais...');
+    
     // Buscar admin existente
-    const users = await db.getUsers();
-    let admin = users.find(u => u.role === 'admin');
+    let admin = existingUsers.find(u => u.role === 'admin');
     
     if (!admin) {
       const hashedPassword = bcrypt.hashSync(DEFAULT_ADMIN.password, 10);
@@ -1045,7 +1068,7 @@ app.post('/api/scores', authenticateToken, async (req, res) => {
 // Salvar resultado anônimo (sem autenticação) - apenas para admin
 app.post('/api/results/anonymous', async (req, res) => {
   try {
-    const { courseId, quizId, score, totalQuestions, timeSpent, answersDetail, userInfo } = req.body;
+    const { courseId, quizId, score, totalQuestions, timeSpent, answersDetail, capacityStats, userInfo } = req.body;
 
     // Validações
     if (score === undefined || !totalQuestions || !courseId) {
@@ -1067,6 +1090,52 @@ app.post('/api/results/anonymous', async (req, res) => {
       }
     }
 
+    // Analisar respostas detalhadas
+    const questionsCorrect = [];
+    const questionsWrong = [];
+    const capacityPerformance = {};
+
+    if (answersDetail && Array.isArray(answersDetail)) {
+      answersDetail.forEach(answer => {
+        const questionData = {
+          questionId: answer.questionId,
+          capacity: answer.capacity,
+          selectedOption: answer.selectedOption,
+          correctOption: answer.correctOption,
+          selectedText: answer.selectedOptionText,
+          correctText: answer.correctOptionText
+        };
+
+        if (answer.correct) {
+          questionsCorrect.push(questionData);
+        } else {
+          questionsWrong.push(questionData);
+        }
+
+        // Estatísticas por capacidade
+        if (!capacityPerformance[answer.capacity]) {
+          capacityPerformance[answer.capacity] = {
+            correct: 0,
+            wrong: 0,
+            total: 0,
+            percentage: 0
+          };
+        }
+        capacityPerformance[answer.capacity].total++;
+        if (answer.correct) {
+          capacityPerformance[answer.capacity].correct++;
+        } else {
+          capacityPerformance[answer.capacity].wrong++;
+        }
+      });
+
+      // Calcular percentuais por capacidade
+      Object.keys(capacityPerformance).forEach(capacity => {
+        const stats = capacityPerformance[capacity];
+        stats.percentage = ((stats.correct / stats.total) * 100).toFixed(2);
+      });
+    }
+
     const resultEntry = {
       id: Date.now(), // ID único baseado em timestamp
       type: 'anonymous',
@@ -1080,6 +1149,9 @@ app.post('/api/results/anonymous', async (req, res) => {
       percentage: ((score / totalQuestions) * 100).toFixed(2),
       timeSpent: timeSpent || 0,
       answersDetail: answersDetail || [],
+      questionsCorrect,
+      questionsWrong,
+      capacityPerformance,
       createdAt: new Date().toISOString(),
       ip: req.ip || req.connection.remoteAddress || 'unknown'
     };
@@ -1092,11 +1164,15 @@ app.post('/api/results/anonymous', async (req, res) => {
 
     console.log('📊 Resultado anônimo salvo:', {
       id: resultEntry.id,
+      user: resultEntry.userInfo,
       course: resultEntry.courseName,
       quiz: resultEntry.quizName,
       score: `${resultEntry.score}/${resultEntry.totalQuestions}`,
       percentage: `${resultEntry.percentage}%`,
-      timeSpent: `${Math.floor(resultEntry.timeSpent / 60)}:${String(resultEntry.timeSpent % 60).padStart(2, '0')}`
+      timeSpent: `${Math.floor(resultEntry.timeSpent / 60)}:${String(resultEntry.timeSpent % 60).padStart(2, '0')}`,
+      correctQuestions: questionsCorrect.length,
+      wrongQuestions: questionsWrong.length,
+      capacities: Object.keys(capacityPerformance).length
     });
 
     res.status(201).json({
@@ -1310,18 +1386,24 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
 // Obter resultados anônimos (admin)
 app.get('/api/admin/anonymous-results', authenticateToken, requireAdmin, (req, res) => {
   try {
+    console.log('🔍 [ADMIN] Requisição para listar resultados anônimos');
+    
     const limit = parseInt(req.query.limit) || 50;
     const courseId = req.query.courseId ? parseInt(req.query.courseId) : null;
 
     if (!global.anonymousResults) {
       global.anonymousResults = [];
+      console.log('⚠️ [ADMIN] Array de resultados anônimos não existe, criando vazio');
     }
+
+    console.log(`📊 [ADMIN] Total de resultados armazenados: ${global.anonymousResults.length}`);
 
     let results = [...global.anonymousResults];
 
     // Filtrar por curso se especificado
     if (courseId) {
       results = results.filter(r => r.courseId === courseId);
+      console.log(`🔎 [ADMIN] Filtrando por curso ${courseId}: ${results.length} resultados`);
     }
 
     // Ordenar por data (mais recente primeiro) e limitar
@@ -1339,13 +1421,15 @@ app.get('/api/admin/anonymous-results', authenticateToken, requireAdmin, (req, r
       totalTimeSpent: results.reduce((sum, r) => sum + (r.timeSpent || 0), 0)
     };
 
+    console.log('✅ [ADMIN] Enviando resposta:', { totalResults: results.length, stats });
+
     res.json({
       results,
       stats,
       success: true
     });
   } catch (error) {
-    console.error('Erro ao buscar resultados anônimos:', error);
+    console.error('❌ [ADMIN] Erro ao buscar resultados anônimos:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
