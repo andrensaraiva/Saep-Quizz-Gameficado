@@ -571,12 +571,42 @@ function showReport() {
 
     const wrongListEl = document.getElementById('wrong-questions-list');
     if (wrongQuestions.length > 0) {
-        let wrongHtml = '<h3>❌ Questões para revisar:</h3><ul>';
+        let wrongHtml = `
+            <h3>❌ Questões para revisar:</h3>
+            <ul style="display: flex; flex-wrap: wrap; gap: 10px; list-style: none; padding: 0;">
+        `;
         wrongQuestions.forEach(item => {
-            wrongHtml += `<li><a href="#${item.id}">Questão ${item.number}</a></li>`;
+            wrongHtml += `
+                <li>
+                    <a href="#${item.id}" 
+                       class="review-link"
+                       style="display: inline-block; padding: 10px 16px; background: #fee2e2; color: #dc2626; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; border: 2px solid #fca5a5;"
+                       onmouseover="this.style.background='#dc2626'; this.style.color='white'"
+                       onmouseout="this.style.background='#fee2e2'; this.style.color='#dc2626'">
+                        Questão ${item.number}
+                    </a>
+                </li>
+            `;
         });
         wrongHtml += '</ul>';
         wrongListEl.innerHTML = wrongHtml;
+        
+        // Adicionar scroll suave aos links
+        document.querySelectorAll('.review-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Adicionar destaque temporário
+                    targetElement.style.boxShadow = '0 0 0 4px #fbbf24';
+                    setTimeout(() => {
+                        targetElement.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+                    }, 1500);
+                }
+            });
+        });
         
         // Criar seção detalhada de respostas erradas
         showWrongAnswersDetail(wrongQuestions);
@@ -625,7 +655,7 @@ function showWrongAnswersDetail(wrongQuestions) {
         const correctOption = question.shuffledOptions[question.correctIndex];
 
         html += `
-            <div style="margin: 25px 0; padding: 25px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 5px solid #ef4444;">
+            <div id="${item.id}" style="margin: 25px 0; padding: 25px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 5px solid #ef4444; scroll-margin-top: 100px;">
                 <div style="display: flex; align-items: start; gap: 15px; margin-bottom: 15px;">
                     <div style="flex-shrink: 0; width: 45px; height: 45px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">
                         ${item.number}
@@ -714,8 +744,11 @@ function showWrongAnswersDetail(wrongQuestions) {
                             <h4 style="margin: 0 0 5px 0; font-size: 1rem;">🤖 Quer praticar mais sobre este tema?</h4>
                             <p style="margin: 0; font-size: 0.9rem; opacity: 0.95;">A IA pode gerar uma nova questão similar para você treinar!</p>
                         </div>
-                        <button onclick="generateSimilarQuestion(${item.number}, '${question.capacity}', '${question.command.replace(/'/g, "\\'")}', ${question.id})" 
-                                class="btn-secondary" 
+                        <button class="btn-secondary generate-similar-btn" 
+                                data-question-number="${item.number}"
+                                data-capacity="${question.capacity || ''}"
+                                data-command="${encodeURIComponent(question.command)}"
+                                data-question-id="${question.id}"
                                 style="background: white; color: #667eea; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s;"
                                 onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'"
                                 onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
@@ -731,6 +764,17 @@ function showWrongAnswersDetail(wrongQuestions) {
     });
 
     container.innerHTML = html;
+    
+    // Adicionar event listeners aos botões de gerar questão similar
+    document.querySelectorAll('.generate-similar-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const questionNumber = parseInt(this.dataset.questionNumber);
+            const capacity = this.dataset.capacity;
+            const command = decodeURIComponent(this.dataset.command);
+            const questionId = parseInt(this.dataset.questionId);
+            generateSimilarQuestion(questionNumber, capacity, command, questionId, this);
+        });
+    });
 }
 
 function retryQuiz() {
@@ -740,9 +784,9 @@ function retryQuiz() {
 
 // ==================== GERAR QUESTÃO SIMILAR COM IA ====================
 
-async function generateSimilarQuestion(questionNumber, capacity, originalCommand, originalQuestionId) {
+async function generateSimilarQuestion(questionNumber, capacity, originalCommand, originalQuestionId, buttonElement) {
     const container = document.getElementById(`ai-question-${questionNumber}`);
-    const button = event.target;
+    const button = buttonElement;
     
     // Desabilitar botão e mostrar loading
     button.disabled = true;
