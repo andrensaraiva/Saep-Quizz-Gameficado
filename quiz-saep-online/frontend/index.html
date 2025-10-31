@@ -30,38 +30,50 @@
 
     <!-- Menu Principal -->
     <div id="main-menu" class="container">
-        <div class="menu-card">
-            <h2>Quiz SAEP: <span id="course-name-display">Programação de Jogos Digitais</span></h2>
-            <p class="subtitle" id="course-description">Teste seus conhecimentos sobre desenvolvimento de jogos!</p>
-            
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label for="quiz-select" style="font-weight: 600; margin-bottom: 10px; display: block;">Selecione um Quiz:</label>
-                <select id="quiz-select" class="form-select" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size: 1rem;">
-                    <option value="">Carregando quizzes...</option>
-                </select>
-            </div>
+        <div class="menu-header" style="text-align: center; margin-bottom: 40px;">
+            <h1 style="font-size: 2.5rem; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                🎮 Quiz SAEP Online
+            </h1>
+            <p style="font-size: 1.2rem; color: #64748b; margin: 0;">Escolha um quiz e teste seus conhecimentos!</p>
+        </div>
 
-            <div class="menu-options">
-                <button onclick="startQuiz()" class="btn-large btn-primary" id="start-quiz-btn" disabled>
-                    <span class="icon">▶</span> Iniciar Quiz
-                </button>
-                <button onclick="showRanking()" class="btn-large btn-secondary">
-                    <span class="icon">🏆</span> Ver Ranking
-                </button>
-                <button onclick="showProfile()" class="btn-large btn-secondary" id="profile-btn" style="display: none;">
-                    <span class="icon">📊</span> Meu Perfil
-                </button>
+        <!-- Filtros -->
+        <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1e293b;">🎯 Filtrar por Curso:</label>
+                    <select id="course-filter" onchange="filterQuizzes()" style="width: 100%; padding: 10px; border-radius: 6px; border: 2px solid #e2e8f0;">
+                        <option value="">Todos os Cursos</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1e293b;">📊 Ordenar por:</label>
+                    <select id="sort-filter" onchange="filterQuizzes()" style="width: 100%; padding: 10px; border-radius: 6px; border: 2px solid #e2e8f0;">
+                        <option value="recent">Mais Recentes</option>
+                        <option value="questions-desc">Mais Questões</option>
+                        <option value="questions-asc">Menos Questões</option>
+                        <option value="name">Nome (A-Z)</option>
+                    </select>
+                </div>
             </div>
+        </div>
 
-            <div class="info-box">
-                <h3>ℹ️ Informações</h3>
-                <ul>
-                    <li>Curso: <strong id="course-category">Tecnologia</strong></li>
-                    <li>Total de questões: <strong id="total-questions">0</strong></li>
-                    <li>Capacidades avaliadas: <strong id="course-capacities">Variadas</strong></li>
-                    <li>Cronômetro: <strong>Sim</strong></li>
-                </ul>
-            </div>
+        <!-- Grid de Quizzes -->
+        <div id="quizzes-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; margin-bottom: 30px;">
+            <!-- Quizzes serão carregados aqui -->
+        </div>
+
+        <!-- Botões Secundários -->
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 40px;">
+            <button onclick="showRanking()" class="btn-large btn-secondary">
+                <span class="icon">🏆</span> Ver Ranking
+            </button>
+            <button onclick="showProfile()" class="btn-large btn-secondary" id="profile-btn" style="display: none;">
+                <span class="icon">📊</span> Meu Perfil
+            </button>
+            <button onclick="showStudentHelp()" class="btn-large btn-secondary">
+                <span class="icon">❓</span> Ajuda
+            </button>
         </div>
     </div>
 

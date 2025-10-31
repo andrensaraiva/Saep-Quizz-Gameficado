@@ -1570,6 +1570,8 @@ function showAddQuizModal() {
 
 async function loadQuestionsForQuiz() {
     const courseId = parseInt(document.getElementById('quiz-course').value);
+    const filterCapacity = document.getElementById('quiz-filter-capacity').value;
+    const filterDifficulty = document.getElementById('quiz-filter-difficulty').value;
     const container = document.getElementById('quiz-questions-container');
 
     if (!courseId) {
@@ -1580,10 +1582,23 @@ async function loadQuestionsForQuiz() {
     try {
         const response = await fetch(`${API_URL}/courses/${courseId}/questions`);
         const data = await response.json();
-        const questions = data.questions || data; // Aceita tanto { questions: [...] } quanto array direto
+        let questions = data.questions || data; // Aceita tanto { questions: [...] } quanto array direto
 
         if (!Array.isArray(questions) || questions.length === 0) {
             container.innerHTML = '<p style="color: #94a3b8; text-align: center; padding: 30px;">Este curso não possui questões cadastradas</p>';
+            return;
+        }
+
+        // Aplicar filtros
+        if (filterCapacity) {
+            questions = questions.filter(q => (q.capacity || 'Geral') === filterCapacity);
+        }
+        if (filterDifficulty) {
+            questions = questions.filter(q => (q.difficulty || 'Médio') === filterDifficulty);
+        }
+
+        if (questions.length === 0) {
+            container.innerHTML = '<p style="color: #94a3b8; text-align: center; padding: 30px;">Nenhuma questão encontrada com os filtros aplicados</p>';
             return;
         }
 

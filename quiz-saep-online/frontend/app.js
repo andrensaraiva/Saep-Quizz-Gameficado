@@ -317,6 +317,10 @@ async function startQuiz() {
         return;
     }
 
+    await startQuizById(quizId);
+}
+
+async function startQuizById(quizId) {
     // Buscar detalhes do quiz selecionado
     try {
         const response = await fetch(`${API_URL}/quizzes/${quizId}`);
@@ -977,39 +981,147 @@ function displayHistory(scores) {
 
 // ==================== QUIZZES ====================
 
+let allQuizzesData = []; // Armazenar todos os quizzes
+
 async function loadAvailableQuizzes() {
     try {
         const response = await fetch(`${API_URL}/quizzes`);
         quizzes = await response.json();
+        allQuizzesData = quizzes;
 
-        const quizSelect = document.getElementById('quiz-select');
-        const startBtn = document.getElementById('start-quiz-btn');
-
-        if (quizzes.length === 0) {
-            quizSelect.innerHTML = '<option value="">Nenhum quiz disponível</option>';
-            startBtn.disabled = true;
-            return;
-        }
-
-        quizSelect.innerHTML = '<option value="">Selecione um quiz...</option>';
-        quizzes.forEach(quiz => {
-            const course = courses.find(c => c.id === quiz.courseId);
+        // Carregar cursos para o filtro
+        const courseFilter = document.getElementById('course-filter');
+        courseFilter.innerHTML = '<option value="">Todos os Cursos</option>';
+        courses.forEach(course => {
             const option = document.createElement('option');
-            option.value = quiz.id;
-            option.textContent = `${quiz.name} (${course ? course.name : 'Curso desconhecido'}) - ${quiz.questionIds.length} questões`;
-            quizSelect.appendChild(option);
+            option.value = course.id;
+            option.textContent = course.name;
+            courseFilter.appendChild(option);
         });
 
-        // Habilitar botão quando um quiz for selecionado
-        quizSelect.addEventListener('change', function() {
-            startBtn.disabled = !this.value;
-        });
+        // Exibir quizzes
+        displayQuizzes(quizzes);
 
     } catch (error) {
         console.error('Erro ao carregar quizzes:', error);
-        const quizSelect = document.getElementById('quiz-select');
-        quizSelect.innerHTML = '<option value="">Erro ao carregar quizzes</option>';
-        document.getElementById('start-quiz-btn').disabled = true;
+        document.getElementById('quizzes-grid').innerHTML = 
+            '<p style="grid-column: 1/-1; text-align: center; color: #ef4444; padding: 40px;">Erro ao carregar quizzes</p>';
+    }
+}
+
+function displayQuizzes(quizzesToShow) {
+    const grid = document.getElementById('quizzes-grid');
+
+    if (quizzesToShow.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">📝</div>
+                <h3 style="color: #64748b; margin-bottom: 10px;">Nenhum quiz disponível</h3>
+                <p style="color: #94a3b8;">Aguarde até que o administrador crie novos quizzes.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const html = quizzesToShow.map(quiz => {
+        const course = courses.find(c => c.id === quiz.courseId);
+        const questionCount = quiz.questionIds ? quiz.questionIds.length : 0;
+        const difficultyColor = questionCount < 15 ? '#10b981' : questionCount < 30 ? '#f59e0b' : '#ef4444';
+        const difficultyLabel = questionCount < 15 ? 'Curto' : questionCount < 30 ? 'Médio' : 'Longo';
+
+        return `
+            <div class="quiz-card" onclick="selectQuiz(${quiz.id})" style="
+                background: white;
+                border-radius: 12px;
+                padding: 24px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                cursor: pointer;
+                transition: all 0.3s ease;
+                border: 2px solid transparent;
+                position: relative;
+                overflow: hidden;
+            "
+            onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 20px rgba(102, 126, 234, 0.3)'; this.style.borderColor='#667eea';"
+            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'; this.style.borderColor='transparent';">
+                
+                <!-- Header com gradiente -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; margin: -24px -24px 20px -24px; border-radius: 12px 12px 0 0;">
+                    <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 5px;">📚 ${course ? course.name : 'Curso'}</div>
+                    <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; line-height: 1.3;">${quiz.name}</h3>
+                </div>
+
+                <!-- Descrição -->
+                ${quiz.description ? `
+                    <p style="color: #64748b; font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px; min-height: 45px;">
+                        ${quiz.description.substring(0, 100)}${quiz.description.length > 100 ? '...' : ''}
+                    </p>
+                ` : `
+                    <p style="color: #94a3b8; font-size: 0.9rem; font-style: italic; margin-bottom: 20px; min-height: 45px;">
+                        Sem descrição
+                    </p>
+                `}
+
+                <!-- Informações -->
+                <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f1f5f9; border-radius: 6px;">
+                        <span style="font-size: 1.2rem;">📝</span>
+                        <span style="font-weight: 600; color: #1e293b;">${questionCount}</span>
+                        <span style="color: #64748b; font-size: 0.85rem;">questões</span>
+                    </div>
+                    <div style="background: ${difficultyColor}20; color: ${difficultyColor}; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">
+                        ${difficultyLabel}
+                    </div>
+                </div>
+
+                <!-- Botão -->
+                <button onclick="event.stopPropagation(); selectQuiz(${quiz.id})" 
+                        style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: all 0.2s;"
+                        onmouseover="this.style.transform='scale(1.05)'"
+                        onmouseout="this.style.transform='scale(1)'">
+                    ▶ Iniciar Quiz
+                </button>
+            </div>
+        `;
+    }).join('');
+
+    grid.innerHTML = html;
+}
+
+function filterQuizzes() {
+    const courseFilter = document.getElementById('course-filter').value;
+    const sortFilter = document.getElementById('sort-filter').value;
+
+    let filtered = [...allQuizzesData];
+
+    // Filtrar por curso
+    if (courseFilter) {
+        filtered = filtered.filter(q => q.courseId == courseFilter);
+    }
+
+    // Ordenar
+    switch(sortFilter) {
+        case 'recent':
+            filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            break;
+        case 'questions-desc':
+            filtered.sort((a, b) => (b.questionIds?.length || 0) - (a.questionIds?.length || 0));
+            break;
+        case 'questions-asc':
+            filtered.sort((a, b) => (a.questionIds?.length || 0) - (b.questionIds?.length || 0));
+            break;
+        case 'name':
+            filtered.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+    }
+
+    displayQuizzes(filtered);
+}
+
+function selectQuiz(quizId) {
+    // Iniciar o quiz selecionado
+    currentQuiz = allQuizzesData.find(q => q.id === quizId);
+    if (currentQuiz) {
+        startQuizById(quizId);
     }
 }
 

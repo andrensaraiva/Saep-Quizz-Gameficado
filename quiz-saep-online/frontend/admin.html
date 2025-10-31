@@ -364,6 +364,31 @@
                     </select>
                 </div>
 
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label>Filtrar por Capacidade:</label>
+                        <select id="quiz-filter-capacity" onchange="loadQuestionsForQuiz()">
+                            <option value="">Todas as Capacidades</option>
+                            <option value="C1">C1 - Planejamento e Documentação</option>
+                            <option value="C2">C2 - Desenvolvimento e Implementação</option>
+                            <option value="C3">C3 - Testes, Qualidade e Deploy</option>
+                            <option value="C4">C4 - Metodologias e Gestão</option>
+                            <option value="C5">C5 - Performance e Otimização</option>
+                            <option value="Geral">Geral</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin: 0;">
+                        <label>Filtrar por Dificuldade:</label>
+                        <select id="quiz-filter-difficulty" onchange="loadQuestionsForQuiz()">
+                            <option value="">Todas as Dificuldades</option>
+                            <option value="Fácil">🟢 Fácil</option>
+                            <option value="Médio">🟡 Médio</option>
+                            <option value="Difícil">🔴 Difícil</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label style="font-weight: 600; font-size: 1.1rem; color: #1e293b; margin-bottom: 10px; display: block;">Questões do Quiz:</label>
                     <div id="quiz-questions-container" style="max-height: 500px; overflow-y: auto; border: 2px solid #e2e8f0; padding: 12px; border-radius: 10px; background: #f8fafc;">
