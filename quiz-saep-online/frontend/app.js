@@ -578,7 +578,7 @@ function showReport() {
         wrongQuestions.forEach(item => {
             wrongHtml += `
                 <li>
-                    <a href="#${item.id}" 
+                    <a href="#review-${item.id}" 
                        class="review-link"
                        style="display: inline-block; padding: 10px 16px; background: #fee2e2; color: #dc2626; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; border: 2px solid #fca5a5;"
                        onmouseover="this.style.background='#dc2626'; this.style.color='white'"
@@ -663,7 +663,7 @@ function showWrongAnswersDetail(wrongQuestions) {
         const correctOption = question.shuffledOptions[question.correctIndex];
 
         html += `
-            <div id="${item.id}" style="margin: 25px 0; padding: 25px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 5px solid #ef4444; scroll-margin-top: 100px;">
+            <div id="review-${item.id}" style="margin: 25px 0; padding: 25px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 5px solid #ef4444; scroll-margin-top: 100px;">
                 <div style="display: flex; align-items: start; gap: 15px; margin-bottom: 15px;">
                     <div style="flex-shrink: 0; width: 45px; height: 45px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">
                         ${item.number}

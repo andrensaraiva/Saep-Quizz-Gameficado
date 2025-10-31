@@ -1670,42 +1670,82 @@ app.post('/api/ai/generate-similar-question', async (req, res) => {
             }
         }
 
-        const prompt = `Você é um professor especialista em ${courseName}.
+        const prompt = `# Atenção: Sua tarefa é criar UM item de avaliação (uma questão de múltipla escolha) para o Sistema de Avaliação da Educação Profissional (SAEP). Siga rigorosamente todas as instruções e a estrutura definidas abaixo.
 
-Crie UMA questão de NÍVEL FÁCIL/MÉDIO sobre a capacidade "${capacity}".
+## 1. Definição dos Metadados da Questão:
 
-IMPORTANTE:
-- A questão deve ser SIMILAR ao tema: "${originalCommand}"
-- Deve ter 4 alternativas (A, B, C, D)
-- Apenas UMA alternativa correta
-- Inclua uma explicação breve para a resposta correta
-- Use linguagem clara e objetiva
-- A questão deve ser EDUCATIVA e ajudar o aluno a PRATICAR o conceito
+**Curso Técnico:** ${courseName}
 
-Retorne APENAS um JSON válido neste formato exato:
+**Capacidade Alvo:** ${capacity}
+
+**Tema de Referência:** ${originalCommand}
+
+**Nível de Dificuldade:** Fácil a Médio (adequado para prática)
+
+## 2. Diretrizes de Construção do Item:
+
+**Princípio Fundamental:** O item deve simular um cenário de trabalho realista e plausível para um técnico da área. O estudante deve se sentir como um profissional resolvendo um problema real.
+
+**Vínculo Contexto-Comando:** O Contexto deve apresentar um problema com detalhes e restrições específicas. O Comando deve ser formulado de tal maneira que a sua resolução dependa diretamente da análise das informações e restrições apresentadas no Contexto. Não deve ser possível responder ao comando apenas com conhecimento teórico isolado.
+
+**Qualidade das Alternativas:**
+- **Gabarito (Resposta Correta):** Deve ser a solução tecnicamente mais correta, eficiente e adequada para o problema específico apresentado no contexto.
+- **Distratores (Alternativas Incorretas):** Cada distrator deve representar um erro de raciocínio comum ou uma solução parcialmente correta, mas inadequada para o cenário. Eles devem ser plausíveis o suficiente para que um estudante com conhecimento incompleto ou que interpretou mal o contexto possa escolhê-los. NÃO use "pegadinhas", alternativas absurdas ou que testem apenas memorização de termos.
+
+## 3. Estrutura de Geração:
+
+### A. Contexto:
+Crie um parágrafo descrevendo uma situação-problema detalhada e realista. Inclua:
+- Tipo de jogo ou projeto
+- Mecânica ou funcionalidade envolvida
+- Desafio técnico específico
+- Restrições ou requisitos
+
+### B. Comando:
+Crie uma pergunta clara e objetiva que conecte o problema do contexto à solução técnica necessária. A pergunta deve forçar o estudante a analisar o cenário apresentado.
+
+### C. Alternativas (4 opções - A, B, C, D):
+1. **Alternativa Correta:** A solução ideal para o problema
+2. **Distrator 1 (Erro Comum):** Solução que parece correta, mas tem uma falha sutil ou é menos eficiente
+3. **Distrator 2 (Conceito Relacionado):** Termo/conceito correto da área, mas que não se aplica ao problema específico
+4. **Distrator 3 (Solução Simplista):** Abordagem que um iniciante poderia pensar, mas que não resolve adequadamente o problema
+
+### D. Justificativas:
+- **Para a alternativa CORRETA:** Explique tecnicamente por que esta é a melhor solução
+- **Para cada DISTRATOR:** Explique o erro de raciocínio que levaria um estudante a escolhê-la. Seja específico sobre qual conceito ou aspecto do contexto foi mal interpretado.
+
+## 4. Formato de Saída:
+
+Retorne APENAS um JSON válido (sem markdown, sem \`\`\`):
+
 {
-  "command": "Texto da pergunta aqui?",
-  "context": "Contexto ou código exemplo (opcional)",
+  "context": "Contexto detalhado da situação-problema",
+  "command": "Pergunta objetiva conectada ao contexto?",
   "options": [
     {
-      "text": "Texto da alternativa A",
-      "correct": false
-    },
-    {
-      "text": "Texto da alternativa B",
+      "text": "Texto da alternativa correta",
       "correct": true,
-      "explanation": "Explicação do porquê esta é a resposta correta"
+      "explanation": "Explicação técnica de por que está correta"
     },
     {
-      "text": "Texto da alternativa C",
-      "correct": false
+      "text": "Distrator 1 - Erro Comum",
+      "correct": false,
+      "justification": "Incorreta. O estudante provavelmente escolheu esta porque..."
     },
     {
-      "text": "Texto da alternativa D",
-      "correct": false
+      "text": "Distrator 2 - Conceito Relacionado",
+      "correct": false,
+      "justification": "Incorreta. Este conceito é válido mas não se aplica porque..."
+    },
+    {
+      "text": "Distrator 3 - Solução Simplista",
+      "correct": false,
+      "justification": "Incorreta. Esta abordagem não funciona adequadamente porque..."
     }
   ]
-}`;
+}
+
+**IMPORTANTE:** Gere uma questão completa e bem fundamentada seguindo RIGOROSAMENTE todas as diretrizes acima. A questão deve ser educativa, realista e ajudar o aluno a praticar o conceito no contexto profissional.`;
 
         console.log('🤖 Gerando questão similar com IA...');
 
