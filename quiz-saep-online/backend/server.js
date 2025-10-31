@@ -1663,7 +1663,7 @@ app.post('/api/ai/generate-similar-question', async (req, res) => {
         // Buscar informações do curso se disponível
         let courseName = 'programação';
         if (courseId) {
-            const courses = await db.get('courses') || [];
+            const courses = await db.getCourses();
             const course = courses.find(c => c.id === parseInt(courseId));
             if (course) {
                 courseName = course.name;
