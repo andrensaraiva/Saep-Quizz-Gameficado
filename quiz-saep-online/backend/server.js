@@ -17,16 +17,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_default_nao_usar_em_producao';
 
+// Constantes de API Keys
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
 // Configurar APIs de IA
 let genAI = null;
 let openai = null;
 
-if (process.env.GEMINI_API_KEY) {
-  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+if (GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 }
 
-if (process.env.OPENAI_API_KEY) {
-  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+if (OPENAI_API_KEY) {
+  openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 }
 
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
@@ -1643,6 +1647,13 @@ app.post('/api/ai/generate-similar-question', async (req, res) => {
     try {
         const { capacity, originalCommand, courseId } = req.body;
 
+        console.log('📝 Recebendo requisição para gerar questão similar');
+        console.log('   Capacidade:', capacity);
+        console.log('   Comando original:', originalCommand);
+        console.log('   Course ID:', courseId);
+        console.log('   GEMINI_API_KEY disponível:', !!GEMINI_API_KEY);
+        console.log('   OPENAI_API_KEY disponível:', !!OPENAI_API_KEY);
+
         if (!capacity || !originalCommand) {
             return res.status(400).json({ 
                 error: 'Capacidade e comando original são obrigatórios' 
@@ -1697,6 +1708,14 @@ Retorne APENAS um JSON válido neste formato exato:
 }`;
 
         console.log('🤖 Gerando questão similar com IA...');
+
+        // Verificar se pelo menos uma API está configurada
+        if (!GEMINI_API_KEY && !OPENAI_API_KEY) {
+            console.error('❌ Nenhuma API de IA configurada!');
+            return res.status(500).json({ 
+                error: 'Serviço de IA não está configurado. Entre em contato com o administrador.' 
+            });
+        }
 
         let generatedQuestion;
 
@@ -1843,8 +1862,22 @@ Retorne APENAS um JSON válido neste formato exato:
 
     } catch (error) {
         console.error('❌ Erro ao gerar questão:', error);
+        console.error('Stack:', error.stack);
+        
+        // Mensagem de erro mais específica
+        let errorMessage = 'Não foi possível gerar a questão. Tente novamente.';
+        
+        if (error.message.includes('API') || error.message.includes('fetch')) {
+            errorMessage = 'Erro ao conectar com o serviço de IA. Verifique sua conexão.';
+        } else if (error.message.includes('JSON')) {
+            errorMessage = 'A IA retornou uma resposta em formato inválido.';
+        } else if (error.message.includes('configurada')) {
+            errorMessage = error.message;
+        }
+        
         res.status(500).json({ 
-            error: 'Não foi possível gerar a questão. Tente novamente.' 
+            error: errorMessage,
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });

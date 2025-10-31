@@ -591,25 +591,33 @@ function showReport() {
         wrongHtml += '</ul>';
         wrongListEl.innerHTML = wrongHtml;
         
-        // Adicionar scroll suave aos links
-        document.querySelectorAll('.review-link').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href').substring(1);
-                const targetElement = document.getElementById(targetId);
-                if (targetElement) {
-                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    // Adicionar destaque temporário
-                    targetElement.style.boxShadow = '0 0 0 4px #fbbf24';
-                    setTimeout(() => {
-                        targetElement.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
-                    }, 1500);
-                }
-            });
-        });
-        
-        // Criar seção detalhada de respostas erradas
+        // Criar seção detalhada de respostas erradas PRIMEIRO
         showWrongAnswersDetail(wrongQuestions);
+        
+        // DEPOIS adicionar scroll suave aos links (aguardar DOM atualizar)
+        setTimeout(() => {
+            document.querySelectorAll('.review-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    
+                    console.log('🔍 Clicou no link:', targetId);
+                    console.log('🔍 Elemento encontrado:', targetElement);
+                    
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        // Adicionar destaque temporário
+                        targetElement.style.boxShadow = '0 0 0 4px #fbbf24';
+                        setTimeout(() => {
+                            targetElement.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+                        }, 1500);
+                    } else {
+                        console.error('❌ Elemento não encontrado:', targetId);
+                    }
+                });
+            });
+        }, 100);
     } else {
         wrongListEl.innerHTML = '<h3 style="color: var(--cor-correta);">🎉 Parabéns! Você acertou todas as questões!</h3>';
         document.getElementById('wrong-answers-detail').innerHTML = '';
