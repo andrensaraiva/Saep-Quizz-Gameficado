@@ -824,6 +824,23 @@ header h1 {
     }
 }
 
+/* Loading Spinner para IA */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spinner-rotation 0.8s linear infinite;
+}
+
+@keyframes spinner-rotation {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* Responsividade para cards */
 @media (max-width: 768px) {
     #quizzes-grid {
@@ -838,3 +855,4 @@ header h1 {
         font-size: 1rem !important;
     }
 }
+

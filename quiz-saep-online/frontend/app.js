@@ -706,6 +706,26 @@ function showWrongAnswersDetail(wrongQuestions) {
                         📚 ${question.capacity}
                     </div>
                 ` : ''}
+
+                <!-- Botão para Gerar Questão Similar com IA -->
+                <div style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div style="color: white;">
+                            <h4 style="margin: 0 0 5px 0; font-size: 1rem;">🤖 Quer praticar mais sobre este tema?</h4>
+                            <p style="margin: 0; font-size: 0.9rem; opacity: 0.95;">A IA pode gerar uma nova questão similar para você treinar!</p>
+                        </div>
+                        <button onclick="generateSimilarQuestion(${item.number}, '${question.capacity}', '${question.command.replace(/'/g, "\\'")}', ${question.id})" 
+                                class="btn-secondary" 
+                                style="background: white; color: #667eea; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s;"
+                                onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'"
+                                onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+                            ✨ Gerar Nova Questão
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Container para a questão gerada -->
+                <div id="ai-question-${item.number}" style="margin-top: 15px; display: none;"></div>
             </div>
         `;
     });
@@ -717,6 +737,232 @@ function retryQuiz() {
     currentResults = null;
     startQuiz();
 }
+
+// ==================== GERAR QUESTÃO SIMILAR COM IA ====================
+
+async function generateSimilarQuestion(questionNumber, capacity, originalCommand, originalQuestionId) {
+    const container = document.getElementById(`ai-question-${questionNumber}`);
+    const button = event.target;
+    
+    // Desabilitar botão e mostrar loading
+    button.disabled = true;
+    button.innerHTML = '<span class="loading-spinner"></span> Gerando...';
+    
+    container.style.display = 'block';
+    container.innerHTML = `
+        <div style="padding: 30px; background: #f8fafc; border-radius: 12px; text-align: center;">
+            <div class="loading-spinner" style="margin: 0 auto 15px;"></div>
+            <p style="color: #64748b; margin: 0;">A IA está criando uma questão similar para você praticar...</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch(`${API_URL}/ai/generate-similar-question`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                capacity: capacity,
+                originalCommand: originalCommand,
+                courseId: currentCourse ? currentCourse.id : 1
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Erro ao gerar questão');
+        }
+
+        // Exibir a questão gerada
+        displayAIQuestion(container, data.question, questionNumber);
+        
+        // Esconder o botão após gerar
+        button.style.display = 'none';
+
+    } catch (error) {
+        console.error('Erro ao gerar questão:', error);
+        container.innerHTML = `
+            <div style="padding: 20px; background: #fef2f2; border: 2px solid #fca5a5; border-radius: 12px; text-align: center;">
+                <p style="color: #dc2626; margin: 0; font-weight: 600;">❌ ${error.message}</p>
+                <p style="color: #64748b; margin: 10px 0 0 0; font-size: 0.9rem;">Tente novamente em alguns instantes.</p>
+            </div>
+        `;
+        
+        // Reabilitar botão
+        button.disabled = false;
+        button.innerHTML = '✨ Gerar Nova Questão';
+    }
+}
+
+function displayAIQuestion(container, question, questionNumber) {
+    const questionId = `ai-q-${questionNumber}`;
+    
+    const optionsHtml = question.options.map((option, index) => {
+        const letter = String.fromCharCode(65 + index);
+        return `
+            <div class="quiz-option" style="margin-bottom: 12px; padding: 15px; background: white; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: all 0.2s;"
+                 onclick="selectAIOption('${questionId}', ${index}, ${option.correct})"
+                 onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#667eea'; this.style.background='#f8f9ff'; }"
+                 onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#e2e8f0'; this.style.background='white'; }">
+                <label style="display: flex; align-items: start; cursor: pointer; width: 100%;">
+                    <input type="radio" name="${questionId}" value="${index}" style="margin-right: 12px; margin-top: 4px; width: 20px; height: 20px; cursor: pointer; accent-color: #667eea;">
+                    <div style="flex: 1;">
+                        <strong style="color: #667eea; margin-right: 8px;">${letter})</strong>
+                        <span style="color: #1e293b;">${option.text}</span>
+                    </div>
+                </label>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <div style="padding: 25px; background: linear-gradient(to bottom, #f0f9ff, white); border: 3px solid #667eea; border-radius: 12px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #e2e8f0;">
+                <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 1.1rem;">
+                    🤖 IA
+                </span>
+                <div>
+                    <h4 style="margin: 0; color: #1e293b; font-size: 1.1rem;">Questão Gerada para Prática</h4>
+                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.85rem;">Responda para verificar seu aprendizado</p>
+                </div>
+            </div>
+
+            ${question.context ? `
+                <div style="padding: 15px; background: #f8fafc; border-left: 4px solid #94a3b8; border-radius: 6px; margin-bottom: 20px;">
+                    <strong style="color: #64748b; display: block; margin-bottom: 8px;">📖 Contexto:</strong>
+                    <p style="margin: 0; color: #475569; line-height: 1.6;">${question.context}</p>
+                </div>
+            ` : ''}
+
+            <div style="margin-bottom: 20px;">
+                <h5 style="color: #1e293b; font-size: 1.05rem; line-height: 1.6; margin-bottom: 15px;">${question.command}</h5>
+                ${optionsHtml}
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button onclick="checkAIAnswer('${questionId}', ${questionNumber})" 
+                        class="btn-primary" 
+                        style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                        onmouseover="this.style.transform='scale(1.05)'"
+                        onmouseout="this.style.transform='scale(1)'">
+                    ✓ Verificar Resposta
+                </button>
+            </div>
+
+            <div id="${questionId}-result" style="margin-top: 20px; display: none;"></div>
+        </div>
+    `;
+
+    // Armazenar a questão para verificação posterior
+    if (!window.aiQuestions) {
+        window.aiQuestions = {};
+    }
+    window.aiQuestions[questionId] = question;
+}
+
+function selectAIOption(questionId, optionIndex, isCorrect) {
+    // Remover seleção anterior
+    const allOptions = document.querySelectorAll(`input[name="${questionId}"]`);
+    allOptions.forEach(input => {
+        const parent = input.closest('.quiz-option');
+        parent.classList.remove('selected');
+        parent.style.borderColor = '#e2e8f0';
+        parent.style.background = 'white';
+    });
+
+    // Selecionar nova opção
+    const selectedInput = document.querySelector(`input[name="${questionId}"][value="${optionIndex}"]`);
+    if (selectedInput) {
+        selectedInput.checked = true;
+        const parent = selectedInput.closest('.quiz-option');
+        parent.classList.add('selected');
+        parent.style.borderColor = '#667eea';
+        parent.style.background = '#f0f9ff';
+    }
+}
+
+function checkAIAnswer(questionId, questionNumber) {
+    const selectedOption = document.querySelector(`input[name="${questionId}"]:checked`);
+    const resultContainer = document.getElementById(`${questionId}-result`);
+    
+    if (!selectedOption) {
+        resultContainer.style.display = 'block';
+        resultContainer.innerHTML = `
+            <div style="padding: 15px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; text-align: center;">
+                <p style="color: #92400e; margin: 0; font-weight: 600;">⚠️ Por favor, selecione uma resposta antes de verificar!</p>
+            </div>
+        `;
+        return;
+    }
+
+    const question = window.aiQuestions[questionId];
+    const selectedIndex = parseInt(selectedOption.value);
+    const selectedAnswerOption = question.options[selectedIndex];
+    const correctOption = question.options.find(opt => opt.correct);
+    const isCorrect = selectedAnswerOption.correct;
+
+    // Marcar visualmente as opções
+    const allOptions = document.querySelectorAll(`input[name="${questionId}"]`);
+    allOptions.forEach((input, index) => {
+        const parent = input.closest('.quiz-option');
+        const option = question.options[index];
+        
+        if (option.correct) {
+            parent.style.borderColor = '#16a34a';
+            parent.style.background = '#f0fdf4';
+        } else if (index === selectedIndex && !isCorrect) {
+            parent.style.borderColor = '#dc2626';
+            parent.style.background = '#fef2f2';
+        }
+        
+        // Desabilitar todas as opções
+        input.disabled = true;
+        parent.style.cursor = 'default';
+    });
+
+    // Desabilitar botão de verificar
+    event.target.disabled = true;
+    event.target.style.opacity = '0.6';
+    event.target.style.cursor = 'not-allowed';
+
+    // Mostrar resultado
+    resultContainer.style.display = 'block';
+    resultContainer.innerHTML = `
+        <div style="padding: 25px; background: ${isCorrect ? '#f0fdf4' : '#fef2f2'}; border: 3px solid ${isCorrect ? '#16a34a' : '#dc2626'}; border-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <div style="font-size: 3rem;">${isCorrect ? '🎉' : '📚'}</div>
+                <div>
+                    <h4 style="margin: 0; color: ${isCorrect ? '#16a34a' : '#dc2626'}; font-size: 1.3rem;">
+                        ${isCorrect ? 'Parabéns! Você acertou!' : 'Ops! Resposta incorreta'}
+                    </h4>
+                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.95rem;">
+                        ${isCorrect ? 'Você está progredindo muito bem!' : 'Continue estudando, você vai conseguir!'}
+                    </p>
+                </div>
+            </div>
+
+            ${!isCorrect ? `
+                <div style="padding: 15px; background: white; border-radius: 8px; margin-bottom: 15px;">
+                    <strong style="color: #16a34a; display: block; margin-bottom: 8px;">✓ Resposta Correta:</strong>
+                    <p style="margin: 0; color: #1e293b; line-height: 1.6;">${correctOption.text}</p>
+                </div>
+            ` : ''}
+
+            ${correctOption.explanation ? `
+                <div style="padding: 15px; background: white; border-radius: 8px; border-left: 4px solid ${isCorrect ? '#16a34a' : '#667eea'};">
+                    <strong style="color: #667eea; display: block; margin-bottom: 8px;">💡 Explicação:</strong>
+                    <p style="margin: 0; color: #475569; line-height: 1.7;">${correctOption.explanation}</p>
+                </div>
+            ` : ''}
+        </div>
+    `;
+
+    // Scroll suave até o resultado
+    resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 
 // ==================== SALVAR PONTUAÇÃO ====================
 

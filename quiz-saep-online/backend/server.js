@@ -1638,7 +1638,218 @@ app.get('/api/admin/export/:type', authenticateToken, requireAdmin, async (req, 
 
 // ==================== ROTAS DE IA ====================
 
-// Gerar questão com IA
+// Gerar questão similar para prática (sem autenticação)
+app.post('/api/ai/generate-similar-question', async (req, res) => {
+    try {
+        const { capacity, originalCommand, courseId } = req.body;
+
+        if (!capacity || !originalCommand) {
+            return res.status(400).json({ 
+                error: 'Capacidade e comando original são obrigatórios' 
+            });
+        }
+
+        // Buscar informações do curso se disponível
+        let courseName = 'programação';
+        if (courseId) {
+            const courses = await db.get('courses') || [];
+            const course = courses.find(c => c.id === parseInt(courseId));
+            if (course) {
+                courseName = course.name;
+            }
+        }
+
+        const prompt = `Você é um professor especialista em ${courseName}.
+
+Crie UMA questão de NÍVEL FÁCIL/MÉDIO sobre a capacidade "${capacity}".
+
+IMPORTANTE:
+- A questão deve ser SIMILAR ao tema: "${originalCommand}"
+- Deve ter 4 alternativas (A, B, C, D)
+- Apenas UMA alternativa correta
+- Inclua uma explicação breve para a resposta correta
+- Use linguagem clara e objetiva
+- A questão deve ser EDUCATIVA e ajudar o aluno a PRATICAR o conceito
+
+Retorne APENAS um JSON válido neste formato exato:
+{
+  "command": "Texto da pergunta aqui?",
+  "context": "Contexto ou código exemplo (opcional)",
+  "options": [
+    {
+      "text": "Texto da alternativa A",
+      "correct": false
+    },
+    {
+      "text": "Texto da alternativa B",
+      "correct": true,
+      "explanation": "Explicação do porquê esta é a resposta correta"
+    },
+    {
+      "text": "Texto da alternativa C",
+      "correct": false
+    },
+    {
+      "text": "Texto da alternativa D",
+      "correct": false
+    }
+  ]
+}`;
+
+        console.log('🤖 Gerando questão similar com IA...');
+
+        let generatedQuestion;
+
+        // Tentar primeiro com Gemini
+        if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key_here') {
+            try {
+                const geminiResponse = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{ text: prompt }]
+                            }],
+                            generationConfig: {
+                                temperature: 0.7,
+                                topK: 40,
+                                topP: 0.95,
+                                maxOutputTokens: 1024,
+                            }
+                        })
+                    }
+                );
+
+                if (!geminiResponse.ok) {
+                    throw new Error(`Gemini API error: ${geminiResponse.status}`);
+                }
+
+                const geminiData = await geminiResponse.json();
+                let textContent = geminiData.candidates[0].content.parts[0].text;
+
+                // Limpar markdown se houver
+                textContent = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+                generatedQuestion = JSON.parse(textContent);
+                console.log('✅ Questão gerada com Gemini');
+
+            } catch (geminiError) {
+                console.log('⚠️ Gemini falhou, tentando OpenAI...', geminiError.message);
+
+                // Fallback para OpenAI
+                if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your_openai_api_key_here') {
+                    throw new Error('Nenhuma API de IA configurada corretamente');
+                }
+
+                const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'Você é um professor especialista. Responda APENAS com JSON válido, sem markdown.'
+                            },
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 1000
+                    })
+                });
+
+                if (!openaiResponse.ok) {
+                    const errorData = await openaiResponse.json();
+                    throw new Error(errorData.error?.message || 'OpenAI API error');
+                }
+
+                const openaiData = await openaiResponse.json();
+                let textContent = openaiData.choices[0].message.content.trim();
+
+                // Limpar markdown
+                textContent = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+                generatedQuestion = JSON.parse(textContent);
+                console.log('✅ Questão gerada com OpenAI');
+            }
+        } else {
+            // Apenas OpenAI disponível
+            if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your_openai_api_key_here') {
+                return res.status(500).json({ 
+                    error: 'Nenhuma API de IA configurada. Configure GEMINI_API_KEY ou OPENAI_API_KEY.' 
+                });
+            }
+
+            const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'Você é um professor especialista. Responda APENAS com JSON válido, sem markdown.'
+                        },
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 1000
+                })
+            });
+
+            if (!openaiResponse.ok) {
+                const errorData = await openaiResponse.json();
+                throw new Error(errorData.error?.message || 'OpenAI API error');
+            }
+
+            const openaiData = await openaiResponse.json();
+            let textContent = openaiData.choices[0].message.content.trim();
+
+            // Limpar markdown
+            textContent = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+            generatedQuestion = JSON.parse(textContent);
+            console.log('✅ Questão gerada com OpenAI');
+        }
+
+        // Validar estrutura da questão
+        if (!generatedQuestion.command || !Array.isArray(generatedQuestion.options) || generatedQuestion.options.length !== 4) {
+            throw new Error('Questão gerada com formato inválido');
+        }
+
+        const hasCorrectAnswer = generatedQuestion.options.some(opt => opt.correct === true);
+        if (!hasCorrectAnswer) {
+            throw new Error('Questão não possui resposta correta marcada');
+        }
+
+        res.json({
+            success: true,
+            question: generatedQuestion
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao gerar questão:', error);
+        res.status(500).json({ 
+            error: 'Não foi possível gerar a questão. Tente novamente.' 
+        });
+    }
+});
+
+// Gerar questão com IA (admin)
 app.post('/api/ai/generate-question', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const {
