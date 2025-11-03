@@ -1072,18 +1072,25 @@ app.post('/api/scores', authenticateToken, async (req, res) => {
 // Salvar resultado anônimo (sem autenticação) - apenas para admin
 app.post('/api/results/anonymous', async (req, res) => {
   try {
+    console.log('📥 [ANONYMOUS] Recebendo resultado anônimo...');
+    console.log('📦 [ANONYMOUS] Body:', JSON.stringify(req.body, null, 2));
+    
     const { courseId, quizId, score, totalQuestions, timeSpent, answersDetail, capacityStats, userInfo } = req.body;
 
     // Validações
     if (score === undefined || !totalQuestions || !courseId) {
+      console.error('❌ [ANONYMOUS] Dados incompletos:', { score, totalQuestions, courseId });
       return res.status(400).json({ error: 'Dados incompletos' });
     }
 
     // Verificar se curso existe
     const course = await db.getCourseById(courseId);
     if (!course) {
+      console.error('❌ [ANONYMOUS] Curso não encontrado:', courseId);
       return res.status(404).json({ error: 'Curso não encontrado' });
     }
+
+    console.log('✅ [ANONYMOUS] Curso encontrado:', course.name);
 
     // Verificar se quiz existe (opcional)
     let quizName = null;
@@ -1162,11 +1169,15 @@ app.post('/api/results/anonymous', async (req, res) => {
 
     // Adicionar à lista de resultados anônimos (ou usar array separado)
     if (!global.anonymousResults) {
+      console.log('🆕 [ANONYMOUS] Criando array global.anonymousResults');
       global.anonymousResults = [];
     }
+    
+    console.log('📊 [ANONYMOUS] Total de resultados antes de adicionar:', global.anonymousResults.length);
     global.anonymousResults.push(resultEntry);
+    console.log('📊 [ANONYMOUS] Total de resultados após adicionar:', global.anonymousResults.length);
 
-    console.log('📊 Resultado anônimo salvo:', {
+    console.log('✅ [ANONYMOUS] Resultado anônimo salvo:', {
       id: resultEntry.id,
       user: resultEntry.userInfo,
       course: resultEntry.courseName,
@@ -1185,7 +1196,7 @@ app.post('/api/results/anonymous', async (req, res) => {
       success: true
     });
   } catch (error) {
-    console.error('Erro ao salvar resultado anônimo:', error);
+    console.error('❌ [ANONYMOUS] Erro ao salvar resultado anônimo:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -1335,18 +1346,28 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
     const questions = await db.getQuestions();
     const scores = await db.getScores();
     
+    // Inicializar array de resultados anônimos se não existir
+    if (!global.anonymousResults) {
+      global.anonymousResults = [];
+    }
+    
+    const anonymousResults = global.anonymousResults || [];
+    
     const totalUsers = users.length;
     const totalCourses = courses.length;
     const totalQuestions = questions.length;
-    const totalAttempts = scores.length;
+    const totalAttempts = scores.length + anonymousResults.length; // Incluir anônimos
     
     // Usuários ativos (com pelo menos uma tentativa)
     const activeUsers = new Set(scores.map(s => s.userId)).size;
     
-    // Curso mais popular
+    // Curso mais popular (incluindo resultados anônimos)
     const coursePopularity = {};
     scores.forEach(s => {
       coursePopularity[s.courseId] = (coursePopularity[s.courseId] || 0) + 1;
+    });
+    anonymousResults.forEach(r => {
+      coursePopularity[r.courseId] = (coursePopularity[r.courseId] || 0) + 1;
     });
     
     const mostPopularCourseId = Object.keys(coursePopularity).length > 0
@@ -1355,21 +1376,44 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
     
     const mostPopularCourse = mostPopularCourseId ? courses.find(c => c.id === mostPopularCourseId) : null;
     
-    // Média geral de acertos
-    const averageScore = scores.length > 0
-      ? (scores.reduce((sum, s) => sum + parseFloat(s.percentage), 0) / scores.length).toFixed(2)
+    // Média geral de acertos (incluindo anônimos)
+    const allScores = [
+      ...scores.map(s => parseFloat(s.percentage)),
+      ...anonymousResults.map(r => parseFloat(r.percentage))
+    ];
+    const averageScore = allScores.length > 0
+      ? (allScores.reduce((sum, p) => sum + p, 0) / allScores.length).toFixed(2)
       : 0;
     
-    // Últimas atividades
-    const recentActivities = scores
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 10)
-      .map(s => ({
-        username: s.username,
-        courseName: s.courseName,
-        percentage: s.percentage,
-        date: s.createdAt
-      }));
+    // Últimas atividades (incluindo anônimos)
+    const userActivities = scores.map(s => ({
+      username: s.username,
+      courseName: s.courseName,
+      percentage: s.percentage,
+      date: s.createdAt,
+      type: 'registered'
+    }));
+    
+    const anonymousActivities = anonymousResults.map(r => ({
+      username: r.userInfo,
+      courseName: r.courseName,
+      percentage: r.percentage,
+      date: r.createdAt,
+      type: 'anonymous'
+    }));
+    
+    const recentActivities = [...userActivities, ...anonymousActivities]
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 10);
+    
+    console.log('📊 [DASHBOARD] Estatísticas:', {
+      totalUsers,
+      totalCourses,
+      totalQuestions,
+      totalAttempts,
+      anonymousCount: anonymousResults.length,
+      registeredCount: scores.length
+    });
     
     res.json({
       totalUsers,

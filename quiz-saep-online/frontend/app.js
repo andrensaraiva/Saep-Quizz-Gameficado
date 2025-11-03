@@ -1069,8 +1069,13 @@ async function saveScore() {
 // ==================== ENVIAR RESULTADO PARA ADMIN ====================
 
 async function submitResultToAdmin() {
+    console.log('📤 Iniciando envio de resultado para admin...');
+    console.log('📦 currentResults:', currentResults);
+    console.log('📦 currentCourse:', currentCourse);
+    console.log('📦 currentQuiz:', currentQuiz);
+    
     if (!currentResults) {
-        console.log('Nenhum resultado para enviar');
+        console.log('❌ Nenhum resultado para enviar');
         return;
     }
 
@@ -1078,7 +1083,7 @@ async function submitResultToAdmin() {
     const quizId = currentQuiz ? currentQuiz.id : null;
 
     if (!courseId) {
-        console.log('Nenhum curso selecionado, não é possível enviar resultado');
+        console.log('❌ Nenhum curso selecionado, não é possível enviar resultado');
         return;
     }
 
@@ -1101,6 +1106,9 @@ async function submitResultToAdmin() {
             userInfo: currentUser ? `${currentUser.username} (${currentUser.email})` : anonymousId
         };
 
+        console.log('📡 Enviando dados:', resultData);
+        console.log('📡 URL:', `${API_URL}/results/anonymous`);
+
         const response = await fetch(`${API_URL}/results/anonymous`, {
             method: 'POST',
             headers: {
@@ -1109,15 +1117,18 @@ async function submitResultToAdmin() {
             body: JSON.stringify(resultData)
         });
         
+        console.log('📥 Response status:', response.status);
+        
         const data = await response.json();
+        console.log('📥 Response data:', data);
         
         if (response.ok) {
-            console.log('✅ Resultado enviado para o painel admin:', data.id);
+            console.log('✅ Resultado enviado para o painel admin com sucesso! ID:', data.id);
         } else {
-            console.warn('⚠️ Erro ao enviar resultado para admin:', data.error);
+            console.error('❌ Erro ao enviar resultado para admin:', data.error);
         }
     } catch (error) {
-        console.warn('⚠️ Erro de conexão ao enviar resultado para admin:', error);
+        console.error('❌ Erro de conexão ao enviar resultado para admin:', error);
         // Não exibe erro para o usuário, apenas registra no console
     }
 }
