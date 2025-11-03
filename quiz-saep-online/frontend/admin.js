@@ -2187,6 +2187,7 @@ async function loadAnonymousResults() {
         }
 
         console.log('📡 Chamando URL:', url);
+        console.log('📡 Token:', currentToken ? 'Presente' : 'Ausente');
 
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${currentToken}` }
@@ -2195,38 +2196,49 @@ async function loadAnonymousResults() {
         console.log('📥 Response status:', response.status);
 
         if (!response.ok) {
-            const errorData = await response.json();
-            console.error('❌ Erro na resposta:', errorData);
-            throw new Error('Erro ao carregar resultados');
+            const errorText = await response.text();
+            console.error('❌ Erro na resposta:', errorText);
+            throw new Error('Erro ao carregar resultados: ' + response.status);
         }
 
         const data = await response.json();
         console.log('✅ Dados recebidos:', data);
+        console.log('✅ Número de resultados:', data.results?.length || 0);
+        
+        if (!data.results) {
+            console.error('❌ data.results é undefined!');
+            throw new Error('Resposta inválida do servidor');
+        }
+        
         displayAnonymousResults(data.results, data.stats);
 
     } catch (error) {
-        console.error('Erro ao carregar resultados:', error);
+        console.error('❌ Erro ao carregar resultados:', error);
         document.getElementById('results-list').innerHTML = 
-            '<p style="color: #ef4444; text-align: center;">Erro ao carregar resultados</p>';
+            `<p style="color: #ef4444; text-align: center; padding: 20px;">
+                Erro ao carregar resultados: ${error.message}
+            </p>`;
     }
 }
 
 function displayAnonymousResults(results, stats) {
     console.log('📊 Exibindo resultados:', { results, stats });
+    console.log('📊 Número de resultados:', results?.length || 0);
+    console.log('📊 Stats:', stats);
     
     // Atualizar estatísticas
-    document.getElementById('results-total').textContent = stats.total || 0;
-    document.getElementById('results-avg-score').textContent = (stats.avgScore || 0) + '%';
+    document.getElementById('results-total').textContent = stats?.total || 0;
+    document.getElementById('results-avg-score').textContent = (stats?.avgScore || 0) + '%';
     
     // Calcular tempo médio
-    const avgTimeSeconds = results.length > 0 ? Math.floor(stats.totalTimeSpent / results.length) : 0;
+    const avgTimeSeconds = results?.length > 0 ? Math.floor((stats?.totalTimeSpent || 0) / results.length) : 0;
     const avgTimeMinutes = Math.floor(avgTimeSeconds / 60);
     const avgTimeSecondsRem = avgTimeSeconds % 60;
     document.getElementById('results-avg-time').textContent = 
         `${String(avgTimeMinutes).padStart(2, '0')}:${String(avgTimeSecondsRem).padStart(2, '0')}`;
 
     // Melhor resultado
-    const bestScore = results.length > 0 ? Math.max(...results.map(r => parseFloat(r.percentage))) : 0;
+    const bestScore = results?.length > 0 ? Math.max(...results.map(r => parseFloat(r.percentage || 0))) : 0;
     document.getElementById('results-best-score').textContent = bestScore.toFixed(1) + '%';
 
     // Lista de resultados
@@ -2238,14 +2250,16 @@ function displayAnonymousResults(results, stats) {
         return;
     }
 
+    console.log('✅ Gerando HTML para', results.length, 'resultados');
+
     const html = results.map(result => {
         const date = new Date(result.createdAt);
-        const timeSpent = result.timeSpent;
+        const timeSpent = result.timeSpent || 0;
         const minutes = Math.floor(timeSpent / 60);
         const seconds = timeSpent % 60;
         const timeDisplay = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-        const scoreClass = parseFloat(result.percentage) >= 70 ? 'success' : parseFloat(result.percentage) >= 50 ? 'warning' : 'danger';
+        const scoreClass = parseFloat(result.percentage || 0) >= 70 ? 'success' : parseFloat(result.percentage || 0) >= 50 ? 'warning' : 'danger';
 
         // Armazenar resultado no objeto window para acesso na função de detalhes
         if (!window.anonymousResultsCache) {
@@ -2255,7 +2269,7 @@ function displayAnonymousResults(results, stats) {
 
         return `
             <div class="result-item" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; background: white;">
-                <div style="display: flex; justify-content: between; align-items: start; gap: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: start; gap: 16px;">
                     <div style="flex: 1;">
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                             <strong style="color: #1e293b; font-size: 1rem;">${result.userInfo}</strong>
@@ -2310,7 +2324,9 @@ function displayAnonymousResults(results, stats) {
         `;
     }).join('');
 
+    console.log('✅ HTML gerado, inserindo no DOM. Tamanho:', html.length, 'caracteres');
     resultsContainer.innerHTML = html;
+    console.log('✅ Resultados exibidos com sucesso!');
 }
 
 function showResultDetails(resultId) {
