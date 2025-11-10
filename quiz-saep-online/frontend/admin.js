@@ -1060,13 +1060,20 @@ async function showAIQuestionModal() {
         courseSelect.appendChild(option);
     });
 
-    const includeImagesCheckbox = document.getElementById('ai-include-images');
+    const includeContextImagesCheckbox = document.getElementById('ai-include-context-images');
+    const includeOptionImagesCheckbox = document.getElementById('ai-include-option-images');
     const imageProviderSelect = document.getElementById('ai-image-provider');
 
-    if (includeImagesCheckbox) {
-        includeImagesCheckbox.checked = true;
-        includeImagesCheckbox.disabled = false;
-        includeImagesCheckbox.title = '';
+    if (includeContextImagesCheckbox) {
+        includeContextImagesCheckbox.checked = true;
+        includeContextImagesCheckbox.disabled = false;
+        includeContextImagesCheckbox.title = '';
+    }
+
+    if (includeOptionImagesCheckbox) {
+        includeOptionImagesCheckbox.checked = false; // Desativado por padrão
+        includeOptionImagesCheckbox.disabled = false;
+        includeOptionImagesCheckbox.title = '';
     }
 
     if (imageProviderSelect) {
@@ -1147,11 +1154,18 @@ async function showAIQuestionModal() {
                 }
             }
 
-            if (includeImagesCheckbox) {
+            if (includeContextImagesCheckbox) {
                 const available = status.images ? status.images.available !== false : true;
-                includeImagesCheckbox.checked = available;
-                includeImagesCheckbox.disabled = !available;
-                includeImagesCheckbox.title = available ? '' : 'Nenhum provedor de imagem disponível no momento';
+                includeContextImagesCheckbox.checked = available;
+                includeContextImagesCheckbox.disabled = !available;
+                includeContextImagesCheckbox.title = available ? '' : 'Nenhum provedor de imagem disponível no momento';
+            }
+
+            if (includeOptionImagesCheckbox) {
+                const available = status.images ? status.images.available !== false : true;
+                includeOptionImagesCheckbox.checked = false; // Sempre começa desativado
+                includeOptionImagesCheckbox.disabled = !available;
+                includeOptionImagesCheckbox.title = available ? '' : 'Nenhum provedor de imagem disponível no momento';
             }
         }
     } catch (error) {
@@ -1231,10 +1245,12 @@ async function handleGenerateAIQuestion(event) {
     const skill = document.getElementById('ai-skill').value;
     const content = document.getElementById('ai-content').value;
     const difficulty = document.getElementById('ai-difficulty').value;
-    const includeImagesInput = document.getElementById('ai-include-images');
+    const includeContextImagesInput = document.getElementById('ai-include-context-images');
+    const includeOptionImagesInput = document.getElementById('ai-include-option-images');
     const imageProviderSelect = document.getElementById('ai-image-provider');
 
-    const includeImages = includeImagesInput ? includeImagesInput.checked : true;
+    const includeContextImages = includeContextImagesInput ? includeContextImagesInput.checked : true;
+    const includeOptionImages = includeOptionImagesInput ? includeOptionImagesInput.checked : false;
     const imageProvider = imageProviderSelect && imageProviderSelect.value
         ? imageProviderSelect.value
         : 'pollinations';
@@ -1272,7 +1288,8 @@ async function handleGenerateAIQuestion(event) {
                 capacity: capacityName,
                 content: skill + (content ? `. ${content}` : ''),
                 difficulty,
-                includeImages,
+                includeContextImages,
+                includeOptionImages,
                 imageProvider
             })
         });

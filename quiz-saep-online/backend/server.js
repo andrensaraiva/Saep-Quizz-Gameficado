@@ -1974,7 +1974,8 @@ app.post('/api/ai/generate-question', authenticateToken, requireAdmin, async (re
       content,
       difficulty,
       provider,
-      includeImages = true,
+      includeContextImages = true,
+      includeOptionImages = false,
       imageProvider
     } = req.body;
 
@@ -2014,7 +2015,19 @@ app.post('/api/ai/generate-question', authenticateToken, requireAdmin, async (re
 Crie um parágrafo descrevendo uma situação-problema detalhada. Inclua o tipo de jogo, a mecânica envolvida e o desafio técnico específico. O contexto deve ser rico em detalhes que justifiquem a escolha da resposta correta.
 
 ### B. Comando:
-Crie uma pergunta clara e objetiva que conecte o problema do contexto à solução técnica necessária. A pergunta deve forçar o estudante a analisar o cenário apresentado.
+Crie uma pergunta CURTA, DIRETA e OBJETIVA (máximo 15-20 palavras) que conecte o problema do contexto à solução técnica necessária. 
+
+**IMPORTANTE sobre o Comando:**
+- Seja CONCISO - evite repetir informações do contexto
+- Use verbos diretos: "Qual...", "Como...", "Que solução...", "Qual técnica..."
+- Máximo de 2 linhas
+- Foque no RESULTADO esperado, não reexplique o problema
+
+**Exemplo de comando RUIM (muito longo):**
+"Considerando todas as informações apresentadas no contexto acima sobre o sistema de partículas e as limitações de performance, qual seria a abordagem mais adequada para implementar o efeito visual?"
+
+**Exemplo de comando BOM (conciso):**
+"Qual técnica otimiza melhor o sistema de partículas neste cenário?"
 
 ### C. Alternativas (5 opções - A, B, C, D, E):
 1. **Alternativa Correta:** A solução ideal para o problema
@@ -2139,12 +2152,12 @@ Retorne APENAS um JSON válido (sem markdown, sem \`\`\`):
     if (generatedQuestion) {
       let imageError = null;
 
-      if (includeImages !== false) {
+      if (includeContextImages || includeOptionImages) {
         try {
           attachGeneratedImagesToQuestion(generatedQuestion, {
             provider: imageProvider || 'pollinations',
-            includeContext: true,
-            includeOptions: true
+            includeContext: includeContextImages,
+            includeOptions: includeOptionImages
           });
         } catch (imgErr) {
           console.error('Erro ao gerar imagens para a questão:', imgErr);

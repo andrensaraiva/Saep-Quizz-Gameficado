@@ -1,8 +1,68 @@
 # 🎉 Atualizações Recentes - Sistema de Quiz SAEP
 
-**Data:** 22 de outubro de 2025
+**Última atualização:** 10 de novembro de 2025
 
-## ✅ O que foi implementado
+---
+
+## 🆕 **NOVA VERSÃO 2.1** - 10/11/2025
+
+### 1. **Controle Separado de Geração de Imagens com IA** 🎨
+
+Agora você tem controle independente sobre onde gerar imagens:
+
+**Antes:**
+- ☑️ Gerar ilustrações automaticamente (contexto + alternativas juntos)
+
+**Agora:**
+- ☑️ **Gerar imagem para o contexto da questão** (checkbox separado)
+- ☐ **Gerar imagens para as alternativas** (checkbox separado)
+
+**Benefícios:**
+- ✅ Maior flexibilidade na criação de questões
+- ✅ Economiza tempo de geração quando não precisa de todas as imagens
+- ✅ Reduz uso de recursos quando imagens em alternativas não são necessárias
+- ✅ Checkbox de alternativas vem desativado por padrão
+
+**Casos de uso:**
+- 📝 Contexto ilustrado + alternativas textuais (questões conceituais)
+- 🎨 Contexto + alternativas ilustradas (questões de design/arte)
+- 📋 Apenas texto (questões lógicas/metodologias)
+
+**Arquivos alterados:**
+- `frontend/admin.html` - Dois checkboxes independentes
+- `frontend/admin.js` - Captura e envia ambas opções
+- `backend/server.js` - Processa `includeContextImages` e `includeOptionImages` separadamente
+
+---
+
+### 2. **Comandos Mais Curtos e Diretos** ✂️
+
+O prompt da IA foi otimizado para gerar perguntas (comandos) mais concisos.
+
+**Diretrizes implementadas:**
+- ✅ Máximo de 15-20 palavras no comando
+- ✅ Verbos diretos: "Qual...", "Como...", "Que solução..."
+- ✅ Evita repetir informações já presentes no contexto
+- ✅ Foca no resultado esperado
+
+**Exemplo de melhoria:**
+
+**Antes (muito longo):**
+> "Considerando todas as informações apresentadas no contexto acima sobre o sistema de partículas e as limitações de performance, qual seria a abordagem mais adequada para implementar o efeito visual mantendo a taxa de quadros acima de 60 FPS?"
+
+**Agora (conciso):**
+> "Qual técnica otimiza melhor o sistema de partículas neste cenário?"
+
+**Arquivos alterados:**
+- `backend/server.js` - Prompt da IA com instruções específicas para comandos curtos
+
+**Documentação criada:**
+- `ATUALIZACAO-GERACAO-IA.md` - Guia completo das mudanças
+- `RESUMO-AJUSTES-IA.md` - Resumo rápido
+
+---
+
+## 📅 **VERSÃO 2.0** - 22 de outubro de 2025
 
 ### 1. **Correção do Modal no Render** 🔧
 - Ajustado CSS para garantir que modais não sejam cortados em produção
