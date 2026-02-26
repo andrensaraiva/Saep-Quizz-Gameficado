@@ -35,7 +35,7 @@ const Toast = {
         this.container = document.getElementById('toast-container');
     },
 
-    show(message, type = 'info', duration = 4000) {
+    show(message, type = 'info', duration = 4500) {
         if (!this.container) this.init();
 
         const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
@@ -92,7 +92,9 @@ function showConfirmModal(title, message) {
         const modal = document.getElementById('confirm-modal');
         document.getElementById('confirm-modal-title').textContent = title;
         document.getElementById('confirm-modal-message').textContent = message;
-        modal.style.display = 'block';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
 
         const yesBtn = document.getElementById('confirm-modal-yes');
         const noBtn = document.getElementById('confirm-modal-no');
@@ -223,11 +225,19 @@ function showAuthModal(type) {
         registerForm.style.display = 'block';
     }
     
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    // Focus first input after short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('div[style*="block"] input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 function closeAuthModal() {
-    document.getElementById('auth-modal').style.display = 'none';
+    const modal = document.getElementById('auth-modal');
+    modal.style.display = 'none';
 }
 
 async function handleLogin(event) {
@@ -1633,7 +1643,9 @@ function selectQuiz(quizId) {
 
 function showStudentHelp() {
     const modal = document.getElementById('student-help-modal');
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'flex-start';
+    modal.style.justifyContent = 'center';
 }
 
 function closeModal(modalId) {
@@ -1643,11 +1655,10 @@ function closeModal(modalId) {
     }
 }
 
-// Fechar modal ao clicar fora
+// Fechar qualquer modal ao clicar fora do conteúdo
 window.onclick = function(event) {
-    const modal = document.getElementById('auth-modal');
-    if (event.target === modal) {
-        closeAuthModal();
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
     }
 }
 
@@ -1659,7 +1670,13 @@ function openAdminPanel() {
 
 function showFeedbackModal() {
     const modal = document.getElementById('feedback-modal');
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    setTimeout(() => {
+        const firstInput = modal.querySelector('input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 async function handleSendFeedback(event) {

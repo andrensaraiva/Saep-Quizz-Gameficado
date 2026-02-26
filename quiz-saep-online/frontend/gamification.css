@@ -7,16 +7,17 @@
 .xp-bar-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     background: var(--bg-surface);
-    padding: 6px 14px;
+    padding: 5px 12px;
     border-radius: var(--radius-md);
     border: 1px solid var(--border);
+    max-width: 200px;
 }
 
 .level-badge {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--amber) 0%, #f59e0b 100%);
     display: flex;
@@ -24,9 +25,9 @@
     justify-content: center;
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 900;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
     color: var(--bg-deep);
-    box-shadow: 0 0 12px var(--amber-glow);
+    box-shadow: 0 0 10px var(--amber-glow);
     border: 2px solid rgba(251, 191, 36, 0.4);
     flex-shrink: 0;
     position: relative;
@@ -119,8 +120,8 @@
 /* ==================== COMBO (DURING QUIZ) ==================== */
 .combo-container {
     position: fixed;
-    top: 80px;
-    right: 20px;
+    top: 72px;
+    right: 16px;
     z-index: 999;
     pointer-events: none;
     transition: all 0.3s ease;
@@ -130,13 +131,13 @@
     background: var(--bg-card);
     border: 2px solid var(--violet);
     color: white;
-    padding: 10px 20px;
+    padding: 8px 16px;
     border-radius: var(--radius-md);
     text-align: center;
-    box-shadow: 0 0 24px var(--violet-glow);
+    box-shadow: 0 0 20px var(--violet-glow);
     transform: scale(0);
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    min-width: 100px;
+    min-width: 90px;
 }
 
 .combo-indicator.active {
@@ -232,8 +233,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(12px);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(16px);
     opacity: 0;
     animation: overlayFadeIn 0.4s ease forwards;
 }
@@ -266,7 +267,7 @@
 
 .level-up-title {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 2.2rem;
+    font-size: 2rem;
     font-weight: 700;
     background: linear-gradient(135deg, var(--amber), #f59e0b);
     -webkit-background-clip: text;
@@ -277,7 +278,7 @@
 
 .level-up-level {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 3.5rem;
+    font-size: 3rem;
     font-weight: 900;
     color: var(--amber);
     text-shadow: 0 0 40px var(--amber-glow);
@@ -292,20 +293,21 @@
 /* ==================== ACHIEVEMENT NOTIFICATION ==================== */
 .achievement-notification {
     position: fixed;
-    top: 20px;
+    top: 16px;
     left: 50%;
     transform: translateX(-50%) translateY(-120px);
     z-index: 99998;
     background: var(--bg-card);
     border: 1px solid var(--amber);
     border-radius: var(--radius-lg);
-    padding: 14px 20px;
+    padding: 12px 18px;
     display: flex;
     align-items: center;
-    gap: 14px;
-    box-shadow: 0 0 30px var(--amber-glow), var(--shadow-lg);
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 24px var(--amber-glow);
     animation: achievementSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    max-width: 380px;
+    max-width: 360px;
+    width: 92%;
 }
 
 @keyframes achievementSlideIn {
@@ -756,15 +758,15 @@
     align-items: center;
     gap: 10px;
     background: var(--bg-card);
-    padding: 10px 14px;
+    padding: 8px 14px;
     border-radius: var(--radius-md);
     border: 1px solid var(--border);
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .quiz-progress-bar-container {
     flex: 1;
-    height: 8px;
+    height: 7px;
     background: var(--bg-elevated);
     border-radius: 4px;
     overflow: hidden;
@@ -807,28 +809,29 @@
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
     .xp-bar-header {
-        padding: 5px 8px;
+        padding: 4px 8px;
         gap: 6px;
+        max-width: 160px;
     }
 
     .level-badge {
-        width: 32px;
-        height: 32px;
-        font-size: 0.8rem;
+        width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
     }
 
     .combo-container {
-        top: 70px;
-        right: 10px;
+        top: 64px;
+        right: 8px;
     }
 
     .combo-indicator {
-        padding: 8px 14px;
-        min-width: 80px;
+        padding: 6px 12px;
+        min-width: 70px;
     }
 
     .combo-count {
-        font-size: 1.4rem;
+        font-size: 1.3rem;
     }
 
     .gp-stats-grid {
@@ -840,15 +843,40 @@
     }
 
     .xp-summary-card {
-        padding: 1.25rem;
+        padding: 1.15rem;
     }
 
     .xp-total-earned {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
+    }
+
+    .xp-breakdown {
+        grid-template-columns: repeat(2, 1fr);
     }
 
     .achievement-notification {
-        max-width: 90%;
+        max-width: 92%;
         padding: 10px 14px;
+        gap: 10px;
+    }
+
+    .achievement-notification .ach-icon {
+        font-size: 1.8rem;
+    }
+
+    .achievement-notification .ach-name {
+        font-size: 0.9rem;
+    }
+
+    .level-up-title {
+        font-size: 1.6rem;
+    }
+
+    .level-up-level {
+        font-size: 2.5rem;
+    }
+
+    .level-up-icon {
+        font-size: 3.5rem;
     }
 }

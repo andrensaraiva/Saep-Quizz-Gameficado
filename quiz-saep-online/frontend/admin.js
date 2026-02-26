@@ -1,4 +1,4 @@
-// Configuração da API
+﻿// Configuração da API
 const RENDER_API_URL = 'https://saep-quizz-gameficado.onrender.com/api';
 const LOCAL_API_URL = 'http://localhost:3000/api';
 
@@ -26,6 +26,58 @@ const API_URL = (() => {
 
 console.log('🌐 API URL configurada:', API_URL);
 
+// ==================== TOAST NOTIFICATION SYSTEM ====================
+
+const Toast = {
+    container: null,
+
+    init() {
+        this.container = document.getElementById('toast-container');
+        if (!this.container) {
+            this.container = document.createElement('div');
+            this.container.id = 'toast-container';
+            this.container.className = 'toast-container';
+            document.body.appendChild(this.container);
+        }
+    },
+
+    show(message, type = 'info', duration = 4500) {
+        if (!this.container) this.init();
+        const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+        const toast = document.createElement('div');
+        toast.className = `toast toast--${type}`;
+        toast.style.setProperty('--toast-duration', `${duration}ms`);
+        toast.innerHTML = `
+            <span class="toast-icon">${icons[type] || icons.info}</span>
+            <span class="toast-message">${this.escapeHtml(message)}</span>
+            <button class="toast-close" onclick="Toast.dismiss(this.parentElement)" aria-label="Fechar">&times;</button>
+        `;
+        this.container.appendChild(toast);
+        const timer = setTimeout(() => this.dismiss(toast), duration);
+        toast._timer = timer;
+        return toast;
+    },
+
+    dismiss(toast) {
+        if (!toast || toast._dismissed) return;
+        toast._dismissed = true;
+        clearTimeout(toast._timer);
+        toast.classList.add('toast--removing');
+        toast.addEventListener('animationend', () => toast.remove());
+    },
+
+    success(msg, d) { return this.show(msg, 'success', d); },
+    error(msg, d) { return this.show(msg, 'error', d); },
+    warning(msg, d) { return this.show(msg, 'warning', d); },
+    info(msg, d) { return this.show(msg, 'info', d); },
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+};
+
 // Estado Global
 let currentUser = null;
 let currentToken = null;
@@ -38,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Verificar autenticação
     const savedToken = localStorage.getItem('token');
     if (!savedToken) {
-        alert('Você precisa estar logado!');
+        Toast.warning('Você precisa estar logado!');
         window.location.href = 'index.html';
         return;
     }
@@ -47,7 +99,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     await verifyToken();
 
     if (!currentUser || currentUser.role !== 'admin') {
-        alert('Acesso negado. Apenas administradores.');
+        Toast.error('Acesso negado. Apenas administradores.');
         window.location.href = 'index.html';
         return;
     }
@@ -173,7 +225,7 @@ async function loadDashboard() {
 
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao carregar dashboard');
+        Toast.error('Erro ao carregar dashboard');
     }
 }
 
@@ -240,9 +292,9 @@ function addCapacity(capacity = null) {
     capacityDiv.className = 'capacity-item';
     capacityDiv.id = `capacity-${index}`;
     capacityDiv.innerHTML = `
-        <div style="background: white; border: 2px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+        <div style="background: var(--bg-card); border: 2px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <strong style="color: #667eea;">Capacidade ${index + 1}</strong>
+                <strong style="color: var(--violet);">Capacidade ${index + 1}</strong>
                 <button type="button" onclick="removeCapacity(${index})" class="btn-danger" style="padding: 5px 10px; font-size: 0.875rem;">
                     Remover
                 </button>
@@ -357,17 +409,17 @@ async function handleAddCourse(event) {
         const data = await response.json();
 
         if (!response.ok) {
-            alert(data.error || 'Erro ao salvar curso');
+            Toast.error(data.error || 'Erro ao salvar curso');
             return;
         }
 
-        alert(editingCourseId ? 'Curso atualizado com sucesso!' : 'Curso criado com sucesso!');
+        Toast.success(editingCourseId ? 'Curso atualizado com sucesso!' : 'Curso criado com sucesso!');
         closeModal('add-course-modal');
         event.target.reset();
         loadCourses();
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
+        Toast.error('Erro ao conectar com o servidor');
     }
 }
 
@@ -380,7 +432,7 @@ async function editCourse(courseId) {
         const course = courses.find(c => c.id === courseId);
         
         if (!course) {
-            alert('Curso não encontrado');
+            Toast.error('Curso não encontrado');
             return;
         }
 
@@ -407,7 +459,7 @@ async function editCourse(courseId) {
         
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao carregar dados do curso');
+        Toast.error('Erro ao carregar dados do curso');
     }
 }
 
@@ -424,15 +476,15 @@ async function deleteCourse(courseId, courseName) {
 
         if (!response.ok) {
             const data = await response.json();
-            alert(data.error || 'Erro ao deletar curso');
+            Toast.error(data.error || 'Erro ao deletar curso');
             return;
         }
 
-        alert('Curso deletado com sucesso!');
+        Toast.success('Curso deletado com sucesso!');
         loadCourses();
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
+        Toast.error('Erro ao conectar com o servidor');
     }
 }
 
@@ -493,7 +545,7 @@ async function loadQuestionsByCourse() {
         document.getElementById('questions-list').innerHTML = questionsHtml;
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao carregar questões');
+        Toast.error('Erro ao carregar questões');
     }
 }
 
@@ -615,14 +667,14 @@ async function handleAddQuestion(event) {
     });
 
     if (options.length < 2) {
-        alert('Informe pelo menos duas opções com texto.');
+        Toast.warning('Informe pelo menos duas opções com texto.');
         return;
     }
 
     // Validar
     const correctCount = options.filter(o => o.correct).length;
     if (correctCount !== 1) {
-        alert('Marque exatamente UMA opção como correta!');
+        Toast.warning('Marque exatamente UMA opção como correta!');
         return;
     }
 
@@ -657,17 +709,17 @@ async function handleAddQuestion(event) {
         const data = await response.json();
 
         if (!response.ok) {
-            alert(data.error || 'Erro ao criar questão');
+            Toast.error(data.error || 'Erro ao criar questão');
             return;
         }
 
-        alert(`✅ Questão criada com sucesso!\n\nID gerado: ${data.question.id}`);
+        Toast.success(`Questão criada com sucesso! ID: ${data.question.id}`);
         closeModal('add-question-modal');
         event.target.reset();
         loadQuestionsByCourse();
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
+        Toast.error('Erro ao conectar com o servidor');
     }
 }
 
@@ -685,12 +737,12 @@ async function handleImportQuestions(event) {
     try {
         questionsData = JSON.parse(jsonText);
     } catch (error) {
-        alert('JSON inválido! Verifique o formato.');
+        Toast.error('JSON inválido! Verifique o formato.');
         return;
     }
 
     if (!Array.isArray(questionsData)) {
-        alert('O JSON deve ser um array de questões.');
+        Toast.error('O JSON deve ser um array de questões.');
         return;
     }
 
@@ -707,7 +759,7 @@ async function handleImportQuestions(event) {
         const data = await response.json();
 
         if (!response.ok) {
-            alert(data.error || 'Erro ao importar questões');
+            Toast.error(data.error || 'Erro ao importar questões');
             return;
         }
 
@@ -722,7 +774,7 @@ async function handleImportQuestions(event) {
             });
         }
 
-        alert(message);
+        Toast.success(message);
         closeModal('import-modal');
         event.target.reset();
         
@@ -731,7 +783,7 @@ async function handleImportQuestions(event) {
         loadQuestionsByCourse();
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
+        Toast.error('Erro ao conectar com o servidor');
     }
 }
 
@@ -748,15 +800,15 @@ async function deleteQuestion(courseId, questionId) {
 
         if (!response.ok) {
             const data = await response.json();
-            alert(data.error || 'Erro ao deletar questão');
+            Toast.error(data.error || 'Erro ao deletar questão');
             return;
         }
 
-        alert('Questão deletada com sucesso!');
+        Toast.success('Questão deletada com sucesso!');
         loadQuestionsByCourse();
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
+        Toast.error('Erro ao conectar com o servidor');
     }
 }
 
@@ -771,7 +823,7 @@ async function loadUsers() {
         const data = await response.json();
 
         if (!response.ok) {
-            alert('Erro ao carregar usuários');
+            Toast.error('Erro ao carregar usuários');
             return;
         }
 
@@ -810,7 +862,7 @@ async function loadUsers() {
         document.getElementById('users-list').innerHTML = usersHtml;
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao carregar usuários');
+        Toast.error('Erro ao carregar usuários');
     }
 }
 
@@ -831,15 +883,15 @@ async function promoteToAdmin(userId, username) {
 
         if (!response.ok) {
             const data = await response.json();
-            alert(data.error || 'Erro ao promover usuário');
+            Toast.error(data.error || 'Erro ao promover usuário');
             return;
         }
 
-        alert('Usuário promovido com sucesso!');
+        Toast.success('Usuário promovido com sucesso!');
         loadUsers();
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
+        Toast.error('Erro ao conectar com o servidor');
     }
 }
 
@@ -856,15 +908,15 @@ async function deleteUser(userId, username) {
 
         if (!response.ok) {
             const data = await response.json();
-            alert(data.error || 'Erro ao deletar usuário');
+            Toast.error(data.error || 'Erro ao deletar usuário');
             return;
         }
 
-        alert('Usuário deletado com sucesso!');
+        Toast.success('Usuário deletado com sucesso!');
         loadUsers();
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
+        Toast.error('Erro ao conectar com o servidor');
     }
 }
 
@@ -886,7 +938,7 @@ async function exportData(type) {
         });
 
         if (!response.ok) {
-            alert('Erro ao exportar dados');
+            Toast.error('Erro ao exportar dados');
             return;
         }
 
@@ -900,10 +952,10 @@ async function exportData(type) {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
-        alert('Arquivo exportado com sucesso!');
+        Toast.success('Arquivo exportado com sucesso!');
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao exportar dados');
+        Toast.error('Erro ao exportar dados');
     }
 }
 
@@ -911,7 +963,7 @@ async function generateCourseReport() {
     const courseId = document.getElementById('report-course-select').value;
 
     if (!courseId) {
-        alert('Selecione um curso');
+        Toast.warning('Selecione um curso');
         return;
     }
 
@@ -923,7 +975,7 @@ async function generateCourseReport() {
         const data = await response.json();
 
         if (!response.ok) {
-            alert('Erro ao gerar relatório');
+            Toast.error('Erro ao gerar relatório');
             return;
         }
 
@@ -983,7 +1035,7 @@ async function generateCourseReport() {
                 ${data.questionStats.length > 0 ? `
                     <div class="report-section">
                         <h4>📈 Estatísticas por Questão</h4>
-                        <p style="color: #64748b; margin-bottom: 15px;">
+                        <p style="color: var(--text-muted); margin-bottom: 15px;">
                             Questões com menor taxa de acerto merecem atenção especial
                         </p>
                         <div class="data-table">
@@ -1019,7 +1071,7 @@ async function generateCourseReport() {
         document.getElementById('report-content').innerHTML = reportHtml;
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao gerar relatório');
+        Toast.error('Erro ao gerar relatório');
     }
 }
 
@@ -1256,12 +1308,12 @@ async function handleGenerateAIQuestion(event) {
         : 'pollinations';
 
     if (!courseId) {
-        alert('Por favor, selecione um curso');
+        Toast.warning('Por favor, selecione um curso');
         return;
     }
 
     if (!skill) {
-        alert('Por favor, selecione uma habilidade');
+        Toast.warning('Por favor, selecione uma habilidade');
         return;
     }
 
@@ -1309,11 +1361,11 @@ async function handleGenerateAIQuestion(event) {
         // Mostrar preview
         displayAIQuestionPreview(generatedAIQuestion);
 
-        alert('✅ Questão gerada com sucesso! Revise abaixo antes de salvar.');
+        Toast.success('Questão gerada com sucesso! Revise abaixo antes de salvar.');
 
     } catch (error) {
         console.error('Erro:', error);
-        alert(`❌ Erro ao gerar questão: ${error.message}\n\nDica: Verifique se a API key está configurada no servidor.`);
+        Toast.error(`Erro ao gerar questão: ${error.message}`);
     } finally {
         generateBtn.disabled = false;
         generateBtn.innerHTML = originalText;
@@ -1371,7 +1423,7 @@ function displayAIQuestionPreview(question) {
         : '';
 
     previewContainer.innerHTML = `
-        <div class="question-card" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 2px solid #4CAF50;">
+        <div class="question-card" style="background: var(--bg-card); padding: 20px; border-radius: 8px; border: 2px solid #4CAF50;">
             <div style="margin-bottom: 10px;">
                 <span class="badge" style="background: #2196F3; color: white; padding: 5px 10px; border-radius: 4px;">
                     ${question.capacidade}
@@ -1387,7 +1439,7 @@ function displayAIQuestionPreview(question) {
             <div><strong>ID:</strong> ${question.id}</div>
             
             ${question.context ? `
-                <div style="margin-top: 15px; padding: 10px; background: white; border-left: 3px solid #2196F3;">
+                <div style="margin-top: 15px; padding: 10px; background: var(--bg-surface); border-left: 3px solid #2196F3;">
                     <strong>Contexto:</strong><br>
                     ${question.context}
                 </div>
@@ -1395,7 +1447,7 @@ function displayAIQuestionPreview(question) {
 
             ${contextImageHtml}
             
-            <div style="margin-top: 15px; padding: 10px; background: white; border-left: 3px solid #4CAF50;">
+            <div style="margin-top: 15px; padding: 10px; background: var(--bg-surface); border-left: 3px solid #4CAF50;">
                 <strong>Pergunta:</strong><br>
                 ${question.command}
             </div>
@@ -1421,14 +1473,14 @@ function displayAIQuestionPreview(question) {
 
 async function approveAIQuestion() {
     if (!generatedAIQuestion) {
-        alert('Nenhuma questão para aprovar');
+        Toast.warning('Nenhuma questão para aprovar');
         return;
     }
 
     const courseId = generatedAIQuestion.courseId;
 
     if (!courseId) {
-        alert('Curso destino não definido para esta questão. Regere a questão e tente novamente.');
+        Toast.error('Curso destino não definido. Regere a questão e tente novamente.');
         return;
     }
 
@@ -1459,7 +1511,7 @@ async function approveAIQuestion() {
             throw new Error(data.error || 'Erro ao salvar questão');
         }
 
-        alert('✅ Questão aprovada e salva com sucesso!');
+        Toast.success('Questão aprovada e salva com sucesso!');
         closeModal('ai-question-modal');
         await loadQuestionsByCourse();
         
@@ -1469,7 +1521,7 @@ async function approveAIQuestion() {
 
     } catch (error) {
         console.error('Erro:', error);
-        alert(`❌ Erro ao salvar questão: ${error.message}`);
+        Toast.error(`Erro ao salvar questão: ${error.message}`);
     }
 }
 
@@ -1477,13 +1529,13 @@ function rejectAIQuestion() {
     if (confirm('Deseja rejeitar esta questão e gerar uma nova?')) {
         generatedAIQuestion = null;
         document.getElementById('ai-preview').style.display = 'none';
-        alert('Questão rejeitada. Preencha os campos e clique em "Gerar Questão" novamente.');
+        Toast.info('Questão rejeitada. Gere uma nova questão.');
     }
 }
 
 function editAIQuestion() {
     if (!generatedAIQuestion) {
-        alert('Nenhuma questão para editar');
+        Toast.warning('Nenhuma questão para editar');
         return;
     }
 
@@ -1519,7 +1571,7 @@ function editAIQuestion() {
                 : (opt.justification || '');
         });
 
-        alert('✏️ Questão carregada para edição. Faça as alterações desejadas e clique em "Criar Questão".');
+        Toast.info('Questão carregada para edição. Faça as alterações e clique em "Criar Questão".');
     }, 300);
 }
 
@@ -1560,7 +1612,7 @@ async function loadQuizzes() {
 
     } catch (error) {
         console.error('Erro ao carregar quizzes:', error);
-        alert('Erro ao carregar quizzes');
+        Toast.error('Erro ao carregar quizzes');
     }
 }
 
@@ -1671,21 +1723,21 @@ async function loadQuestionsForQuiz() {
                             const difficultyLabel = q.difficulty || 'Médio';
                             
                             return `
-                                <div class="quiz-question-item" style="margin-bottom: 8px; padding: 16px; background: white; border-radius: 8px; border: 2px solid ${isSelected ? '#667eea' : '#e2e8f0'}; transition: all 0.2s ease; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" 
-                                     onmouseover="if(!this.querySelector('input[type=checkbox]').checked) { this.style.borderColor='#a5b4fc'; this.style.background='#f8f9ff'; }" 
-                                     onmouseout="if(!this.querySelector('input[type=checkbox]').checked) { this.style.borderColor='#e2e8f0'; this.style.background='white'; }"
+                                <div class="quiz-question-item" style="margin-bottom: 8px; padding: 16px; background: var(--bg-card); border-radius: 8px; border: 2px solid ${isSelected ? '#a78bfa' : 'rgba(139,92,246,0.15)'}; transition: all 0.2s ease; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" 
+                                     onmouseover="if(!this.querySelector('input[type=checkbox]').checked) { this.style.borderColor='#a78bfa'; this.style.background='#1c2333'; }" 
+                                     onmouseout="if(!this.querySelector('input[type=checkbox]').checked) { this.style.borderColor='rgba(139,92,246,0.15)'; this.style.background='var(--bg-card)'; }"
                                      onclick="toggleQuestionCheckbox(this);">
                                     <label style="display: flex; align-items: start; cursor: pointer; width: 100%;">
                                         <input type="checkbox" name="quiz-question" value="${q.id}" ${isSelected ? 'checked' : ''} 
-                                               style="margin-right: 12px; margin-top: 4px; width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; accent-color: #667eea;"
+                                               style="margin-right: 12px; margin-top: 4px; width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; accent-color: #a78bfa;"
                                                onclick="event.stopPropagation(); updateQuestionBorder(this);">
                                         <div style="flex: 1; min-width: 0;">
-                                            <div style="font-weight: 600; color: #1e293b; font-size: 0.95rem; line-height: 1.5; margin-bottom: 8px;">${q.command}</div>
-                                            <div style="font-size: 0.8rem; color: #64748b; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-                                                <span style="background: #dbeafe; color: #2563eb; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 500;">
-                                                    � ${difficultyLabel}
+                                            <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem; line-height: 1.5; margin-bottom: 8px;">${q.command}</div>
+                                            <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                                                <span style="background: rgba(167,139,250,0.15); color: #a78bfa; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 500;">
+                                                    🎯 ${difficultyLabel}
                                                 </span>
-                                                <span style="background: #f3f4f6; color: #6b7280; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem;">
+                                                <span style="background: var(--bg-deep); color: var(--text-muted); padding: 3px 8px; border-radius: 4px; font-size: 0.7rem;">
                                                     ID: ${q.id}
                                                 </span>
                                             </div>
@@ -1718,11 +1770,11 @@ function toggleQuestionCheckbox(element) {
 function updateQuestionBorder(checkbox) {
     const parent = checkbox.closest('.quiz-question-item');
     if (checkbox.checked) {
-        parent.style.borderColor = '#667eea';
-        parent.style.background = '#f8f9ff';
+        parent.style.borderColor = '#a78bfa';
+        parent.style.background = '#1c2333';
     } else {
-        parent.style.borderColor = '#e2e8f0';
-        parent.style.background = 'white';
+        parent.style.borderColor = 'rgba(139,92,246,0.15)';
+        parent.style.background = 'var(--bg-card)';
     }
 }
 
@@ -1758,7 +1810,7 @@ async function handleQuizSubmit(event) {
     console.log('IDs selecionados:', questionIds);
 
     if (questionIds.length === 0) {
-        alert('Selecione pelo menos uma questão para o quiz');
+        Toast.warning('Selecione pelo menos uma questão para o quiz');
         return;
     }
 
@@ -1784,13 +1836,13 @@ async function handleQuizSubmit(event) {
             throw new Error(data.error || 'Erro ao salvar quiz');
         }
 
-        alert(editingQuizId ? '✅ Quiz atualizado com sucesso!' : '✅ Quiz criado com sucesso!');
+        Toast.success(editingQuizId ? 'Quiz atualizado com sucesso!' : 'Quiz criado com sucesso!');
         closeModal('quiz-modal');
         loadQuizzes();
 
     } catch (error) {
         console.error('Erro:', error);
-        alert(`❌ Erro: ${error.message}`);
+        Toast.error(`Erro: ${error.message}`);
     }
 }
 
@@ -1842,12 +1894,12 @@ async function deleteQuiz(quizId) {
             throw new Error(data.error || 'Erro ao deletar quiz');
         }
 
-        alert('✅ Quiz deletado com sucesso!');
+        Toast.success('Quiz deletado com sucesso!');
         loadQuizzes();
 
     } catch (error) {
         console.error('Erro:', error);
-        alert(`❌ Erro: ${error.message}`);
+        Toast.error(`Erro: ${error.message}`);
     }
 }
 
@@ -2285,17 +2337,17 @@ function displayAnonymousResults(results, stats) {
         window.anonymousResultsCache[result.id] = result;
 
         return `
-            <div class="result-item" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; background: white;">
+            <div class="result-item" style="border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; background: var(--bg-card);">
                 <div style="display: flex; justify-content: space-between; align-items: start; gap: 16px;">
                     <div style="flex: 1;">
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                            <strong style="color: #1e293b; font-size: 1rem;">${result.userInfo}</strong>
+                            <strong style="color: var(--text-primary); font-size: 1rem;">${result.userInfo}</strong>
                             <span class="badge ${scoreClass}" style="padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
                                 ${result.score}/${result.totalQuestions} (${result.percentage}%)
                             </span>
                         </div>
                         
-                        <div style="display: flex; flex-wrap: wrap; gap: 16px; color: #64748b; font-size: 0.9rem;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 16px; color: var(--text-muted); font-size: 0.9rem;">
                             <span><strong>Curso:</strong> ${result.courseName}</span>
                             ${result.quizName ? `<span><strong>Quiz:</strong> ${result.quizName}</span>` : ''}
                             <span><strong>Tempo:</strong> ${timeDisplay}</span>
@@ -2310,8 +2362,8 @@ function displayAnonymousResults(results, stats) {
                         ` : ''}
 
                         ${result.capacityPerformance && Object.keys(result.capacityPerformance).length > 0 ? `
-                            <div style="margin-top: 12px; padding: 10px; background: #f8fafc; border-radius: 6px;">
-                                <strong style="font-size: 0.85rem; color: #64748b;">Desempenho por Capacidade:</strong>
+                            <div style="margin-top: 12px; padding: 10px; background: var(--bg-surface); border-radius: 6px;">
+                                <strong style="font-size: 0.85rem; color: var(--text-muted);">Desempenho por Capacidade:</strong>
                                 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
                                     ${Object.entries(result.capacityPerformance).map(([cap, stats]) => `
                                         <span style="background: ${parseFloat(stats.percentage) >= 70 ? '#dcfce7' : parseFloat(stats.percentage) >= 50 ? '#fef3c7' : '#fecaca'}; 
@@ -2325,7 +2377,7 @@ function displayAnonymousResults(results, stats) {
                         ` : ''}
 
                         ${result.ip && result.ip !== 'unknown' ? `
-                            <div style="margin-top: 8px; font-size: 0.8rem; color: #94a3b8;">
+                            <div style="margin-top: 8px; font-size: 0.8rem; color: var(--text-muted);">
                                 <span><strong>IP:</strong> ${result.ip}</span>
                             </div>
                         ` : ''}
@@ -2351,20 +2403,21 @@ function showResultDetails(resultId) {
     const result = window.anonymousResultsCache ? window.anonymousResultsCache[resultId] : null;
     
     if (!result) {
-        alert('Resultado não encontrado');
+        Toast.error('Resultado não encontrado');
         return;
     }
 
     const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.style.display = 'block';
+    modal.className = 'modal is-open';
+    modal.style.display = 'flex';
     modal.id = 'result-details-modal';
+    modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
 
     const date = new Date(result.createdAt);
     const timeDisplay = `${Math.floor(result.timeSpent / 60)}:${String(result.timeSpent % 60).padStart(2, '0')}`;
 
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content" style="max-width: 860px; max-height: 90vh; overflow-y: auto; margin: 20px auto;">
             <span class="close" onclick="document.getElementById('result-details-modal').remove()">&times;</span>
             
             <h2 style="margin-bottom: 20px;">📊 Detalhes do Resultado</h2>
@@ -2392,7 +2445,7 @@ function showResultDetails(resultId) {
             </div>
 
             ${result.capacityPerformance && Object.keys(result.capacityPerformance).length > 0 ? `
-                <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border);">
                     <h3 style="margin: 0 0 15px 0;">📈 Desempenho por Capacidade</h3>
                     ${Object.entries(result.capacityPerformance).map(([cap, stats]) => {
                         const percentage = parseFloat(stats.percentage);
@@ -2405,7 +2458,7 @@ function showResultDetails(resultId) {
                                     <strong>${cap}</strong>
                                     <span>${stats.correct}/${stats.total} (${stats.percentage}%)</span>
                                 </div>
-                                <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+                                <div style="width: 100%; height: 8px; background: var(--bg-deep); border-radius: 4px; overflow: hidden;">
                                     <div style="width: ${stats.percentage}%; height: 100%; background: ${color}; transition: width 0.3s;"></div>
                                 </div>
                             </div>
@@ -2415,12 +2468,12 @@ function showResultDetails(resultId) {
             ` : ''}
 
             ${result.questionsWrong && result.questionsWrong.length > 0 ? `
-                <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border);">
                     <h3 style="margin: 0 0 15px 0; color: #dc2626;">❌ Questões Erradas (${result.questionsWrong.length})</h3>
                     ${result.questionsWrong.map((q, index) => `
-                        <div style="padding: 12px; background: #fef2f2; border-left: 3px solid #dc2626; border-radius: 6px; margin-bottom: 10px;">
+                        <div style="padding: 12px; background: rgba(220,38,38,0.1); border-left: 3px solid #dc2626; border-radius: 6px; margin-bottom: 10px;">
                             <div style="font-weight: 600; margin-bottom: 5px;">Questão ${index + 1} - ${q.capacity}</div>
-                            <div style="font-size: 0.9rem; color: #64748b;">
+                            <div style="font-size: 0.9rem; color: var(--text-muted);">
                                 <div><strong>Respondeu:</strong> ${q.selectedOption || 'Não respondeu'} ${q.selectedText ? `- ${q.selectedText.substring(0, 50)}...` : ''}</div>
                                 <div style="color: #16a34a;"><strong>Correto:</strong> ${q.correctOption} ${q.correctText ? `- ${q.correctText.substring(0, 50)}...` : ''}</div>
                             </div>
@@ -2430,9 +2483,9 @@ function showResultDetails(resultId) {
             ` : ''}
 
             ${result.questionsCorrect && result.questionsCorrect.length > 0 ? `
-                <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
                     <h3 style="margin: 0 0 10px 0; color: #16a34a;">✅ Questões Corretas (${result.questionsCorrect.length})</h3>
-                    <div style="color: #64748b; font-size: 0.9rem;">
+                    <div style="color: var(--text-muted); font-size: 0.9rem;">
                         ${result.questionsCorrect.map(q => `<span style="background: #dcfce7; padding: 4px 8px; border-radius: 4px; margin: 4px; display: inline-block;">${q.capacity}</span>`).join('')}
                     </div>
                 </div>
@@ -2463,7 +2516,7 @@ async function loadFeedbacks(status = null) {
         const data = await response.json();
 
         if (!response.ok) {
-            alert('Erro ao carregar feedbacks');
+            Toast.error('Erro ao carregar feedbacks');
             return;
         }
 
@@ -2493,20 +2546,20 @@ async function loadFeedbacks(status = null) {
             };
 
             return `
-                <div class="user-item" style="background: ${feedback.status === 'novo' ? '#fffbeb' : 'white'};">
+                <div class="user-item" style="background: ${feedback.status === 'novo' ? 'rgba(251,191,36,0.08)' : 'var(--bg-card)'};">
                     <div style="flex: 1;">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                             <strong style="font-size: 1.1rem;">${typeEmoji[feedback.type] || '💬'} ${feedback.name}</strong>
                             ${statusBadge[feedback.status]}
                         </div>
                         
-                        ${feedback.email ? `<div style="color: #64748b; font-size: 0.9rem; margin-bottom: 5px;">📧 ${feedback.email}</div>` : ''}
+                        ${feedback.email ? `<div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px;">📧 ${feedback.email}</div>` : ''}
                         
-                        <div style="margin: 10px 0; padding: 12px; background: #f8fafc; border-left: 4px solid #667eea; border-radius: 6px;">
+                        <div style="margin: 10px 0; padding: 12px; background: var(--bg-surface); border-left: 4px solid var(--violet); border-radius: 6px;">
                             <p style="margin: 0; white-space: pre-wrap;">${feedback.message}</p>
                         </div>
                         
-                        <div style="color: #94a3b8; font-size: 0.875rem;">
+                        <div style="color: var(--text-muted); font-size: 0.875rem;">
                             📅 ${new Date(feedback.createdAt).toLocaleString('pt-BR')}
                         </div>
                     </div>
@@ -2533,7 +2586,7 @@ async function loadFeedbacks(status = null) {
         document.getElementById('feedbacks-list').innerHTML = feedbacksHtml;
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao carregar feedbacks');
+        Toast.error('Erro ao carregar feedbacks');
     }
 }
 
@@ -2551,7 +2604,7 @@ async function updateFeedbackStatus(feedbackId, newStatus) {
         const data = await response.json();
 
         if (!response.ok) {
-            alert(data.error || 'Erro ao atualizar status');
+            Toast.error(data.error || 'Erro ao atualizar status');
             return;
         }
 
@@ -2559,7 +2612,7 @@ async function updateFeedbackStatus(feedbackId, newStatus) {
         loadFeedbacks();
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
+        Toast.error('Erro ao conectar com o servidor');
     }
 }
 
@@ -2576,15 +2629,15 @@ async function deleteFeedback(feedbackId) {
 
         if (!response.ok) {
             const data = await response.json();
-            alert(data.error || 'Erro ao deletar feedback');
+            Toast.error(data.error || 'Erro ao deletar feedback');
             return;
         }
 
-        alert('Feedback deletado com sucesso!');
+        Toast.success('Feedback deletado com sucesso!');
         loadFeedbacks();
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
+        Toast.error('Erro ao conectar com o servidor');
     }
 }
 
