@@ -1,29 +1,33 @@
-/* ==================== GAMIFICATION STYLES ==================== */
+/* ============================================================
+   GAMIFICATION STYLES — Gaming Dark Theme
+   Matches the new design system (Space Grotesk + Inter)
+   ============================================================ */
 
-/* XP Bar Header */
+/* ==================== XP BAR (HEADER) ==================== */
 .xp-bar-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    background: rgba(255,255,255,0.1);
-    padding: 8px 16px;
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
+    gap: 10px;
+    background: var(--bg-surface);
+    padding: 6px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
 }
 
 .level-badge {
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    background: linear-gradient(135deg, var(--amber) 0%, #f59e0b 100%);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
     font-weight: 900;
-    font-size: 1rem;
-    color: #1e293b;
-    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
-    border: 2px solid #fde68a;
+    font-size: 0.9rem;
+    color: var(--bg-deep);
+    box-shadow: 0 0 12px var(--amber-glow);
+    border: 2px solid rgba(251, 191, 36, 0.4);
     flex-shrink: 0;
     position: relative;
 }
@@ -31,15 +35,15 @@
 .level-badge::after {
     content: '';
     position: absolute;
-    inset: -4px;
+    inset: -3px;
     border-radius: 50%;
-    border: 2px solid rgba(251, 191, 36, 0.3);
-    animation: levelPulse 2s ease-in-out infinite;
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    animation: levelPulse 2.5s ease-in-out infinite;
 }
 
 @keyframes levelPulse {
-    0%, 100% { transform: scale(1); opacity: 0.5; }
-    50% { transform: scale(1.1); opacity: 0; }
+    0%, 100% { transform: scale(1); opacity: 0.4; }
+    50% { transform: scale(1.15); opacity: 0; }
 }
 
 .xp-info {
@@ -48,39 +52,47 @@
 }
 
 .xp-info .level-text {
-    color: #fde68a;
-    font-size: 0.75rem;
-    font-weight: 600;
+    color: var(--amber);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.08em;
 }
 
 .xp-progress-bar {
     width: 100%;
-    height: 8px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 4px;
+    height: 6px;
+    background: var(--bg-elevated);
+    border-radius: 3px;
     overflow: hidden;
-    margin-top: 4px;
+    margin-top: 3px;
 }
 
 .xp-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #fbbf24, #f59e0b, #fbbf24);
-    background-size: 200% 100%;
-    border-radius: 4px;
+    background: linear-gradient(90deg, var(--amber), #f59e0b);
+    border-radius: 3px;
     transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.xp-progress-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
     animation: xpShimmer 2s ease-in-out infinite;
 }
 
 @keyframes xpShimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
 }
 
 .xp-text {
-    color: #e2e8f0;
-    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-size: 0.65rem;
     margin-top: 2px;
 }
 
@@ -88,25 +100,26 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    background: linear-gradient(135deg, #ef4444, #f97316);
-    padding: 6px 12px;
-    border-radius: 20px;
+    background: linear-gradient(135deg, #f87171, #ef4444);
+    padding: 5px 10px;
+    border-radius: 16px;
     color: white;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 700;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
 }
 
 .streak-badge.no-streak {
-    background: rgba(255,255,255,0.15);
+    background: var(--bg-elevated);
     box-shadow: none;
+    color: var(--text-muted);
 }
 
-/* Combo Indicator (during quiz) */
+/* ==================== COMBO (DURING QUIZ) ==================== */
 .combo-container {
     position: fixed;
-    top: 20px;
+    top: 80px;
     right: 20px;
     z-index: 999;
     pointer-events: none;
@@ -114,15 +127,16 @@
 }
 
 .combo-indicator {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--bg-card);
+    border: 2px solid var(--violet);
     color: white;
-    padding: 12px 24px;
-    border-radius: 16px;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
     text-align: center;
-    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 0 24px var(--violet-glow);
     transform: scale(0);
-    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-    min-width: 120px;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    min-width: 100px;
 }
 
 .combo-indicator.active {
@@ -130,84 +144,87 @@
 }
 
 .combo-indicator.fire {
-    background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
-    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.5);
+    border-color: #f87171;
+    box-shadow: 0 0 24px rgba(248, 113, 113, 0.3);
 }
 
 .combo-indicator.legendary {
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-    box-shadow: 0 8px 32px rgba(251, 191, 36, 0.5);
-    animation: legendaryGlow 1s ease-in-out infinite alternate;
+    border-color: var(--amber);
+    box-shadow: 0 0 24px var(--amber-glow);
+    animation: legendaryGlow 1.2s ease-in-out infinite alternate;
 }
 
 @keyframes legendaryGlow {
-    from { box-shadow: 0 8px 32px rgba(251, 191, 36, 0.5); }
-    to { box-shadow: 0 8px 48px rgba(251, 191, 36, 0.8), 0 0 60px rgba(251, 191, 36, 0.3); }
+    from { box-shadow: 0 0 24px var(--amber-glow); }
+    to { box-shadow: 0 0 40px rgba(251, 191, 36, 0.5), 0 0 60px rgba(251, 191, 36, 0.15); }
 }
 
 .combo-count {
-    font-size: 2rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.8rem;
     font-weight: 900;
     line-height: 1;
 }
 
 .combo-label {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    opacity: 0.9;
+    letter-spacing: 1.5px;
+    opacity: 0.8;
     margin-top: 2px;
 }
 
 .combo-multiplier {
-    font-size: 0.8rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.75rem;
     font-weight: 700;
     margin-top: 4px;
-    background: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
     padding: 2px 8px;
-    border-radius: 8px;
+    border-radius: 6px;
     display: inline-block;
 }
 
-/* XP Popup (earned XP floating animation) */
+/* ==================== XP POPUP (FLOATING) ==================== */
 .xp-popup {
     position: fixed;
     z-index: 10000;
     pointer-events: none;
+    font-family: 'Space Grotesk', sans-serif;
     font-weight: 900;
-    font-size: 1.5rem;
-    color: #fbbf24;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    font-size: 1.4rem;
+    color: var(--amber);
+    text-shadow: 0 0 12px var(--amber-glow);
     animation: xpFloat 1.5s ease-out forwards;
 }
 
 @keyframes xpFloat {
     0% { opacity: 1; transform: translateY(0) scale(1); }
-    50% { opacity: 1; transform: translateY(-40px) scale(1.2); }
-    100% { opacity: 0; transform: translateY(-80px) scale(0.8); }
+    50% { opacity: 1; transform: translateY(-35px) scale(1.2); }
+    100% { opacity: 0; transform: translateY(-70px) scale(0.8); }
 }
 
-/* Correct/Wrong answer flash */
+/* ==================== ANSWER FLASH ==================== */
 .answer-flash-correct {
-    animation: flashCorrect 0.6s ease-out;
+    animation: flashCorrect 0.5s ease-out;
 }
 
 @keyframes flashCorrect {
-    0% { background: #22c55e; transform: scale(1.03); }
-    100% { background: inherit; transform: scale(1); }
+    0% { box-shadow: 0 0 30px rgba(52, 211, 153, 0.5); transform: scale(1.02); }
+    100% { box-shadow: none; transform: scale(1); }
 }
 
 .answer-flash-wrong {
-    animation: flashWrong 0.6s ease-out;
+    animation: flashWrong 0.5s ease-out;
 }
 
 @keyframes flashWrong {
-    0%, 20%, 40% { transform: translateX(-5px); }
-    10%, 30% { transform: translateX(5px); }
+    0%, 20%, 40% { transform: translateX(-4px); }
+    10%, 30% { transform: translateX(4px); }
     50% { transform: translateX(0); }
 }
 
-/* Level Up Overlay */
+/* ==================== LEVEL UP OVERLAY ==================== */
 .level-up-overlay {
     position: fixed;
     inset: 0;
@@ -215,10 +232,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
     opacity: 0;
-    animation: overlayFadeIn 0.5s ease forwards;
+    animation: overlayFadeIn 0.4s ease forwards;
 }
 
 @keyframes overlayFadeIn {
@@ -228,7 +245,7 @@
 .level-up-content {
     text-align: center;
     color: white;
-    animation: levelUpBounce 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+    animation: levelUpBounce 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     transform: scale(0);
 }
 
@@ -237,9 +254,9 @@
 }
 
 .level-up-icon {
-    font-size: 5rem;
-    margin-bottom: 20px;
-    animation: levelUpSpin 1s ease-out;
+    font-size: 4.5rem;
+    margin-bottom: 16px;
+    animation: levelUpSpin 0.8s ease-out;
 }
 
 @keyframes levelUpSpin {
@@ -248,45 +265,47 @@
 }
 
 .level-up-title {
-    font-size: 2.5rem;
-    font-weight: 900;
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--amber), #f59e0b);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .level-up-level {
-    font-size: 4rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 3.5rem;
     font-weight: 900;
-    color: #fbbf24;
-    text-shadow: 0 0 40px rgba(251, 191, 36, 0.5);
+    color: var(--amber);
+    text-shadow: 0 0 40px var(--amber-glow);
 }
 
 .level-up-subtitle {
-    font-size: 1.1rem;
-    color: #94a3b8;
-    margin-top: 10px;
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-top: 8px;
 }
 
-/* Achievement Notification */
+/* ==================== ACHIEVEMENT NOTIFICATION ==================== */
 .achievement-notification {
     position: fixed;
     top: 20px;
     left: 50%;
     transform: translateX(-50%) translateY(-120px);
     z-index: 99998;
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    border: 2px solid #fbbf24;
-    border-radius: 16px;
-    padding: 16px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--amber);
+    border-radius: var(--radius-lg);
+    padding: 14px 20px;
     display: flex;
     align-items: center;
-    gap: 16px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(251, 191, 36, 0.2);
-    animation: achievementSlideIn 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
-    max-width: 400px;
+    gap: 14px;
+    box-shadow: 0 0 30px var(--amber-glow), var(--shadow-lg);
+    animation: achievementSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    max-width: 380px;
 }
 
 @keyframes achievementSlideIn {
@@ -294,7 +313,7 @@
 }
 
 .achievement-notification.hide {
-    animation: achievementSlideOut 0.5s ease forwards;
+    animation: achievementSlideOut 0.4s ease forwards;
 }
 
 @keyframes achievementSlideOut {
@@ -302,8 +321,8 @@
 }
 
 .achievement-notification .ach-icon {
-    font-size: 2.5rem;
-    animation: achievementIconPop 0.5s ease 0.3s both;
+    font-size: 2.2rem;
+    animation: achievementIconPop 0.4s ease 0.3s both;
 }
 
 @keyframes achievementIconPop {
@@ -316,43 +335,45 @@
 }
 
 .achievement-notification .ach-label {
-    font-size: 0.7rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.65rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #fbbf24;
+    letter-spacing: 1.5px;
+    color: var(--amber);
     font-weight: 700;
 }
 
 .achievement-notification .ach-name {
-    color: white;
-    font-size: 1.1rem;
+    color: var(--text-primary);
+    font-size: 1rem;
     font-weight: 700;
     margin: 2px 0;
 }
 
 .achievement-notification .ach-desc {
-    color: #94a3b8;
-    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
 }
 
 .achievement-notification .ach-xp {
-    color: #fbbf24;
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--amber);
     font-weight: 700;
-    font-size: 0.9rem;
-    background: rgba(251, 191, 36, 0.1);
+    font-size: 0.85rem;
+    background: var(--amber-glow);
     padding: 4px 10px;
-    border-radius: 8px;
+    border-radius: 6px;
     flex-shrink: 0;
 }
 
-/* XP Summary Card (post-quiz) */
+/* ==================== XP SUMMARY CARD (POST-QUIZ) ==================== */
 .xp-summary-card {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border-radius: 16px;
-    padding: 30px;
-    margin: 20px 0;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    margin: 1.5rem 0;
     color: white;
-    border: 2px solid rgba(251, 191, 36, 0.3);
+    border: 1px solid rgba(251, 191, 36, 0.2);
     overflow: hidden;
     position: relative;
 }
@@ -364,8 +385,8 @@
     left: -50%;
     width: 200%;
     height: 200%;
-    background: conic-gradient(from 0deg, transparent 0%, rgba(251, 191, 36, 0.05) 25%, transparent 50%);
-    animation: rotateBg 8s linear infinite;
+    background: conic-gradient(from 0deg, transparent 0%, rgba(251, 191, 36, 0.03) 25%, transparent 50%);
+    animation: rotateBg 10s linear infinite;
 }
 
 @keyframes rotateBg {
@@ -376,61 +397,63 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 24px;
+    margin-bottom: 1.25rem;
     position: relative;
     z-index: 1;
 }
 
 .xp-total-earned {
-    font-size: 2.5rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.2rem;
     font-weight: 900;
-    color: #fbbf24;
-    text-shadow: 0 0 30px rgba(251, 191, 36, 0.3);
+    color: var(--amber);
+    text-shadow: 0 0 20px var(--amber-glow);
 }
 
 .xp-total-label {
-    font-size: 0.85rem;
-    color: #94a3b8;
+    font-size: 0.75rem;
+    color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
 }
 
 .xp-breakdown {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
     position: relative;
     z-index: 1;
 }
 
 .xp-breakdown-item {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    padding: 12px;
-    border-radius: 10px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: var(--radius-sm);
     text-align: center;
-    transition: transform 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .xp-breakdown-item:hover {
-    transform: scale(1.05);
-    background: rgba(255,255,255,0.08);
+    transform: translateY(-2px);
+    border-color: var(--border-accent);
 }
 
 .xp-breakdown-value {
-    font-size: 1.3rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.2rem;
     font-weight: 700;
-    color: #fbbf24;
+    color: var(--amber);
 }
 
 .xp-breakdown-label {
-    font-size: 0.75rem;
-    color: #94a3b8;
-    margin-top: 4px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 2px;
 }
 
 .xp-level-progress {
-    margin-top: 24px;
+    margin-top: 1.25rem;
     position: relative;
     z-index: 1;
 }
@@ -439,31 +462,32 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .xp-level-current {
+    font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    color: #fbbf24;
+    color: var(--amber);
 }
 
 .xp-level-next {
-    color: #64748b;
-    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
 }
 
 .xp-level-bar {
     width: 100%;
-    height: 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 6px;
+    height: 10px;
+    background: var(--bg-elevated);
+    border-radius: 5px;
     overflow: hidden;
 }
 
 .xp-level-fill {
     height: 100%;
-    background: linear-gradient(90deg, #fbbf24, #f59e0b);
-    border-radius: 6px;
+    background: linear-gradient(90deg, var(--amber), #f59e0b);
+    border-radius: 5px;
     transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
 }
@@ -471,12 +495,9 @@
 .xp-level-fill::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    animation: xpBarShine 2s ease-in-out infinite;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    animation: xpBarShine 2.5s ease-in-out infinite;
 }
 
 @keyframes xpBarShine {
@@ -484,18 +505,19 @@
     100% { transform: translateX(100%); }
 }
 
-/* Profile Gamification Section */
+/* ==================== GAMIFICATION PROFILE ==================== */
 .gamification-profile {
-    margin-top: 24px;
+    margin-top: 1.5rem;
 }
 
 .gp-level-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    padding: 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
     color: white;
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 1.25rem;
     position: relative;
     overflow: hidden;
 }
@@ -503,25 +525,28 @@
 .gp-level-card::before {
     content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-    animation: rotateBg 10s linear infinite;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--violet), var(--amber));
 }
 
 .gp-level-number {
-    font-size: 4rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 3.5rem;
     font-weight: 900;
     position: relative;
     z-index: 1;
-    text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    background: linear-gradient(135deg, var(--accent), var(--violet));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .gp-level-label {
-    font-size: 0.9rem;
-    opacity: 0.9;
+    font-size: 0.8rem;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 2px;
     position: relative;
@@ -529,76 +554,81 @@
 }
 
 .gp-xp-display {
-    font-size: 1.2rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem;
     font-weight: 700;
-    margin-top: 12px;
+    margin-top: 10px;
     position: relative;
     z-index: 1;
-    color: #fde68a;
+    color: var(--amber);
 }
 
 .gp-stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 12px;
-    margin: 20px 0;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin: 1.25rem 0;
 }
 
 .gp-stat {
-    background: #f8fafc;
-    padding: 16px;
-    border-radius: 12px;
+    background: var(--bg-surface);
+    padding: 1rem;
+    border-radius: var(--radius-md);
     text-align: center;
-    border: 2px solid #e2e8f0;
-    transition: transform 0.2s ease, border-color 0.2s ease;
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
 }
 
 .gp-stat:hover {
-    transform: translateY(-3px);
-    border-color: var(--cor-primaria);
+    transform: translateY(-2px);
+    border-color: var(--border-accent);
 }
 
 .gp-stat-icon {
-    font-size: 1.8rem;
-    margin-bottom: 6px;
+    font-size: 1.5rem;
+    margin-bottom: 4px;
 }
 
 .gp-stat-value {
-    font-size: 1.5rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.3rem;
     font-weight: 800;
-    color: var(--cor-primaria);
+    color: var(--accent);
 }
 
 .gp-stat-label {
-    font-size: 0.75rem;
-    color: #64748b;
-    margin-top: 4px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
-/* Achievements Grid */
+/* ==================== ACHIEVEMENTS GRID ==================== */
 .achievements-section {
-    margin: 24px 0;
+    margin: 1.5rem 0;
 }
 
 .achievements-section h3 {
-    color: var(--cor-primaria);
-    margin-bottom: 16px;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 1rem;
 }
 
 .achievements-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
 }
 
 .achievement-card {
-    background: white;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
     text-align: center;
     transition: all 0.3s ease;
     position: relative;
@@ -606,23 +636,34 @@
 }
 
 .achievement-card.unlocked {
-    border-color: #fbbf24;
-    background: linear-gradient(to bottom, #fffbeb, white);
+    border-color: rgba(251, 191, 36, 0.3);
+    background: var(--bg-card);
+}
+
+.achievement-card.unlocked::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--amber), #f59e0b);
 }
 
 .achievement-card.unlocked:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 24px rgba(251, 191, 36, 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 0 20px var(--amber-glow);
+    border-color: var(--amber);
 }
 
 .achievement-card.locked {
-    opacity: 0.5;
-    filter: grayscale(0.8);
+    opacity: 0.4;
+    filter: grayscale(0.9);
 }
 
 .achievement-card .ach-card-icon {
-    font-size: 2.5rem;
-    margin-bottom: 8px;
+    font-size: 2rem;
+    margin-bottom: 6px;
 }
 
 .achievement-card.locked .ach-card-icon {
@@ -630,26 +671,27 @@
 }
 
 .achievement-card .ach-card-name {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 4px;
+    color: var(--text-primary);
+    margin-bottom: 3px;
 }
 
 .achievement-card .ach-card-desc {
-    font-size: 0.7rem;
-    color: #64748b;
+    font-size: 0.65rem;
+    color: var(--text-muted);
     line-height: 1.4;
 }
 
 .achievement-card .ach-card-xp {
-    margin-top: 8px;
-    font-size: 0.75rem;
+    margin-top: 6px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.7rem;
     font-weight: 700;
-    color: #f59e0b;
+    color: var(--amber);
 }
 
-/* Confetti effect container */
+/* ==================== CONFETTI ==================== */
 .confetti-container {
     position: fixed;
     inset: 0;
@@ -660,8 +702,8 @@
 
 .confetti-piece {
     position: absolute;
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     top: -10px;
     animation: confettiFall linear forwards;
 }
@@ -671,34 +713,36 @@
     100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
 }
 
-/* Quiz card gamification additions */
+/* ==================== QUIZ CARD BADGE ==================== */
 .quiz-card-badge {
     position: absolute;
-    top: -8px;
+    top: -1px;
     right: 12px;
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    color: #1e293b;
-    font-size: 0.7rem;
+    background: linear-gradient(135deg, var(--amber), #f59e0b);
+    color: var(--bg-deep);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.65rem;
     font-weight: 800;
-    padding: 4px 10px;
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
+    padding: 3px 10px;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 2px 8px var(--amber-glow);
+    letter-spacing: 0.03em;
 }
 
 .quiz-card-best {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 8px;
-    font-size: 0.8rem;
-    color: #16a34a;
+    gap: 5px;
+    margin-top: 6px;
+    font-size: 0.75rem;
+    color: var(--success);
     font-weight: 600;
 }
 
-/* Streak counter animation */
+/* Streak fire */
 @keyframes fireFlicker {
     0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+    50% { transform: scale(1.12); }
 }
 
 .streak-fire {
@@ -706,75 +750,85 @@
     display: inline-block;
 }
 
-/* Quiz progress bar (top of quiz) */
+/* ==================== QUIZ PROGRESS BAR ==================== */
 .quiz-gamified-progress {
     display: flex;
     align-items: center;
-    gap: 12px;
-    background: rgba(255,255,255,0.95);
-    padding: 10px 16px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin-bottom: 16px;
+    gap: 10px;
+    background: var(--bg-card);
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    margin-bottom: 1rem;
 }
 
 .quiz-progress-bar-container {
     flex: 1;
-    height: 10px;
-    background: #e2e8f0;
-    border-radius: 5px;
+    height: 8px;
+    background: var(--bg-elevated);
+    border-radius: 4px;
     overflow: hidden;
 }
 
 .quiz-progress-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    border-radius: 5px;
-    transition: width 0.5s ease;
+    background: linear-gradient(90deg, var(--accent), var(--violet));
+    border-radius: 4px;
+    transition: width 0.4s ease;
+    position: relative;
+}
+
+.quiz-progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: xpBarShine 2s ease-in-out infinite;
 }
 
 .quiz-progress-text {
+    font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    color: #1e293b;
-    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-size: 0.85rem;
     white-space: nowrap;
 }
 
 .quiz-score-live {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     font-weight: 700;
-    color: #16a34a;
-    font-size: 0.9rem;
+    color: var(--success);
+    font-size: 0.85rem;
     white-space: nowrap;
 }
 
-/* Responsive adjustments */
+/* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
     .xp-bar-header {
-        padding: 6px 10px;
-        gap: 8px;
+        padding: 5px 8px;
+        gap: 6px;
     }
 
     .level-badge {
-        width: 36px;
-        height: 36px;
-        font-size: 0.85rem;
+        width: 32px;
+        height: 32px;
+        font-size: 0.8rem;
     }
 
     .combo-container {
-        top: 10px;
+        top: 70px;
         right: 10px;
     }
 
     .combo-indicator {
-        padding: 8px 16px;
+        padding: 8px 14px;
         min-width: 80px;
     }
 
     .combo-count {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
     }
 
     .gp-stats-grid {
@@ -786,15 +840,15 @@
     }
 
     .xp-summary-card {
-        padding: 20px;
+        padding: 1.25rem;
     }
 
     .xp-total-earned {
-        font-size: 2rem;
+        font-size: 1.8rem;
     }
 
     .achievement-notification {
         max-width: 90%;
-        padding: 12px 16px;
+        padding: 10px 14px;
     }
 }
