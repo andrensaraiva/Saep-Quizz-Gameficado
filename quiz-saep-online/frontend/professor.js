@@ -477,6 +477,329 @@ async function handleCreateQuestion(e) {
     } catch (e) { Toast.error(e.message || 'Erro ao criar questão'); }
 }
 
+// ==================== IMPORTAR QUESTÕES EM LOTE (PROFESSOR) ====================
+
+function showProfImportModal() {
+    fillCourseSelect('prof-import-course');
+    document.getElementById('prof-import-json').value = '';
+    document.getElementById('prof-import-modal').style.display = 'flex';
+}
+
+async function handleProfImportQuestions() {
+    const courseId = document.getElementById('prof-import-course').value;
+    const jsonText = document.getElementById('prof-import-json').value.trim();
+
+    if (!courseId) return Toast.warning('Selecione um curso destino');
+    if (!jsonText) return Toast.warning('Cole o JSON das questões');
+
+    let questionsData;
+    try {
+        questionsData = JSON.parse(jsonText);
+    } catch (e) {
+        return Toast.error('JSON inválido! Verifique a formatação.');
+    }
+
+    if (!Array.isArray(questionsData)) {
+        return Toast.error('O JSON deve ser um array de questões');
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/professor/courses/${courseId}/questions/import`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify({ questionsData })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Erro ao importar');
+
+        if (data.errors && data.errors.length > 0) {
+            Toast.warning(`${data.imported} importadas, ${data.errors.length} erros`);
+            console.warn('Erros de importação:', data.errors);
+        } else {
+            Toast.success(`${data.imported} questões importadas com sucesso!`);
+        }
+
+        closeModal('prof-import-modal');
+    } catch (error) {
+        console.error('Erro:', error);
+        Toast.error(`Erro ao importar: ${error.message}`);
+    }
+}
+
+// ==================== GERAR QUESTÃO INDIVIDUAL COM IA (PROFESSOR) ====================
+
+let profGeneratedAIQuestion = null;
+
+async function showProfAIQuestionModal() {
+    await loadCourses();
+
+    // Populate course select
+    const courseSelect = document.getElementById('prof-ai-course');
+    courseSelect.innerHTML = '<option value="">Selecione um curso...</option>';
+    allCourses.forEach(c => {
+        courseSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+    });
+
+    // Check AI status
+    try {
+        const res = await fetch(`${API_URL}/ai/status`, {
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+        });
+        if (res.ok) {
+            const status = await res.json();
+            const statusText = document.getElementById('prof-ai-status-text');
+            const parts = [];
+            if (status.gemini) parts.push('✅ Gemini');
+            else parts.push('❌ Gemini');
+            if (status.chatgpt) parts.push('✅ ChatGPT');
+            else parts.push('❌ ChatGPT');
+            statusText.textContent = parts.join(' | ');
+        }
+    } catch {}
+
+    // Reset
+    document.getElementById('prof-ai-capacity').innerHTML = '<option value="">Selecione o curso primeiro...</option>';
+    document.getElementById('prof-ai-skill').innerHTML = '<option value="">Selecione a capacidade primeiro...</option>';
+    document.getElementById('prof-ai-content').value = '';
+    document.getElementById('prof-ai-preview').style.display = 'none';
+    profGeneratedAIQuestion = null;
+
+    document.getElementById('prof-ai-question-modal').style.display = 'flex';
+}
+
+function loadProfAICapacities() {
+    const courseId = parseInt(document.getElementById('prof-ai-course').value);
+    const capSelect = document.getElementById('prof-ai-capacity');
+    const skillSelect = document.getElementById('prof-ai-skill');
+    capSelect.innerHTML = '<option value="">Selecione...</option>';
+    skillSelect.innerHTML = '<option value="">Selecione a capacidade primeiro...</option>';
+
+    if (!courseId) return;
+
+    const course = allCourses.find(c => c.id === courseId);
+    if (!course || !course.capacities) return;
+
+    course.capacities.forEach(cap => {
+        const opt = document.createElement('option');
+        opt.value = cap.id;
+        opt.textContent = `${cap.id} - ${cap.name}`;
+        opt.dataset.skills = JSON.stringify(cap.skills || []);
+        capSelect.appendChild(opt);
+    });
+}
+
+function loadProfAISkills() {
+    const capSelect = document.getElementById('prof-ai-capacity');
+    const skillSelect = document.getElementById('prof-ai-skill');
+    skillSelect.innerHTML = '<option value="">Selecione...</option>';
+
+    const selected = capSelect.options[capSelect.selectedIndex];
+    if (!selected || !selected.dataset.skills) return;
+
+    const skills = JSON.parse(selected.dataset.skills);
+    skills.forEach(s => {
+        skillSelect.innerHTML += `<option value="${s}">${s}</option>`;
+    });
+}
+
+async function handleProfGenerateAIQuestion() {
+    const provider = document.getElementById('prof-ai-provider').value;
+    const courseId = parseInt(document.getElementById('prof-ai-course').value);
+    const capSelect = document.getElementById('prof-ai-capacity');
+    const capacity = capSelect.options[capSelect.selectedIndex]?.textContent || capSelect.value;
+    const skill = document.getElementById('prof-ai-skill').value;
+    const content = document.getElementById('prof-ai-content').value.trim();
+    const difficulty = document.getElementById('prof-ai-difficulty').value;
+    const includeContextImage = document.getElementById('prof-ai-context-image').value === 'true';
+    const includeOptionImages = document.getElementById('prof-ai-option-images').value === 'true';
+
+    if (!courseId) return Toast.warning('Selecione um curso');
+    if (!capacity || capacity === 'Selecione...') return Toast.warning('Selecione uma capacidade');
+
+    const generateBtn = document.getElementById('prof-ai-generate-btn');
+    const originalText = generateBtn.innerHTML;
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '⏳ Gerando questão...';
+
+    try {
+        const res = await fetch(`${API_URL}/ai/generate-question`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify({
+                courseId, provider, capacity, skill, content, difficulty,
+                includeContextImage, includeOptionImages,
+                imageProvider: 'pollinations'
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao gerar questão');
+
+        profGeneratedAIQuestion = data.question;
+        profGeneratedAIQuestion.courseId = courseId;
+
+        displayProfAIQuestionPreview(profGeneratedAIQuestion);
+        Toast.success('Questão gerada com sucesso! Revise abaixo antes de salvar.');
+
+    } catch (error) {
+        console.error('Erro:', error);
+        Toast.error(`Erro ao gerar questão: ${error.message}`);
+    } finally {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = originalText;
+    }
+}
+
+function displayProfAIQuestionPreview(question) {
+    const previewContainer = document.getElementById('prof-ai-question-preview');
+
+    const correctOption = question.options.find(opt => opt.correct);
+    const contextImageHtml = question.contextImage
+        ? `<div style="margin:10px 0;"><img src="${question.contextImage}" alt="Ilustração" style="max-width:100%;border-radius:8px;"></div>`
+        : '';
+
+    const optionsHtml = question.options.map((opt, index) => {
+        const letter = opt.letter || String.fromCharCode(65 + index);
+        const explanation = opt.explanation ? `<br><small style="color:#666;"><em>Explicação: ${opt.explanation}</em></small>` : '';
+        const optionImage = opt.image
+            ? `<div style="margin:4px 0;"><img src="${opt.image}" alt="Imagem ${letter}" style="max-width:200px;border-radius:4px;"></div>`
+            : '';
+
+        return `
+            <li style="padding:10px;margin:5px 0;background:${opt.correct ? '#C8E6C9' : 'white'};border:1px solid ${opt.correct ? '#4CAF50' : '#ddd'};border-radius:4px;">
+                <strong>${letter})</strong> ${opt.text}
+                ${opt.correct ? '<span style="color:#4CAF50;font-weight:bold;"> ✓ CORRETA</span>' : ''}
+                ${explanation}
+                ${optionImage}
+            </li>
+        `;
+    }).join('');
+
+    const correctExplanation = correctOption && correctOption.explanation
+        ? `<div style="margin-top:15px;padding:10px;background:#E8F5E9;border-left:3px solid #4CAF50;">
+                <strong>✓ Resposta Correta:</strong> ${correctOption.letter}) ${correctOption.text}<br>
+                <strong>Explicação:</strong> ${correctOption.explanation}
+            </div>`
+        : '';
+
+    previewContainer.innerHTML = `
+        <div style="background:var(--bg-card);padding:20px;border-radius:8px;border:2px solid #4CAF50;">
+            <div style="margin-bottom:10px;">
+                <span style="background:#2196F3;color:white;padding:5px 10px;border-radius:4px;">${question.capacidade}</span>
+                <span style="background:#FF9800;color:white;padding:5px 10px;border-radius:4px;margin-left:10px;">${question.difficulty || 'N/A'}</span>
+                <span style="background:#9C27B0;color:white;padding:5px 10px;border-radius:4px;margin-left:10px;">Gerado por ${question.generatedBy}</span>
+            </div>
+            <div><strong>ID:</strong> ${question.id}</div>
+            ${question.context ? `<div style="margin-top:15px;padding:10px;background:var(--bg-surface);border-left:3px solid #2196F3;"><strong>Contexto:</strong><br>${question.context}</div>` : ''}
+            ${contextImageHtml}
+            <div style="margin-top:15px;padding:10px;background:var(--bg-surface);border-left:3px solid #4CAF50;"><strong>Pergunta:</strong><br>${question.command}</div>
+            <div style="margin-top:15px;"><strong>Alternativas:</strong><ul style="list-style:none;padding:0;margin-top:10px;">${optionsHtml}</ul></div>
+            ${correctExplanation}
+        </div>
+    `;
+
+    document.getElementById('prof-ai-preview').style.display = 'block';
+    document.getElementById('prof-ai-preview').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function approveProfAIQuestion() {
+    if (!profGeneratedAIQuestion) {
+        Toast.warning('Nenhuma questão para aprovar');
+        return;
+    }
+
+    const courseId = profGeneratedAIQuestion.courseId;
+    if (!courseId) {
+        Toast.error('Curso destino não definido.');
+        return;
+    }
+
+    const payload = {
+        id: profGeneratedAIQuestion.id,
+        capacidade: profGeneratedAIQuestion.capacidade,
+        context: profGeneratedAIQuestion.context,
+        command: profGeneratedAIQuestion.command,
+        options: profGeneratedAIQuestion.options
+    };
+
+    if (profGeneratedAIQuestion.contextImage) {
+        payload.contextImage = profGeneratedAIQuestion.contextImage;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/professor/courses/${courseId}/questions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'Erro ao salvar');
+        }
+
+        Toast.success('Questão aprovada e salva com sucesso!');
+        closeModal('prof-ai-question-modal');
+        profGeneratedAIQuestion = null;
+
+    } catch (error) {
+        console.error('Erro:', error);
+        Toast.error(`Erro ao salvar: ${error.message}`);
+    }
+}
+
+function rejectProfAIQuestion() {
+    if (confirm('Deseja rejeitar esta questão e gerar uma nova?')) {
+        profGeneratedAIQuestion = null;
+        document.getElementById('prof-ai-preview').style.display = 'none';
+        Toast.info('Questão rejeitada. Gere uma nova questão.');
+    }
+}
+
+function editProfAIQuestion() {
+    if (!profGeneratedAIQuestion) {
+        Toast.warning('Nenhuma questão para editar');
+        return;
+    }
+
+    closeModal('prof-ai-question-modal');
+
+    // Fill the manual creation form with generated data
+    showProfSection('prof-questions');
+
+    setTimeout(() => {
+        document.getElementById('question-course').value = profGeneratedAIQuestion.courseId;
+        document.getElementById('question-capacity').value = profGeneratedAIQuestion.capacidade || '';
+        document.getElementById('question-context').value = profGeneratedAIQuestion.context || '';
+        document.getElementById('question-command').value = profGeneratedAIQuestion.command || '';
+
+        const optionTexts = document.querySelectorAll('.option-text');
+        const letters = ['A', 'B', 'C', 'D'];
+        profGeneratedAIQuestion.options.forEach((opt, i) => {
+            if (optionTexts[i]) {
+                optionTexts[i].value = opt.text;
+            }
+            if (opt.correct) {
+                const radio = document.querySelector(`input[name="correct-option"][value="${i}"]`);
+                if (radio) radio.checked = true;
+            }
+        });
+
+        Toast.info('Questão carregada para edição. Faça as alterações e clique em "Criar Questão".');
+    }, 300);
+}
+
 // ==================== GERADOR DE SIMULADO COM IA (PROFESSOR) ====================
 
 let profSimQuestions = [];

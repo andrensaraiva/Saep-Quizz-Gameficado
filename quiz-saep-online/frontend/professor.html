@@ -135,6 +135,10 @@
             <section id="prof-questions-section" class="admin-section" style="display:none;">
                 <div class="section-header">
                     <h2>❓ Criar Questão</h2>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" onclick="showProfAIQuestionModal()" class="btn-success">🤖 Gerar com IA</button>
+                        <button type="button" onclick="showProfImportModal()" class="btn-primary">📤 Importar em Lote</button>
+                    </div>
                 </div>
                 <div class="dashboard-card">
                     <form onsubmit="handleCreateQuestion(event)">
@@ -346,6 +350,127 @@
             <div style="margin-top:16px;display:flex;gap:12px;justify-content:flex-end;">
                 <button type="button" onclick="closeModal('prof-sim-edit-modal')" class="btn-secondary">Cancelar</button>
                 <button type="button" onclick="saveProfSimEditedQuestion()" class="btn-primary">💾 Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Importar Questões em Lote (Professor) -->
+    <div id="prof-import-modal" class="modal" role="dialog" aria-modal="true">
+        <div class="modal-content">
+            <button class="close" onclick="closeModal('prof-import-modal')">&times;</button>
+            <h2>📤 Importar Questões em Lote</h2>
+            <div class="form-group">
+                <label>Curso destino:</label>
+                <select id="prof-import-course" class="form-control" required>
+                    <option value="">Selecione um curso...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Formato JSON esperado:</label>
+                <pre style="background:#1e293b;padding:12px;border-radius:8px;font-size:0.8em;overflow-x:auto;color:#e2e8f0;">[
+  {
+    "capacidade": "Lógica de Programação",
+    "dificuldade": "Médio",
+    "context": "Contexto da questão...",
+    "command": "Pergunta aqui?",
+    "options": [
+      {"letter": "A", "text": "Opção A", "correct": false},
+      {"letter": "B", "text": "Opção B", "correct": true},
+      {"letter": "C", "text": "Opção C", "correct": false},
+      {"letter": "D", "text": "Opção D", "correct": false}
+    ]
+  }
+]</pre>
+            </div>
+            <div class="form-group">
+                <label>Cole o JSON aqui:</label>
+                <textarea id="prof-import-json" class="form-control" rows="10" placeholder="Cole o array JSON de questões aqui..."></textarea>
+            </div>
+            <button onclick="handleProfImportQuestions()" class="btn-primary btn-large" style="width:100%;">📥 Importar Questões</button>
+        </div>
+    </div>
+
+    <!-- Modal: Gerar Questão com IA (Professor) -->
+    <div id="prof-ai-question-modal" class="modal" role="dialog" aria-modal="true">
+        <div class="modal-content" style="max-width:800px;width:95%;">
+            <button class="close" onclick="closeModal('prof-ai-question-modal')">&times;</button>
+            <h2>🤖 Gerar Questão Individual com IA</h2>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div class="form-group">
+                    <label>Provedor de IA:</label>
+                    <select id="prof-ai-provider" class="form-control">
+                        <option value="gemini">Google Gemini</option>
+                        <option value="chatgpt">ChatGPT</option>
+                    </select>
+                    <small id="prof-ai-status-text" style="color:#94a3b8;"></small>
+                </div>
+                <div class="form-group">
+                    <label>Curso:</label>
+                    <select id="prof-ai-course" class="form-control" onchange="loadProfAICapacities()" required>
+                        <option value="">Selecione um curso...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div class="form-group">
+                    <label>Capacidade:</label>
+                    <select id="prof-ai-capacity" class="form-control" onchange="loadProfAISkills()">
+                        <option value="">Selecione o curso primeiro...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Habilidade/Tema:</label>
+                    <select id="prof-ai-skill" class="form-control">
+                        <option value="">Selecione a capacidade primeiro...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Conteúdo/Contexto adicional (opcional):</label>
+                <textarea id="prof-ai-content" class="form-control" rows="2" placeholder="Descreva o tema ou contexto específico para a questão..."></textarea>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+                <div class="form-group">
+                    <label>Dificuldade:</label>
+                    <select id="prof-ai-difficulty" class="form-control">
+                        <option value="fácil">Fácil</option>
+                        <option value="médio" selected>Médio</option>
+                        <option value="difícil">Difícil</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>🖼️ Imagem no contexto:</label>
+                    <select id="prof-ai-context-image" class="form-control">
+                        <option value="false">Não</option>
+                        <option value="true">Sim</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>🖼️ Imagem nas opções:</label>
+                    <select id="prof-ai-option-images" class="form-control">
+                        <option value="false">Não</option>
+                        <option value="true">Sim</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="handleProfGenerateAIQuestion()" id="prof-ai-generate-btn" class="btn-success btn-large" style="width:100%;margin-top:10px;">
+                🤖 Gerar Questão com IA
+            </button>
+
+            <!-- Preview da questão gerada -->
+            <div id="prof-ai-preview" style="display:none;margin-top:20px;">
+                <h3>📋 Questão Gerada - Revisão</h3>
+                <div id="prof-ai-question-preview"></div>
+                <div style="display:flex;gap:12px;margin-top:16px;justify-content:center;">
+                    <button onclick="approveProfAIQuestion()" class="btn-success btn-large">✅ Aprovar e Salvar</button>
+                    <button onclick="rejectProfAIQuestion()" class="btn-danger">❌ Rejeitar</button>
+                    <button onclick="editProfAIQuestion()" class="btn-secondary">✏️ Editar Manualmente</button>
+                </div>
             </div>
         </div>
     </div>

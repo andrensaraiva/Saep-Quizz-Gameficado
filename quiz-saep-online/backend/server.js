@@ -3172,6 +3172,84 @@ app.post('/api/professor/quizzes', authenticateToken, requireProfessorOrAdmin, a
   }
 });
 
+// Professor pode importar questões em lote
+app.post('/api/professor/courses/:courseId/questions/import', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.courseId);
+    const { questionsData } = req.body;
+
+    if (!questionsData || !Array.isArray(questionsData)) {
+      return res.status(400).json({ error: 'Dados de questões inválidos' });
+    }
+
+    const course = await db.getCourseById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: 'Curso não encontrado' });
+    }
+
+    let imported = 0;
+    let errors = [];
+    const existingQuestions = await db.getQuestions();
+
+    for (let index = 0; index < questionsData.length; index++) {
+      const q = questionsData[index];
+      try {
+        const hasContext = (q.contexto && String(q.contexto).trim() !== '') || (q.context && String(q.context).trim() !== '');
+        const hasCommand = (q.comando && String(q.comando).trim() !== '') || (q.command && String(q.command).trim() !== '');
+        const hasOptions = Array.isArray(q.options) && q.options.length > 0;
+
+        if (!hasContext || !hasCommand || !hasOptions) {
+          const missing = [];
+          if (!hasContext) missing.push('context/contexto');
+          if (!hasCommand) missing.push('command/comando');
+          if (!hasOptions) missing.push('options');
+          errors.push({ index: index + 1, error: 'Dados incompletos - campos faltando: ' + missing.join(', '), question: q });
+          continue;
+        }
+
+        let questionId = q.id;
+        if (!questionId) {
+          questionId = await generateNextQuestionId(courseId);
+        }
+
+        if (existingQuestions.find(existingQ => existingQ.id === questionId && existingQ.courseId === courseId)) {
+          errors.push({ index: index + 1, error: 'ID já existe', id: questionId });
+          continue;
+        }
+
+        const question = {
+          id: questionId,
+          courseId,
+          capacity: q.capacidade || q.capacity || 'Geral',
+          difficulty: q.dificuldade || q.difficulty || 'Médio',
+          context: q.contexto || q.context || '',
+          contextImage: q.contextImage || null,
+          command: q.comando || q.command,
+          options: normalizeOptionsArray(q.options),
+          createdBy: req.user.id,
+          createdAt: new Date().toISOString()
+        };
+
+        await db.createQuestion(question);
+        existingQuestions.push(question);
+        imported++;
+      } catch (err) {
+        errors.push({ index: index + 1, error: err.message });
+      }
+    }
+
+    res.json({
+      message: `Importação concluída: ${imported} questões importadas`,
+      imported,
+      errors,
+      total: questionsData.length
+    });
+  } catch (error) {
+    console.error('Erro ao importar questões (professor):', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 // Professor pode adicionar questão
 app.post('/api/professor/courses/:courseId/questions', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
   try {
