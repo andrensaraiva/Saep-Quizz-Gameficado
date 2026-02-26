@@ -176,6 +176,9 @@ function showSection(sectionName) {
         case 'users':
             loadUsers();
             break;
+        case 'turmas':
+            loadAdminTurmas();
+            break;
         case 'results':
             loadResultsSection();
             break;
@@ -205,13 +208,21 @@ async function loadDashboard() {
         document.getElementById('dash-total-courses').textContent = data.totalCourses;
         document.getElementById('dash-total-questions').textContent = data.totalQuestions;
         document.getElementById('dash-total-attempts').textContent = data.totalAttempts;
-        document.getElementById('dash-active-users').textContent = data.activeUsers;
-        document.getElementById('dash-average-score').textContent = `${data.averageScore}%`;
-        document.getElementById('dash-popular-course').textContent = 
-            data.mostPopularCourse ? data.mostPopularCourse.name : '-';
+        // Novos cards
+        const profEl = document.getElementById('dash-total-professors');
+        if (profEl) profEl.textContent = data.totalProfessors || 0;
+        const studEl = document.getElementById('dash-total-students');
+        if (studEl) studEl.textContent = data.totalStudents || 0;
+        const turmaEl = document.getElementById('dash-total-turmas');
+        if (turmaEl) turmaEl.textContent = data.totalTurmas || 0;
+        const avgEl = document.getElementById('dash-average-score');
+        if (avgEl) avgEl.textContent = `${data.averageScore}%`;
+
+        // Renderizar gráfico Chart.js
+        renderAdminChart(data);
 
         // Atividades recentes
-        const activitiesHtml = data.recentActivities.map(activity => `
+        const activitiesHtml = (data.recentActivities || []).map(activity => `
             <div class="activity-item">
                 <div class="activity-user">${activity.username}</div>
                 <div class="activity-details">
@@ -221,12 +232,54 @@ async function loadDashboard() {
             </div>
         `).join('');
 
-        document.getElementById('recent-activities').innerHTML = activitiesHtml || '<p>Nenhuma atividade recente</p>';
+        const recentEl = document.getElementById('recent-activities');
+        if (recentEl) recentEl.innerHTML = activitiesHtml || '<p>Nenhuma atividade recente</p>';
 
     } catch (error) {
         console.error('Erro:', error);
         Toast.error('Erro ao carregar dashboard');
     }
+}
+
+let adminChart = null;
+function renderAdminChart(data) {
+    const canvas = document.getElementById('admin-overview-chart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    if (adminChart) adminChart.destroy();
+    adminChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: ['Usuários', 'Professores', 'Alunos', 'Turmas', 'Cursos', 'Questões', 'Tentativas'],
+            datasets: [{
+                label: 'Totais da Plataforma',
+                data: [
+                    data.totalUsers || 0,
+                    data.totalProfessors || 0,
+                    data.totalStudents || 0,
+                    data.totalTurmas || 0,
+                    data.totalCourses || 0,
+                    data.totalQuestions || 0,
+                    data.totalAttempts || 0
+                ],
+                backgroundColor: [
+                    '#6366f1', '#8b5cf6', '#06b6d4', '#f59e0b',
+                    '#10b981', '#ef4444', '#3b82f6'
+                ],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                title: { display: true, text: 'Visão Geral da Plataforma', color: '#e2e8f0', font: { size: 16 } }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+                x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
+            }
+        }
+    });
 }
 
 // ==================== CURSOS ====================
@@ -827,16 +880,32 @@ async function loadUsers() {
             return;
         }
 
-        const usersHtml = data.users.map(user => `
-            <div class="user-item">
-                <div class="user-info">
-                    <div class="user-name">
-                        ${user.username}
-                        <span class="role-badge ${user.role === 'admin' ? 'role-admin' : 'role-user'}">
-                            ${user.role === 'admin' ? '👑 Admin' : '👤 Usuário'}
-                        </span>
+        const roleLabels = { admin: '👑 Admin', professor: '📚 Professor', user: '👤 Aluno' };
+        const roleColors = { admin: '#ef4444', professor: '#8b5cf6', user: '#3b82f6' };
+
+        const usersHtml = data.users.map(user => {
+            const avatarImg = user.avatarUrl
+                ? `<img src="${user.avatarUrl}" style="width:36px;height:36px;border-radius:50%;margin-right:10px;object-fit:cover;" onerror="this.style.display='none'">`
+                : `<span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:#334155;margin-right:10px;font-size:16px;">👤</span>`;
+
+            const roleOptions = ['user', 'professor', 'admin'].map(r =>
+                `<option value="${r}" ${user.role === r ? 'selected' : ''}>${roleLabels[r]}</option>`
+            ).join('');
+
+            return `
+            <div class="user-item" style="align-items:center;">
+                <div class="user-info" style="display:flex;align-items:center;">
+                    ${avatarImg}
+                    <div>
+                        <div class="user-name">
+                            ${user.username}
+                            <span class="role-badge" style="background:${roleColors[user.role]}22;color:${roleColors[user.role]};padding:2px 8px;border-radius:8px;font-size:0.75rem;margin-left:6px;">
+                                ${roleLabels[user.role] || user.role}
+                            </span>
+                        </div>
+                        <div class="user-email">${user.email}</div>
+                        ${user.turmaId ? `<div style="font-size:0.75rem;color:#94a3b8;">Turma ID: ${user.turmaId}</div>` : ''}
                     </div>
-                    <div class="user-email">${user.email}</div>
                 </div>
                 <div class="user-stats">
                     <div class="user-stat">
@@ -848,26 +917,32 @@ async function loadUsers() {
                         <div class="user-stat-label">Média</div>
                     </div>
                 </div>
-                <div class="course-actions">
-                    ${user.role !== 'admin' ? `
-                        <button onclick="promoteToAdmin(${user.id}, '${user.username}')" class="btn-icon btn-edit">👑 Tornar Admin</button>
-                    ` : ''}
+                <div class="course-actions" style="display:flex;gap:8px;align-items:center;">
                     ${user.id !== currentUser.id ? `
-                        <button onclick="deleteUser(${user.id}, '${user.username}')" class="btn-icon btn-delete">🗑️ Excluir</button>
-                    ` : ''}
+                        <select onchange="changeUserRole(${user.id}, this.value)" class="form-select" style="padding:6px 10px;font-size:0.8rem;border-radius:8px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;">
+                            ${roleOptions}
+                        </select>
+                        <button onclick="deleteUser(${user.id}, '${user.username}')" class="btn-icon btn-delete">🗑️</button>
+                    ` : `<span style="color:#94a3b8;font-size:0.8rem;">Você</span>`}
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
-        document.getElementById('users-list').innerHTML = usersHtml;
+        document.getElementById('users-list').innerHTML = usersHtml || '<p>Nenhum usuário encontrado.</p>';
     } catch (error) {
         console.error('Erro:', error);
         Toast.error('Erro ao carregar usuários');
     }
 }
 
-async function promoteToAdmin(userId, username) {
-    if (!confirm(`Promover ${username} para administrador?`)) {
+async function changeUserRole(userId, newRole) {
+    const validRoles = ['user', 'professor', 'admin'];
+    if (!validRoles.includes(newRole)) return;
+
+    const roleLabels = { admin: 'Admin', professor: 'Professor', user: 'Aluno' };
+    if (!confirm(`Alterar papel do usuário para ${roleLabels[newRole]}?`)) {
+        loadUsers(); // Revert select
         return;
     }
 
@@ -878,20 +953,22 @@ async function promoteToAdmin(userId, username) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${currentToken}`
             },
-            body: JSON.stringify({ role: 'admin' })
+            body: JSON.stringify({ role: newRole })
         });
 
         if (!response.ok) {
             const data = await response.json();
-            Toast.error(data.error || 'Erro ao promover usuário');
+            Toast.error(data.error || 'Erro ao alterar papel');
+            loadUsers();
             return;
         }
 
-        Toast.success('Usuário promovido com sucesso!');
+        Toast.success(`Papel alterado para ${roleLabels[newRole]} com sucesso!`);
         loadUsers();
     } catch (error) {
         console.error('Erro:', error);
         Toast.error('Erro ao conectar com o servidor');
+        loadUsers();
     }
 }
 
@@ -917,6 +994,65 @@ async function deleteUser(userId, username) {
     } catch (error) {
         console.error('Erro:', error);
         Toast.error('Erro ao conectar com o servidor');
+    }
+}
+
+// ==================== TURMAS (ADMIN) ====================
+
+async function loadAdminTurmas() {
+    try {
+        const response = await fetch(`${API_URL}/turmas`, {
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+        });
+        const data = await response.json();
+        const turmas = data.turmas || [];
+
+        if (turmas.length === 0) {
+            document.getElementById('admin-turmas-list').innerHTML = '<p style="color:#94a3b8;">Nenhuma turma cadastrada ainda.</p>';
+            return;
+        }
+
+        const html = turmas.map(t => `
+            <div class="course-card" style="margin-bottom:12px;">
+                <div class="course-info">
+                    <div class="course-name">🏫 ${t.name}</div>
+                    <div class="course-description">${t.description || 'Sem descrição'}</div>
+                    <div class="course-stats">
+                        <span>👨‍🏫 Professor ID: ${t.professorId || '-'}</span>
+                        <span>📚 Curso ID: ${t.courseId || '-'}</span>
+                        <span>👥 ${(t.alunoIds || []).length} alunos</span>
+                    </div>
+                </div>
+                <div class="course-actions">
+                    <button onclick="deleteAdminTurma(${t.id}, '${t.name.replace(/'/g, "\\'") }')" class="btn-icon btn-delete">🗑️ Excluir</button>
+                </div>
+            </div>
+        `).join('');
+
+        document.getElementById('admin-turmas-list').innerHTML = html;
+    } catch (error) {
+        console.error('Erro:', error);
+        Toast.error('Erro ao carregar turmas');
+    }
+}
+
+async function deleteAdminTurma(turmaId, turmaName) {
+    if (!confirm(`Excluir a turma "${turmaName}"? Esta ação não pode ser desfeita.`)) return;
+    try {
+        const response = await fetch(`${API_URL}/turmas/${turmaId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+        });
+        if (!response.ok) {
+            const data = await response.json();
+            Toast.error(data.error || 'Erro ao excluir turma');
+            return;
+        }
+        Toast.success('Turma excluída com sucesso!');
+        loadAdminTurmas();
+    } catch (error) {
+        console.error('Erro:', error);
+        Toast.error('Erro ao excluir turma');
     }
 }
 
@@ -1573,6 +1709,591 @@ function editAIQuestion() {
 
         Toast.info('Questão carregada para edição. Faça as alterações e clique em "Criar Questão".');
     }, 300);
+}
+
+// ==================== GERADOR DE SIMULADO COMPLETO COM IA ====================
+
+let simuladoQuestions = []; // Array of generated questions for review
+let simuladoCourseId = null;
+let simEditingIndex = null; // Index of question being edited
+
+/**
+ * STEP 1: Open the wizard and populate course options
+ */
+async function showSimuladoWizard() {
+    await loadAllCourses();
+
+    // Populate course select
+    const courseSelect = document.getElementById('sim-course');
+    courseSelect.innerHTML = '<option value="">Selecione o curso...</option>';
+    allCourses.forEach(c => {
+        courseSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+    });
+
+    // Reset defaults
+    document.getElementById('sim-default-capacity').innerHTML = '<option value="">Selecione um curso primeiro...</option>';
+    document.getElementById('sim-default-skill').innerHTML = '<option value="">Selecione...</option>';
+    document.getElementById('sim-questions-config').innerHTML = '<p style="color:#94a3b8;text-align:center;">Selecione um curso e defina a quantidade de questões.</p>';
+
+    // Reset state
+    simuladoQuestions = [];
+    simuladoCourseId = null;
+
+    // Show step 1
+    document.getElementById('sim-step-config').style.display = 'block';
+    document.getElementById('sim-step-progress').style.display = 'none';
+    document.getElementById('sim-step-review').style.display = 'none';
+
+    // Set up watcher for count changes
+    const countInput = document.getElementById('sim-count');
+    countInput.onchange = () => buildSimQuestionRows();
+    countInput.oninput = () => buildSimQuestionRows();
+
+    openModal('simulado-wizard-modal');
+}
+
+/**
+ * Load capacities for the selected course in the simulado wizard
+ */
+function loadSimCapacities() {
+    const courseId = parseInt(document.getElementById('sim-course').value);
+    const capDefault = document.getElementById('sim-default-capacity');
+    const skillDefault = document.getElementById('sim-default-skill');
+
+    capDefault.innerHTML = '<option value="">Selecione...</option>';
+    skillDefault.innerHTML = '<option value="">Selecione...</option>';
+
+    if (!courseId) {
+        document.getElementById('sim-questions-config').innerHTML = '<p style="color:#94a3b8;text-align:center;">Selecione um curso primeiro.</p>';
+        return;
+    }
+
+    const course = allCourses.find(c => c.id === courseId);
+    if (!course || !course.capacities || course.capacities.length === 0) {
+        capDefault.innerHTML = '<option value="">Nenhuma capacidade configurada</option>';
+        return;
+    }
+
+    course.capacities.forEach(cap => {
+        capDefault.innerHTML += `<option value="${cap.id}" data-skills='${JSON.stringify(cap.skills || [])}'>${cap.id} - ${cap.name}</option>`;
+    });
+
+    buildSimQuestionRows();
+}
+
+function loadSimDefaultSkills() {
+    const capSelect = document.getElementById('sim-default-capacity');
+    const skillSelect = document.getElementById('sim-default-skill');
+    skillSelect.innerHTML = '<option value="">Selecione...</option>';
+
+    const selected = capSelect.options[capSelect.selectedIndex];
+    if (!selected || !selected.dataset.skills) return;
+
+    const skills = JSON.parse(selected.dataset.skills);
+    skills.forEach(s => {
+        skillSelect.innerHTML += `<option value="${s}">${s}</option>`;
+    });
+}
+
+/**
+ * Apply the default capacity/skill/difficulty to all question rows
+ */
+function applyDefaultThemeToAll() {
+    const cap = document.getElementById('sim-default-capacity').value;
+    const capText = document.getElementById('sim-default-capacity').options[document.getElementById('sim-default-capacity').selectedIndex]?.textContent || '';
+    const skill = document.getElementById('sim-default-skill').value;
+    const diff = document.getElementById('sim-default-difficulty').value;
+    const count = parseInt(document.getElementById('sim-count').value) || 5;
+
+    for (let i = 0; i < count; i++) {
+        const capSel = document.getElementById(`sim-q-${i}-capacity`);
+        const skillSel = document.getElementById(`sim-q-${i}-skill`);
+        const diffSel = document.getElementById(`sim-q-${i}-difficulty`);
+
+        if (capSel && cap) {
+            capSel.value = cap;
+            // Trigger skill population
+            loadSimRowSkills(i);
+            // Set skill after a short delay for the dropdown to populate
+            if (skill) {
+                setTimeout(() => {
+                    const s = document.getElementById(`sim-q-${i}-skill`);
+                    if (s) s.value = skill;
+                }, 50);
+            }
+        }
+        if (diffSel && diff) diffSel.value = diff;
+    }
+
+    Toast.success('Temas aplicados a todas as questões!');
+}
+
+/**
+ * Build the per-question configuration rows
+ */
+function buildSimQuestionRows() {
+    const courseId = parseInt(document.getElementById('sim-course').value);
+    const count = Math.min(Math.max(parseInt(document.getElementById('sim-count').value) || 1, 1), 20);
+    const container = document.getElementById('sim-questions-config');
+
+    if (!courseId) {
+        container.innerHTML = '<p style="color:#94a3b8;text-align:center;">Selecione um curso primeiro.</p>';
+        return;
+    }
+
+    const course = allCourses.find(c => c.id === courseId);
+    const capacities = (course && course.capacities) || [];
+
+    let capOptionsHtml = '<option value="">Selecione...</option>';
+    capacities.forEach(cap => {
+        capOptionsHtml += `<option value="${cap.id}" data-skills='${JSON.stringify(cap.skills || [])}'>${cap.id} - ${cap.name}</option>`;
+    });
+
+    let html = '';
+    for (let i = 0; i < count; i++) {
+        html += `
+        <div class="sim-question-row" style="display:grid;grid-template-columns:40px 1fr 1fr 120px 1fr;gap:8px;align-items:end;padding:10px;border-bottom:1px solid #1e293b;${i % 2 === 0 ? 'background:#111827;' : ''}border-radius:4px;">
+            <div style="font-weight:700;color:#6366f1;font-size:1.1rem;text-align:center;padding-bottom:6px;">#${i + 1}</div>
+            <div>
+                <label style="font-size:0.75rem;color:#94a3b8;display:block;">Capacidade</label>
+                <select id="sim-q-${i}-capacity" class="form-select" style="font-size:0.85rem;" onchange="loadSimRowSkills(${i})">
+                    ${capOptionsHtml}
+                </select>
+            </div>
+            <div>
+                <label style="font-size:0.75rem;color:#94a3b8;display:block;">Habilidade/Tema</label>
+                <select id="sim-q-${i}-skill" class="form-select" style="font-size:0.85rem;">
+                    <option value="">Selecione capacidade...</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:0.75rem;color:#94a3b8;display:block;">Dificuldade</label>
+                <select id="sim-q-${i}-difficulty" class="form-select" style="font-size:0.85rem;">
+                    <option value="fácil">Fácil</option>
+                    <option value="médio" selected>Médio</option>
+                    <option value="difícil">Difícil</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:0.75rem;color:#94a3b8;display:block;">Contexto extra (opcional)</label>
+                <input type="text" id="sim-q-${i}-content" style="font-size:0.85rem;" placeholder="Detalhe adicional...">
+            </div>
+        </div>`;
+    }
+
+    container.innerHTML = html;
+}
+
+function loadSimRowSkills(rowIndex) {
+    const capSelect = document.getElementById(`sim-q-${rowIndex}-capacity`);
+    const skillSelect = document.getElementById(`sim-q-${rowIndex}-skill`);
+    skillSelect.innerHTML = '<option value="">Selecione...</option>';
+
+    const selected = capSelect.options[capSelect.selectedIndex];
+    if (!selected || !selected.dataset.skills) return;
+
+    const skills = JSON.parse(selected.dataset.skills);
+    skills.forEach(s => {
+        skillSelect.innerHTML += `<option value="${s}">${s}</option>`;
+    });
+}
+
+/**
+ * STEP 2: Start the generation process
+ */
+async function startSimuladoGeneration() {
+    const courseId = parseInt(document.getElementById('sim-course').value);
+    const provider = document.getElementById('sim-provider').value;
+    const count = parseInt(document.getElementById('sim-count').value) || 5;
+    const includeContextImages = document.getElementById('sim-context-images').value === 'true';
+    const includeOptionImages = document.getElementById('sim-option-images').value === 'true';
+
+    if (!courseId) {
+        Toast.warning('Selecione um curso.');
+        return;
+    }
+
+    // Collect question specs
+    const questionSpecs = [];
+    for (let i = 0; i < count; i++) {
+        const capSelect = document.getElementById(`sim-q-${i}-capacity`);
+        const skillSelect = document.getElementById(`sim-q-${i}-skill`);
+        const diffSelect = document.getElementById(`sim-q-${i}-difficulty`);
+        const contentInput = document.getElementById(`sim-q-${i}-content`);
+
+        const capacity = capSelect ? (capSelect.options[capSelect.selectedIndex]?.textContent || capSelect.value) : '';
+        const skill = skillSelect ? skillSelect.value : '';
+        const difficulty = diffSelect ? diffSelect.value : 'médio';
+        const content = contentInput ? contentInput.value : '';
+
+        if (!capacity || capacity === 'Selecione...') {
+            Toast.warning(`Questão #${i + 1}: selecione uma capacidade.`);
+            return;
+        }
+
+        questionSpecs.push({ capacity, skill, difficulty, content });
+    }
+
+    simuladoCourseId = courseId;
+
+    // Show progress
+    document.getElementById('sim-step-config').style.display = 'none';
+    document.getElementById('sim-step-progress').style.display = 'block';
+    document.getElementById('sim-step-review').style.display = 'none';
+    document.getElementById('sim-progress-bar').style.width = '0%';
+    document.getElementById('sim-progress-title').textContent = `Gerando ${count} questões...`;
+    document.getElementById('sim-progress-detail').textContent = 'Enviando para a IA... Pode levar de 30s a 2min dependendo da quantidade.';
+
+    // Animate progress bar while waiting
+    let fakeProgress = 0;
+    const progressInterval = setInterval(() => {
+        fakeProgress = Math.min(fakeProgress + (90 - fakeProgress) * 0.02, 90);
+        document.getElementById('sim-progress-bar').style.width = `${fakeProgress}%`;
+    }, 500);
+
+    const generateBtn = document.getElementById('sim-generate-btn');
+    generateBtn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_URL}/ai/generate-simulado`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify({
+                courseId,
+                provider,
+                questions: questionSpecs,
+                includeContextImages,
+                includeOptionImages,
+                imageProvider: 'pollinations'
+            })
+        });
+
+        clearInterval(progressInterval);
+        document.getElementById('sim-progress-bar').style.width = '100%';
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Erro ao gerar simulado');
+        }
+
+        simuladoQuestions = data.questions || [];
+
+        if (simuladoQuestions.length === 0) {
+            throw new Error('Nenhuma questão foi gerada. Tente novamente.');
+        }
+
+        // Set a default quiz name
+        const course = allCourses.find(c => c.id === courseId);
+        document.getElementById('sim-quiz-name').value = `Simulado SAEP - ${course ? course.name : 'Quiz'} (${new Date().toLocaleDateString('pt-BR')})`;
+
+        // Show review
+        setTimeout(() => {
+            renderSimuladoReview();
+            document.getElementById('sim-step-progress').style.display = 'none';
+            document.getElementById('sim-step-review').style.display = 'block';
+            Toast.success(`${simuladoQuestions.length} questões geradas com sucesso!${data.errors?.length ? ` (${data.errors.length} falhas)` : ''}`);
+        }, 600);
+
+    } catch (error) {
+        clearInterval(progressInterval);
+        console.error('Erro:', error);
+        Toast.error(`Erro ao gerar simulado: ${error.message}`);
+        // Go back to config
+        document.getElementById('sim-step-progress').style.display = 'none';
+        document.getElementById('sim-step-config').style.display = 'block';
+    } finally {
+        generateBtn.disabled = false;
+    }
+}
+
+/**
+ * STEP 3: Render the review list
+ */
+function renderSimuladoReview() {
+    const container = document.getElementById('sim-review-list');
+    document.getElementById('sim-review-count').textContent = `${simuladoQuestions.length} questão(ões)`;
+
+    if (simuladoQuestions.length === 0) {
+        container.innerHTML = '<p style="color:#94a3b8;text-align:center;">Nenhuma questão para revisar.</p>';
+        return;
+    }
+
+    const html = simuladoQuestions.map((q, idx) => {
+        const correctOpt = q.options.find(o => o.correct);
+        const contextImg = q.contextImage ? `<img src="${q.contextImage}" style="max-height:80px;border-radius:6px;margin-top:6px;" onerror="this.style.display='none'">` : '';
+        const diffColors = { 'fácil': '#10b981', 'médio': '#f59e0b', 'difícil': '#ef4444' };
+
+        return `
+        <div class="sim-review-card" id="sim-review-${idx}" style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px;margin-bottom:12px;position:relative;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <span style="font-weight:800;color:#6366f1;font-size:1.1rem;">#${idx + 1}</span>
+                    <span style="background:#6366f120;color:#6366f1;padding:2px 8px;border-radius:6px;font-size:0.75rem;">${q.capacidade}</span>
+                    <span style="background:${diffColors[q.difficulty] || '#94a3b8'}20;color:${diffColors[q.difficulty] || '#94a3b8'};padding:2px 8px;border-radius:6px;font-size:0.75rem;">${q.difficulty}</span>
+                </div>
+                <div style="display:flex;gap:6px;">
+                    <button onclick="editSimQuestion(${idx})" class="btn-secondary" style="padding:4px 10px;font-size:0.8rem;">✏️ Editar</button>
+                    <button onclick="regenSimQuestion(${idx})" class="btn-secondary" style="padding:4px 10px;font-size:0.8rem;">🔄 Regenerar</button>
+                    <button onclick="removeSimQuestion(${idx})" class="btn-danger" style="padding:4px 10px;font-size:0.8rem;">🗑️</button>
+                </div>
+            </div>
+
+            ${q.context ? `<div style="color:#cbd5e1;font-size:0.9rem;margin-bottom:8px;border-left:3px solid #3b82f6;padding-left:10px;">${q.context.substring(0, 200)}${q.context.length > 200 ? '...' : ''}</div>` : ''}
+            ${contextImg}
+
+            <div style="font-weight:600;color:#e2e8f0;margin:8px 0;"><strong>Pergunta:</strong> ${q.command}</div>
+
+            <div style="display:grid;gap:4px;">
+                ${q.options.map(opt => `
+                    <div style="padding:6px 10px;border-radius:6px;font-size:0.85rem;${opt.correct ? 'background:#10b98120;color:#10b981;border:1px solid #10b981;' : 'background:#11182720;color:#94a3b8;border:1px solid #1e293b;'}">
+                        <strong>${opt.letter})</strong> ${opt.text} ${opt.correct ? '✓' : ''}
+                    </div>
+                `).join('')}
+            </div>
+
+            ${correctOpt && correctOpt.explanation ? `
+                <div style="margin-top:8px;font-size:0.8rem;color:#64748b;border-top:1px solid #334155;padding-top:8px;">
+                    <strong>Justificativa:</strong> ${correctOpt.explanation}
+                </div>
+            ` : ''}
+        </div>`;
+    }).join('');
+
+    container.innerHTML = html;
+}
+
+/**
+ * Edit a specific question from the simulado
+ */
+function editSimQuestion(index) {
+    const q = simuladoQuestions[index];
+    if (!q) return;
+    simEditingIndex = index;
+
+    // Populate edit modal
+    document.getElementById('sim-edit-context').value = q.context || '';
+    document.getElementById('sim-edit-command').value = q.command || '';
+    document.getElementById('sim-edit-context-image').value = q.contextImage || '';
+
+    // Build options editor
+    const optContainer = document.getElementById('sim-edit-options-container');
+    let optsHtml = '<h4 style="margin-top:12px;">Alternativas:</h4>';
+    (q.options || []).forEach((opt, oi) => {
+        optsHtml += `
+        <div style="border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:10px;background:${opt.correct ? '#10b98110' : '#1e293b'};">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                <strong style="color:#6366f1;">${opt.letter})</strong>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+                    <input type="radio" name="sim-edit-correct" value="${oi}" ${opt.correct ? 'checked' : ''}>
+                    <span style="font-size:0.8rem;color:#94a3b8;">Correta</span>
+                </label>
+            </div>
+            <div class="form-group" style="margin:0 0 8px 0;">
+                <label style="font-size:0.75rem;">Texto:</label>
+                <input type="text" id="sim-edit-opt-text-${oi}" value="${(opt.text || '').replace(/"/g, '&quot;')}" style="width:100%;">
+            </div>
+            <div class="form-group" style="margin:0 0 8px 0;">
+                <label style="font-size:0.75rem;">Justificativa:</label>
+                <input type="text" id="sim-edit-opt-justification-${oi}" value="${(opt.correct ? (opt.explanation || '') : (opt.justification || '')).replace(/"/g, '&quot;')}" style="width:100%;">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label style="font-size:0.75rem;">URL da imagem (opcional):</label>
+                <input type="text" id="sim-edit-opt-image-${oi}" value="${(opt.image || '').replace(/"/g, '&quot;')}" style="width:100%;" placeholder="https://...">
+            </div>
+        </div>`;
+    });
+    optContainer.innerHTML = optsHtml;
+
+    openModal('sim-edit-question-modal');
+}
+
+function saveSimEditedQuestion() {
+    if (simEditingIndex === null || !simuladoQuestions[simEditingIndex]) return;
+
+    const q = simuladoQuestions[simEditingIndex];
+    q.context = document.getElementById('sim-edit-context').value;
+    q.command = document.getElementById('sim-edit-command').value;
+    q.contextImage = document.getElementById('sim-edit-context-image').value || null;
+
+    // Get which option is correct
+    const correctRadio = document.querySelector('input[name="sim-edit-correct"]:checked');
+    const correctIndex = correctRadio ? parseInt(correctRadio.value) : 0;
+
+    // Update each option
+    q.options.forEach((opt, oi) => {
+        opt.text = document.getElementById(`sim-edit-opt-text-${oi}`).value;
+        const justVal = document.getElementById(`sim-edit-opt-justification-${oi}`).value;
+        opt.image = document.getElementById(`sim-edit-opt-image-${oi}`).value || null;
+        opt.correct = (oi === correctIndex);
+
+        if (opt.correct) {
+            opt.explanation = justVal;
+        } else {
+            opt.justification = justVal;
+        }
+    });
+
+    closeModal('sim-edit-question-modal');
+    renderSimuladoReview();
+    Toast.success(`Questão #${simEditingIndex + 1} atualizada!`);
+}
+
+/**
+ * Regenerate a single question
+ */
+async function regenSimQuestion(index) {
+    const q = simuladoQuestions[index];
+    if (!q) return;
+
+    if (!confirm(`Regenerar a questão #${index + 1}? A questão atual será substituída.`)) return;
+
+    const card = document.getElementById(`sim-review-${index}`);
+    if (card) card.style.opacity = '0.5';
+
+    try {
+        const response = await fetch(`${API_URL}/ai/generate-simulado`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify({
+                courseId: simuladoCourseId,
+                provider: document.getElementById('sim-provider').value || 'gemini',
+                questions: [{
+                    capacity: q.capacidade,
+                    skill: '',
+                    difficulty: q.difficulty,
+                    content: ''
+                }],
+                includeContextImages: false,
+                includeOptionImages: false
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.questions || data.questions.length === 0) {
+            throw new Error(data.error || 'Falha ao regenerar');
+        }
+
+        simuladoQuestions[index] = data.questions[0];
+        renderSimuladoReview();
+        Toast.success(`Questão #${index + 1} regenerada!`);
+
+    } catch (error) {
+        console.error('Erro:', error);
+        Toast.error(`Erro ao regenerar: ${error.message}`);
+        if (card) card.style.opacity = '1';
+    }
+}
+
+/**
+ * Remove a question from the simulado
+ */
+function removeSimQuestion(index) {
+    if (!confirm(`Remover a questão #${index + 1} do simulado?`)) return;
+    simuladoQuestions.splice(index, 1);
+    renderSimuladoReview();
+    Toast.info('Questão removida.');
+}
+
+/**
+ * Go back to configuration step
+ */
+function goBackToSimConfig() {
+    document.getElementById('sim-step-review').style.display = 'none';
+    document.getElementById('sim-step-config').style.display = 'block';
+}
+
+/**
+ * STEP 4: Save the simulado (create questions + quiz)
+ */
+async function saveSimulado() {
+    const quizName = document.getElementById('sim-quiz-name').value.trim();
+    const quizDescription = document.getElementById('sim-quiz-description').value.trim();
+
+    if (!quizName) {
+        Toast.warning('Dê um nome ao simulado.');
+        return;
+    }
+
+    if (simuladoQuestions.length === 0) {
+        Toast.warning('Nenhuma questão para salvar.');
+        return;
+    }
+
+    const saveBtn = document.getElementById('sim-save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = '⏳ Salvando...';
+
+    try {
+        // 1. Save each question to the course
+        const savedQuestionIds = [];
+        for (const q of simuladoQuestions) {
+            const payload = {
+                id: q.id,
+                capacidade: q.capacidade,
+                context: q.context,
+                command: q.command,
+                options: q.options,
+                contextImage: q.contextImage || null
+            };
+
+            const res = await fetch(`${API_URL}/courses/${simuladoCourseId}/questions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentToken}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                savedQuestionIds.push(data.question?.id || q.id);
+            } else {
+                console.warn(`Falha ao salvar questão ${q.id}:`, await res.text());
+                savedQuestionIds.push(q.id); // Use original ID as fallback
+            }
+        }
+
+        // 2. Create the quiz
+        const quizRes = await fetch(`${API_URL}/quizzes`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify({
+                name: quizName,
+                description: quizDescription,
+                courseId: simuladoCourseId,
+                questionIds: savedQuestionIds
+            })
+        });
+
+        if (!quizRes.ok) {
+            const errData = await quizRes.json();
+            throw new Error(errData.error || 'Erro ao criar quiz');
+        }
+
+        Toast.success(`Simulado "${quizName}" salvo com ${savedQuestionIds.length} questões!`);
+        closeModal('simulado-wizard-modal');
+        simuladoQuestions = [];
+        loadQuizzes();
+
+    } catch (error) {
+        console.error('Erro ao salvar simulado:', error);
+        Toast.error(`Erro ao salvar: ${error.message}`);
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '✅ Aprovar e Salvar Simulado';
+    }
 }
 
 // ==================== QUIZZES ====================

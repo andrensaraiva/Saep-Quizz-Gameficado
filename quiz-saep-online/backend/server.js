@@ -111,6 +111,18 @@ const DEFAULT_ADMIN = {
   password: 'admin123'
 };
 
+const DEFAULT_PROFESSOR = {
+  username: 'professor',
+  email: 'professor@quiz.com',
+  password: 'prof123'
+};
+
+const DEFAULT_STUDENT = {
+  username: 'aluno01',
+  email: 'aluno@quiz.com',
+  password: 'aluno123'
+};
+
 const DEFAULT_COURSE = {
   name: 'Programação de Jogos Digitais',
   abbreviation: 'JD', // Abreviação para geração de IDs
@@ -337,197 +349,201 @@ function normalizeOptionsArray(options) {
 
 async function seedInitialData() {
   try {
-    console.log('🚀 Verificando dados iniciais...');
+    console.log('🚀 Resetando e recriando dados iniciais...');
     console.log(`💾 Modo de armazenamento: ${db.isFirebaseEnabled() ? 'Firebase Realtime Database' : 'Memória Local (temporário)'}`);
     
-    // Inicializar array global para resultados anônimos
-    if (!global.anonymousResults) {
-      global.anonymousResults = [];
-      console.log('📊 Inicializado array global de resultados anônimos');
-    }
+    // Reset total
+    await db.resetAll();
+    global.anonymousResults = [];
+    console.log('🗑️ Dados anteriores removidos');
     
-    // Buscar dados existentes
-    const existingUsers = await db.getUsers();
-    const existingCourses = await db.getCourses();
-    const existingQuestions = await db.getQuestions();
-    const existingQuizzes = await db.getQuizzes();
-    
-    // Se já existe dados no Firebase, não fazer seed
-    if (db.isFirebaseEnabled() && (existingUsers.length > 0 || existingCourses.length > 0 || existingQuestions.length > 0)) {
-      console.log('✅ Dados já existem no Firebase - pulando seed');
-      console.log(`   👥 Usuários: ${existingUsers.length}`);
-      console.log(`   📚 Cursos: ${existingCourses.length}`);
-      console.log(`   ❓ Questões: ${existingQuestions.length}`);
-      console.log(`   📝 Quizzes: ${existingQuizzes.length}`);
-      return;
-    }
-    
-    console.log('🌱 Iniciando seed de dados iniciais...');
-    
-    // Buscar admin existente
-    let admin = existingUsers.find(u => u.role === 'admin');
-    
-    if (!admin) {
-      const hashedPassword = bcrypt.hashSync(DEFAULT_ADMIN.password, 10);
-      const nextId = await db.getNextId('users');
-      admin = {
-        id: nextId,
-        username: DEFAULT_ADMIN.username,
-        email: DEFAULT_ADMIN.email,
-        password: hashedPassword,
-        role: 'admin',
+    // ===== 1. Criar Admin =====
+    const hashedAdminPass = bcrypt.hashSync(DEFAULT_ADMIN.password, 10);
+    const admin = {
+      id: 1,
+      username: DEFAULT_ADMIN.username,
+      email: DEFAULT_ADMIN.email,
+      password: hashedAdminPass,
+      role: 'admin',
+      avatarUrl: null,
+      turmaId: null,
+      createdAt: new Date().toISOString()
+    };
+    await db.createUser(admin);
+    console.log('✅ Admin criado:', admin.email, '/ senha:', DEFAULT_ADMIN.password);
+
+    // ===== 2. Criar Professor =====
+    const hashedProfPass = bcrypt.hashSync(DEFAULT_PROFESSOR.password, 10);
+    const professor = {
+      id: 2,
+      username: DEFAULT_PROFESSOR.username,
+      email: DEFAULT_PROFESSOR.email,
+      password: hashedProfPass,
+      role: 'professor',
+      avatarUrl: null,
+      turmaId: null,
+      createdAt: new Date().toISOString()
+    };
+    await db.createUser(professor);
+    console.log('✅ Professor criado:', professor.email, '/ senha:', DEFAULT_PROFESSOR.password);
+
+    // ===== 3. Criar Curso =====
+    const course = {
+      id: 1,
+      ...DEFAULT_COURSE,
+      createdBy: admin.id,
+      createdAt: new Date().toISOString()
+    };
+    await db.createCourse(course);
+    console.log('✅ Curso criado:', course.name);
+
+    // ===== 4. Criar Turma =====
+    const turma = {
+      id: 1,
+      name: 'Turma A - Jogos Digitais 2026',
+      description: 'Turma do 1° semestre de 2026',
+      courseId: course.id,
+      professorId: professor.id,
+      alunoIds: [],
+      createdAt: new Date().toISOString()
+    };
+    await db.createTurma(turma);
+    console.log('✅ Turma criada:', turma.name);
+
+    // ===== 5. Criar Aluno e colocar na turma =====
+    const hashedStudentPass = bcrypt.hashSync(DEFAULT_STUDENT.password, 10);
+    const student = {
+      id: 3,
+      username: DEFAULT_STUDENT.username,
+      email: DEFAULT_STUDENT.email,
+      password: hashedStudentPass,
+      role: 'user',
+      avatarUrl: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=aluno01',
+      turmaId: turma.id,
+      createdAt: new Date().toISOString()
+    };
+    await db.createUser(student);
+    // Adicionar aluno à turma
+    turma.alunoIds.push(student.id);
+    await db.updateTurma(turma.id, { alunoIds: turma.alunoIds });
+    console.log('✅ Aluno criado:', student.email, '/ senha:', DEFAULT_STUDENT.password);
+
+    // ===== 6. Criar Questões =====
+    const sampleQuestions = [
+      {
+        id: 'q1-JD',
+        courseId: course.id,
+        capacity: 'Lógica de Programação',
+        difficulty: 'Fácil',
+        context: 'Você está desenvolvendo um jogo de plataforma onde o personagem deve pular obstáculos. O sistema precisa verificar se o jogador pressionou o botão de pulo e, ao mesmo tempo, se o personagem está no chão.',
+        contextImage: null,
+        command: 'Qual estrutura de controle é mais adequada para essa verificação?',
+        options: [
+          { letter: 'A', text: 'if com operador AND (&&) verificando ambas condições', correct: true, image: null },
+          { letter: 'B', text: 'switch-case para cada combinação possível', correct: false, image: null },
+          { letter: 'C', text: 'while aguardando as duas condições', correct: false, image: null },
+          { letter: 'D', text: 'for iterando sobre os estados do personagem', correct: false, image: null }
+        ],
+        createdBy: professor.id,
         createdAt: new Date().toISOString()
-      };
-      await db.createUser(admin);
-      console.log('✅ Admin padrão criado automaticamente');
-      console.log(`   📧 Email: ${admin.email}`);
-      console.log(`   🔑 Senha: ${DEFAULT_ADMIN.password}`);
-    } else {
-      console.log('ℹ️  Admin já existe');
-    }
-
-    // Buscar curso existente
-    const courses = await db.getCourses();
-    let course = courses.find(c => c.name === DEFAULT_COURSE.name);
-    
-    if (!course) {
-      const nextId = await db.getNextId('courses');
-      course = {
-        id: nextId,
-        ...DEFAULT_COURSE,
-        createdBy: admin.id,
+      },
+      {
+        id: 'q2-JD',
+        courseId: course.id,
+        capacity: 'Programação Orientada a Objetos',
+        difficulty: 'Médio',
+        context: 'Em um jogo RPG, você precisa criar diferentes tipos de inimigos (Goblin, Orc, Dragão). Todos compartilham atributos como vida e ataque, mas cada um tem um comportamento de ataque único.',
+        contextImage: null,
+        command: 'Qual conceito de OOP melhor resolve esse cenário?',
+        options: [
+          { letter: 'A', text: 'Herança com método abstrato de ataque', correct: true, image: null },
+          { letter: 'B', text: 'Variáveis globais para cada tipo de inimigo', correct: false, image: null },
+          { letter: 'C', text: 'Uma única classe com if-else para cada tipo', correct: false, image: null },
+          { letter: 'D', text: 'Funções separadas sem classes', correct: false, image: null }
+        ],
+        createdBy: professor.id,
         createdAt: new Date().toISOString()
-      };
-      await db.createCourse(course);
-      console.log(`✅ Curso padrão criado automaticamente: "${course.name}"`);
-      console.log(`   📚 ID: ${course.id}`);
-      console.log(`   🏷️  Abreviação: ${course.abbreviation}`);
-    } else {
-      console.log(`ℹ️  Curso "${course.name}" já existe (ID: ${course.id})`);
-    }
-
-    // Carregar questões do arquivo se não existirem
-    const questions = await db.getQuestions();
-    
-    if (questions.length === 0 && fs.existsSync(QUESTIONS_FILE_PATH)) {
-      console.log(`📂 Carregando questões de: ${QUESTIONS_FILE_PATH}`);
-      const fileContent = fs.readFileSync(QUESTIONS_FILE_PATH, 'utf8');
-      const questionsData = JSON.parse(fileContent);
-      console.log(`📝 ${questionsData.length} questões encontradas no arquivo`);
-
-      for (const q of questionsData) {
-        const alreadyExists = questions.some(existing => existing.id === q.id && existing.courseId === course.id);
-        if (alreadyExists) {
-          continue;
-        }
-
-        const question = {
-          id: q.id || `Q${questions.length + 1}`,
-          courseId: course.id,
-          capacidade: q.capacidade || q.capacity || 'Geral',
-          difficulty: q.dificuldade || q.difficulty || 'Médio',
-          context: q.context || '',
-          contextImage: q.contextImage || null,
-          command: q.command || '',
-          options: normalizeOptionsArray(q.options),
-          createdBy: admin.id,
-          createdAt: new Date().toISOString()
-        };
-        
-        await db.createQuestion(question);
-        questions.push(question); // Para contagem local
+      },
+      {
+        id: 'q3-JD',
+        courseId: course.id,
+        capacity: 'Game Design',
+        difficulty: 'Médio',
+        context: 'Seu jogo mobile tem uma curva de dificuldade muito íngreme: jogadores desistem no nível 3. A análise mostra que inimigos dobram de vida a cada fase, tornando o jogo frustrante rapidamente.',
+        contextImage: null,
+        command: 'Qual técnica de balanceamento é mais indicada?',
+        options: [
+          { letter: 'A', text: 'Curva de dificuldade logarítmica com incrementos suaves', correct: true, image: null },
+          { letter: 'B', text: 'Deixar todos os níveis com a mesma dificuldade', correct: false, image: null },
+          { letter: 'C', text: 'Aumentar o dano do jogador na mesma proporção', correct: false, image: null },
+          { letter: 'D', text: 'Remover os níveis difíceis do jogo', correct: false, image: null }
+        ],
+        createdBy: professor.id,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'q4-JD',
+        courseId: course.id,
+        capacity: 'Lógica de Programação',
+        difficulty: 'Fácil',
+        context: 'Em um jogo de corrida, você precisa exibir os 3 primeiros colocados ao final da corrida. Os tempos de todos os jogadores estão armazenados em um array.',
+        contextImage: null,
+        command: 'Qual abordagem é mais eficiente para obter o top 3?',
+        options: [
+          { letter: 'A', text: 'Ordenar o array por tempo e pegar os 3 primeiros elementos', correct: true, image: null },
+          { letter: 'B', text: 'Usar 3 loops separados para encontrar cada posição', correct: false, image: null },
+          { letter: 'C', text: 'Criar 3 variáveis e comparar manualmente', correct: false, image: null },
+          { letter: 'D', text: 'Remover todos exceto 3 jogadores aleatórios', correct: false, image: null }
+        ],
+        createdBy: professor.id,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'q5-JD',
+        courseId: course.id,
+        capacity: 'Programação Orientada a Objetos',
+        difficulty: 'Difícil',
+        context: 'Você está criando um sistema de inventário para um RPG. O jogador pode carregar armas, poções e armaduras. Cada item tem peso e valor, mas apenas armas têm dano e poções têm efeito de cura.',
+        contextImage: null,
+        command: 'Qual arquitetura OOP é mais adequada?',
+        options: [
+          { letter: 'A', text: 'Classe base Item com subclasses Arma, Pocao e Armadura usando polimorfismo', correct: true, image: null },
+          { letter: 'B', text: 'Uma única classe com todos os atributos sendo null quando não usados', correct: false, image: null },
+          { letter: 'C', text: 'Três classes completamente independentes sem classe base', correct: false, image: null },
+          { letter: 'D', text: 'Usar apenas dicionários/objetos sem classes', correct: false, image: null }
+        ],
+        createdBy: professor.id,
+        createdAt: new Date().toISOString()
       }
+    ];
 
-      console.log(`✅ ${questions.length} questões carregadas automaticamente`);
-    } else if (questions.length > 0) {
-      console.log(`ℹ️  ${questions.length} questões já existem no banco`);
-    } else {
-      console.log(`⚠️  Arquivo de questões não encontrado: ${QUESTIONS_FILE_PATH}`);
+    for (const q of sampleQuestions) {
+      await db.createQuestion(q);
     }
+    console.log(`✅ ${sampleQuestions.length} questões criadas`);
 
-    // Criar quizzes padrão se não existirem
-    const quizzes = await db.getQuizzes();
-    
-    if (quizzes.length === 0 && questions.length > 0) {
-      const courseQuestions = questions.filter(q => q.courseId === course.id);
-      
-      if (courseQuestions.length > 0) {
-        // Quiz 1: SAEP 2024/2 - Questões 1 a 8
-        const quiz1Questions = courseQuestions.filter(q => {
-          const match = q.id.match(/q(\d+)/i);
-          if (match) {
-            const num = parseInt(match[1]);
-            return num >= 1 && num <= 8;
-          }
-          return false;
-        });
+    // ===== 7. Criar Quiz =====
+    const quiz = {
+      id: 1,
+      name: 'Quiz Inicial - Jogos Digitais',
+      description: 'Quiz introdutório cobrindo Lógica, OOP e Game Design',
+      courseId: course.id,
+      turmaId: turma.id,
+      questionIds: sampleQuestions.map(q => q.id),
+      createdBy: professor.id,
+      createdAt: new Date().toISOString()
+    };
+    await db.createQuiz(quiz);
+    console.log('✅ Quiz criado:', quiz.name);
 
-        if (quiz1Questions.length > 0) {
-          const quiz1 = {
-            id: await db.getNextId('quizzes'),
-            name: 'SAEP 2024/2 - Parte 1',
-            description: 'Questões 1 a 8 do SAEP 2024/2',
-            courseId: course.id,
-            questionIds: quiz1Questions.map(q => q.id),
-            createdBy: admin.id,
-            createdAt: new Date().toISOString()
-          };
-          await db.createQuiz(quiz1);
-          console.log(`✅ Quiz 1 criado: SAEP 2024/2 - Parte 1 (${quiz1Questions.length} questões)`);
-        }
-
-        // Quiz 2: SAEP 2024/2 - Questões 9 a 16
-        const quiz2Questions = courseQuestions.filter(q => {
-          const match = q.id.match(/q(\d+)/i);
-          if (match) {
-            const num = parseInt(match[1]);
-            return num >= 9 && num <= 16;
-          }
-          return false;
-        });
-
-        if (quiz2Questions.length > 0) {
-          const quiz2 = {
-            id: await db.getNextId('quizzes'),
-            name: 'SAEP 2024/2 - Parte 2',
-            description: 'Questões 9 a 16 do SAEP 2024/2',
-            courseId: course.id,
-            questionIds: quiz2Questions.map(q => q.id),
-            createdBy: admin.id,
-            createdAt: new Date().toISOString()
-          };
-          await db.createQuiz(quiz2);
-          console.log(`✅ Quiz 2 criado: SAEP 2024/2 - Parte 2 (${quiz2Questions.length} questões)`);
-        }
-
-        // Quiz 3: SAEP 2024/2 - Completo (todas as questões)
-        const quiz3 = {
-          id: await db.getNextId('quizzes'),
-          name: 'SAEP 2024/2 - Simulado Completo',
-          description: 'Todas as questões do SAEP 2024/2 - Programação de Jogos Digitais',
-          courseId: course.id,
-          questionIds: courseQuestions.map(q => q.id),
-          createdBy: admin.id,
-          createdAt: new Date().toISOString()
-        };
-        await db.createQuiz(quiz3);
-        console.log(`✅ Quiz 3 criado: SAEP 2024/2 - Simulado Completo (${courseQuestions.length} questões)`);
-      }
-    } else if (quizzes.length > 0) {
-      console.log(`ℹ️  ${quizzes.length} quizzes já existem`);
-    }
-    
-    // Contadores finais
-    const finalUsers = await db.getUsers();
-    const finalCourses = await db.getCourses();
-    const finalQuestions = await db.getQuestions();
-    const finalQuizzes = await db.getQuizzes();
-    
-    console.log('📊 Resumo do seed:');
-    console.log(`   👥 Usuários: ${finalUsers.length} (Admin: ${finalUsers.filter(u => u.role === 'admin').length})`);
-    console.log(`   📚 Cursos: ${finalCourses.length}`);
-    console.log(`   ❓ Questões: ${finalQuestions.length}`);
-    console.log(`   📝 Quizzes: ${finalQuizzes.length}`);
+    // ===== Resumo =====
+    console.log('\n📊 SEED COMPLETO:');
+    console.log('   👑 Admin: admin@quiz.com / admin123');
+    console.log('   👨‍🏫 Professor: professor@quiz.com / prof123');
+    console.log('   👨‍🎓 Aluno: aluno@quiz.com / aluno123');
+    console.log('   📚 Curso: Programação de Jogos Digitais');
+    console.log('   🏫 Turma: Turma A - Jogos Digitais 2026');
+    console.log('   📝 Quiz: Quiz Inicial - Jogos Digitais (5 questões)');
     console.log('✅ Seed concluído com sucesso!\n');
   } catch (error) {
     console.error('❌ ERRO CRÍTICO ao carregar dados iniciais:', error);
@@ -592,7 +608,9 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       username,
       email,
       password: hashedPassword,
-      role: 'user', // 'user' ou 'admin'
+      role: 'user',
+      avatarUrl: null,
+      turmaId: null,
       createdAt: new Date().toISOString()
     };
 
@@ -655,7 +673,7 @@ app.get('/api/auth/verify', authenticateToken, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
-    res.json({ user: { id: user.id, username: user.username, email: user.email, role: user.role } });
+    res.json({ user: { id: user.id, username: user.username, email: user.email, role: user.role, avatarUrl: user.avatarUrl || null, turmaId: user.turmaId || null } });
   } catch (error) {
     console.error('Erro ao verificar token:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -666,6 +684,14 @@ app.get('/api/auth/verify', authenticateToken, async (req, res) => {
 const requireAdmin = (req, res, next) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Acesso negado. Apenas administradores.' });
+  }
+  next();
+};
+
+// Middleware para verificar se é professor ou admin
+const requireProfessorOrAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin' && req.user.role !== 'professor') {
+    return res.status(403).json({ error: 'Acesso negado. Apenas professores ou administradores.' });
   }
   next();
 };
@@ -872,8 +898,8 @@ app.get('/api/courses/:courseId/questions', async (req, res) => {
   }
 });
 
-// Adicionar questão (apenas admin)
-app.post('/api/courses/:courseId/questions', authenticateToken, requireAdmin, async (req, res) => {
+// Adicionar questão (admin ou professor)
+app.post('/api/courses/:courseId/questions', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId);
     let { id, capacidade, capacity, dificuldade, difficulty, context, contexto, contextImage, command, comando, options } = req.body;
@@ -1491,7 +1517,10 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
       activeUsers,
       averageScore: parseFloat(averageScore),
       mostPopularCourse,
-      recentActivities
+      recentActivities,
+      totalTurmas: (await db.getTurmas()).length,
+      totalProfessors: users.filter(u => u.role === 'professor').length,
+      totalStudents: users.filter(u => u.role === 'user').length
     });
   } catch (error) {
     console.error('Erro ao buscar dashboard:', error);
@@ -1567,6 +1596,8 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) =>
         username: user.username,
         email: user.email,
         role: user.role,
+        avatarUrl: user.avatarUrl || null,
+        turmaId: user.turmaId || null,
         createdAt: user.createdAt,
         attemptsCount: userScores.length,
         averageScore: parseFloat(avgScore)
@@ -1586,8 +1617,8 @@ app.put('/api/admin/users/:id/role', authenticateToken, requireAdmin, async (req
     const userId = parseInt(req.params.id);
     const { role } = req.body;
     
-    if (!['user', 'admin'].includes(role)) {
-      return res.status(400).json({ error: 'Role inválida' });
+    if (!['user', 'admin', 'professor'].includes(role)) {
+      return res.status(400).json({ error: 'Role inválida. Use: user, professor ou admin' });
     }
     
     const user = await db.getUserById(userId);
@@ -1731,6 +1762,22 @@ app.get('/api/admin/export/:type', authenticateToken, requireAdmin, async (req, 
           const qCount = questions.filter(q => q.courseId === c.id).length;
           const aCount = scores.filter(s => s.courseId === c.id).length;
           return [c.id, c.name, c.category, qCount, aCount, c.createdAt];
+        });
+        break;
+      case 'turmas':
+        const turmas = await db.getTurmas();
+        headers = ['ID', 'Name', 'Course', 'Professor', 'Alunos', 'Created At'];
+        data = turmas.map(t => {
+          const prof = users.find(u => u.id === t.professorId);
+          const course = courses.find(c => c.id === t.courseId);
+          return [t.id, t.name, course ? course.name : '-', prof ? prof.username : '-', (t.alunoIds || []).length, t.createdAt];
+        });
+        break;
+      case 'questions':
+        headers = ['ID', 'Course', 'Capacity', 'Difficulty', 'Command', 'Created At'];
+        data = questions.map(q => {
+          const course = courses.find(c => c.id === q.courseId);
+          return [q.id, course ? course.name : '-', q.capacity || q.capacidade || '-', q.difficulty || '-', (q.command || '').substring(0, 100), q.createdAt];
         });
         break;
       default:
@@ -2035,7 +2082,7 @@ Retorne APENAS um JSON válido (sem markdown, sem \`\`\`):
 });
 
 // Gerar questão com IA (admin)
-app.post('/api/ai/generate-question', authenticateToken, requireAdmin, async (req, res) => {
+app.post('/api/ai/generate-question', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
   try {
     const {
       capacity,
@@ -2277,8 +2324,212 @@ Retorne APENAS um JSON válido (sem markdown, sem \`\`\`):
   }
 });
 
+// ==================== GERAR SIMULADO COMPLETO COM IA ====================
+app.post('/api/ai/generate-simulado', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
+  try {
+    const {
+      courseId,
+      provider,
+      questions: questionSpecs, // Array of { capacity, skill, content, difficulty }
+      includeContextImages = false,
+      includeOptionImages = false,
+      imageProvider
+    } = req.body;
+
+    if (!courseId || !questionSpecs || !Array.isArray(questionSpecs) || questionSpecs.length === 0) {
+      return res.status(400).json({ error: 'courseId e questions (array) são obrigatórios' });
+    }
+
+    if (questionSpecs.length > 20) {
+      return res.status(400).json({ error: 'Máximo de 20 questões por simulado' });
+    }
+
+    const aiProvider = provider || 'gemini';
+
+    // Validate AI provider availability
+    if (aiProvider === 'gemini' && !genAI) {
+      return res.status(503).json({ error: 'API do Gemini não configurada. Adicione GEMINI_API_KEY no .env' });
+    }
+    if (aiProvider === 'chatgpt' && !openai) {
+      return res.status(503).json({ error: 'API do ChatGPT não configurada. Adicione OPENAI_API_KEY no .env' });
+    }
+
+    console.log(`🤖 [SIMULADO] Gerando ${questionSpecs.length} questões com ${aiProvider}...`);
+
+    const generatedQuestions = [];
+    const errors = [];
+
+    for (let i = 0; i < questionSpecs.length; i++) {
+      const spec = questionSpecs[i];
+      const qNumber = i + 1;
+
+      try {
+        console.log(`  📝 Gerando questão ${qNumber}/${questionSpecs.length}: ${spec.capacity} - ${spec.skill || spec.content}`);
+
+        const prompt = `# Atenção: Sua tarefa é criar UM item de avaliação (uma questão de múltipla escolha) para o Sistema de Avaliação da Educação Profissional (SAEP). Siga rigorosamente todas as instruções e a estrutura definidas abaixo.
+
+## 1. Definição dos Metadados da Questão:
+
+**Curso Técnico:** Técnico em Programação de Jogos Digitais.
+
+**Capacidade Alvo:** ${spec.capacity}
+
+**Conhecimento Avaliado:** ${spec.skill || ''}${spec.content ? '. ' + spec.content : ''}
+
+**Nível de Dificuldade:** ${spec.difficulty || 'médio'}
+
+## 2. Diretrizes de Construção do Item:
+
+**Princípio Fundamental:** O item deve simular um cenário de trabalho realista e plausível para um técnico da área. O estudante deve se sentir como um profissional resolvendo um problema real.
+
+**Vínculo Contexto-Comando:** O Contexto deve apresentar um problema com detalhes e restrições específicas. O Comando deve ser formulado de tal maneira que a sua resolução dependa diretamente da análise das informações e restrições apresentadas no Contexto.
+
+**Qualidade das Alternativas:**
+- **Gabarito (Resposta Correta):** Deve ser a solução tecnicamente mais correta, eficiente e adequada para o problema específico apresentado no contexto.
+- **Distratores (Alternativas Incorretas):** Cada distrator deve representar um erro de raciocínio comum ou uma solução parcialmente correta, mas inadequada para o cenário.
+
+## 3. Estrutura de Geração:
+
+### A. Contexto:
+Crie um parágrafo descrevendo uma situação-problema detalhada. Inclua o tipo de jogo, a mecânica envolvida e o desafio técnico específico.
+
+### B. Comando:
+Crie uma pergunta CURTA, DIRETA e OBJETIVA (máximo 15-20 palavras).
+- Seja CONCISO - evite repetir informações do contexto
+- Use verbos diretos: "Qual...", "Como...", "Que solução..."
+
+### C. Alternativas (5 opções - A, B, C, D, E):
+1. **Alternativa Correta:** A solução ideal
+2. **Distrator 1 (Erro Comum):** Parece correta, mas tem falha sutil
+3. **Distrator 2 (Conceito Relacionado):** Conceito correto da área, mas não se aplica
+4. **Distrator 3 (Solução Simplista):** Abordagem de iniciante
+5. **Distrator 4 (Conceito de Outra Área):** Válida em outro domínio
+
+### D. Justificativas para cada alternativa.
+
+### E. Sugestões de Imagens (opcional):
+- **contextImagePrompt:** Prompt em inglês (máx 20 palavras) ou null
+- **imagePrompt** para cada opção: Prompt em inglês (máx 15 palavras) ou null
+
+## 4. Formato de Saída:
+
+Retorne APENAS um JSON válido (sem markdown, sem \`\`\`):
+
+{
+  "id": "Q_SIM_${Date.now()}_${qNumber}",
+  "capacidade": "${spec.capacity}",
+  "context": "Contexto detalhado da situação-problema",
+  "contextImagePrompt": null,
+  "command": "Pergunta objetiva?",
+  "options": [
+    { "letter": "A", "text": "Texto", "correct": true, "explanation": "Porque...", "justification": "...", "imagePrompt": null },
+    { "letter": "B", "text": "Texto", "correct": false, "justification": "Incorreta porque...", "imagePrompt": null },
+    { "letter": "C", "text": "Texto", "correct": false, "justification": "Incorreta porque...", "imagePrompt": null },
+    { "letter": "D", "text": "Texto", "correct": false, "justification": "Incorreta porque...", "imagePrompt": null },
+    { "letter": "E", "text": "Texto", "correct": false, "justification": "Incorreta porque...", "imagePrompt": null }
+  ]
+}
+
+**IMPORTANTE:** Gere uma questão original, bem fundamentada e diferente de outras geradas anteriormente nesta sessão. A questão ${qNumber} deve abordar um aspecto DIFERENTE dentro do tema "${spec.skill || spec.content}".`;
+
+        let generatedQuestion = null;
+
+        if (aiProvider === 'gemini') {
+          const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+          const result = await model.generateContent(prompt);
+          const response = await result.response;
+          const text = response.text();
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            generatedQuestion = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('Resposta da IA não contém JSON válido');
+          }
+        } else if (aiProvider === 'chatgpt') {
+          const completion = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.8,
+          });
+          const text = completion.choices[0].message.content;
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            generatedQuestion = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('Resposta da IA não contém JSON válido');
+          }
+        }
+
+        if (generatedQuestion) {
+          // Handle images
+          if (includeContextImages || includeOptionImages) {
+            try {
+              attachGeneratedImagesToQuestion(generatedQuestion, {
+                provider: imageProvider || 'pollinations',
+                includeContext: includeContextImages,
+                includeOptions: includeOptionImages
+              });
+            } catch (imgErr) {
+              generatedQuestion.imageGenerationError = imgErr.message;
+            }
+          } else {
+            delete generatedQuestion.contextImagePrompt;
+            if (Array.isArray(generatedQuestion.options)) {
+              generatedQuestion.options = generatedQuestion.options.map(opt => {
+                const cleaned = { ...opt };
+                delete cleaned.imagePrompt;
+                return cleaned;
+              });
+            }
+          }
+
+          generatedQuestion.contextImage = generatedQuestion.contextImage || null;
+          generatedQuestion.options = normalizeOptionsArray(generatedQuestion.options);
+          generatedQuestion.generatedBy = aiProvider;
+          generatedQuestion.generatedAt = new Date().toISOString();
+          generatedQuestion.difficulty = spec.difficulty || 'médio';
+          generatedQuestion._index = i;
+
+          generatedQuestions.push(generatedQuestion);
+          console.log(`  ✅ Questão ${qNumber} gerada com sucesso`);
+        } else {
+          throw new Error('Questão gerada com formato inválido');
+        }
+
+        // Small delay between requests to avoid rate limiting
+        if (i < questionSpecs.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+      } catch (qError) {
+        console.error(`  ❌ Erro na questão ${qNumber}:`, qError.message);
+        errors.push({ index: i, error: qError.message, spec });
+      }
+    }
+
+    console.log(`🤖 [SIMULADO] Concluído: ${generatedQuestions.length} geradas, ${errors.length} erros`);
+
+    res.json({
+      message: `Simulado gerado: ${generatedQuestions.length}/${questionSpecs.length} questões criadas`,
+      questions: generatedQuestions,
+      errors,
+      totalRequested: questionSpecs.length,
+      totalGenerated: generatedQuestions.length,
+      provider: aiProvider,
+      courseId
+    });
+
+  } catch (error) {
+    console.error('Erro ao gerar simulado:', error);
+    res.status(500).json({
+      error: 'Erro ao gerar simulado',
+      details: error.message
+    });
+  }
+});
+
 // Verificar status das APIs de IA
-app.get('/api/ai/status', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/ai/status', authenticateToken, requireProfessorOrAdmin, (req, res) => {
   res.json({
     gemini: {
       available: !!genAI,
@@ -2316,8 +2567,8 @@ app.get('/api/quizzes', async (req, res) => {
   }
 });
 
-// Criar novo quiz (apenas admin)
-app.post('/api/quizzes', authenticateToken, requireAdmin, async (req, res) => {
+// Criar novo quiz (admin ou professor)
+app.post('/api/quizzes', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
   try {
     const { name, description, courseId, questionIds } = req.body;
 
@@ -2586,6 +2837,370 @@ app.delete('/api/admin/feedbacks/:id', authenticateToken, requireAdmin, async (r
     res.json({ message: 'Feedback deletado com sucesso' });
   } catch (error) {
     console.error('Erro ao deletar feedback:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// ==================== ROTAS DE PERFIL DO ALUNO ====================
+
+// Atualizar perfil (foto URL e turma)
+app.put('/api/profile', authenticateToken, async (req, res) => {
+  try {
+    const { avatarUrl, turmaId } = req.body;
+    const userId = req.user.id;
+
+    const user = await db.getUserById(userId);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+    const updates = { updatedAt: new Date().toISOString() };
+
+    if (avatarUrl !== undefined) {
+      // Validar URL basica
+      if (avatarUrl && typeof avatarUrl === 'string' && avatarUrl.length > 0) {
+        try { new URL(avatarUrl); } catch { return res.status(400).json({ error: 'URL da foto inválida. Forneça uma URL completa (https://...)' }); }
+      }
+      updates.avatarUrl = avatarUrl || null;
+    }
+
+    if (turmaId !== undefined) {
+      if (turmaId !== null) {
+        const turma = await db.getTurmaById(turmaId);
+        if (!turma) return res.status(404).json({ error: 'Turma não encontrada' });
+        // Remover de turma anterior se tinha
+        if (user.turmaId && user.turmaId !== turmaId) {
+          const oldTurma = await db.getTurmaById(user.turmaId);
+          if (oldTurma) {
+            const newAlunoIds = (oldTurma.alunoIds || []).filter(id => id !== userId);
+            await db.updateTurma(oldTurma.id, { alunoIds: newAlunoIds });
+          }
+        }
+        // Adicionar na nova turma
+        if (!(turma.alunoIds || []).includes(userId)) {
+          const newAlunoIds = [...(turma.alunoIds || []), userId];
+          await db.updateTurma(turmaId, { alunoIds: newAlunoIds });
+        }
+      } else {
+        // Remover da turma atual
+        if (user.turmaId) {
+          const oldTurma = await db.getTurmaById(user.turmaId);
+          if (oldTurma) {
+            const newAlunoIds = (oldTurma.alunoIds || []).filter(id => id !== userId);
+            await db.updateTurma(oldTurma.id, { alunoIds: newAlunoIds });
+          }
+        }
+      }
+      updates.turmaId = turmaId;
+    }
+
+    const updatedUser = await db.updateUser(userId, updates);
+    res.json({
+      message: 'Perfil atualizado com sucesso',
+      user: { id: updatedUser.id, username: updatedUser.username, email: updatedUser.email, role: updatedUser.role, avatarUrl: updatedUser.avatarUrl, turmaId: updatedUser.turmaId }
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar perfil:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Obter turmas disponíveis (qualquer usuário logado pode ver)
+app.get('/api/turmas', authenticateToken, async (req, res) => {
+  try {
+    const turmas = await db.getTurmas();
+    const users = await db.getUsers();
+    const courses = await db.getCourses();
+
+    const turmasWithInfo = turmas.map(t => {
+      const prof = users.find(u => u.id === t.professorId);
+      const course = courses.find(c => c.id === t.courseId);
+      return {
+        ...t,
+        professorName: prof ? prof.username : 'Desconhecido',
+        courseName: course ? course.name : 'Desconhecido',
+        alunoCount: (t.alunoIds || []).length
+      };
+    });
+
+    res.json({ turmas: turmasWithInfo });
+  } catch (error) {
+    console.error('Erro ao listar turmas:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// ==================== ROTAS DE TURMAS (PROFESSOR/ADMIN) ====================
+
+// Criar turma
+app.post('/api/turmas', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
+  try {
+    const { name, description, courseId } = req.body;
+    if (!name || !courseId) return res.status(400).json({ error: 'Nome e curso são obrigatórios' });
+
+    const course = await db.getCourseById(courseId);
+    if (!course) return res.status(404).json({ error: 'Curso não encontrado' });
+
+    const nextId = await db.getNextId('turmas');
+    const turma = {
+      id: nextId,
+      name,
+      description: description || '',
+      courseId,
+      professorId: req.user.id,
+      alunoIds: [],
+      createdAt: new Date().toISOString()
+    };
+
+    await db.createTurma(turma);
+    res.status(201).json({ message: 'Turma criada com sucesso', turma });
+  } catch (error) {
+    console.error('Erro ao criar turma:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Atualizar turma
+app.put('/api/turmas/:id', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
+  try {
+    const turmaId = parseInt(req.params.id);
+    const { name, description } = req.body;
+    const turma = await db.getTurmaById(turmaId);
+    if (!turma) return res.status(404).json({ error: 'Turma não encontrada' });
+    if (req.user.role !== 'admin' && turma.professorId !== req.user.id) {
+      return res.status(403).json({ error: 'Sem permissão para editar esta turma' });
+    }
+    const updates = { updatedAt: new Date().toISOString() };
+    if (name) updates.name = name;
+    if (description !== undefined) updates.description = description;
+    const updated = await db.updateTurma(turmaId, updates);
+    res.json({ message: 'Turma atualizada', turma: updated });
+  } catch (error) {
+    console.error('Erro ao atualizar turma:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Deletar turma
+app.delete('/api/turmas/:id', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
+  try {
+    const turmaId = parseInt(req.params.id);
+    const turma = await db.getTurmaById(turmaId);
+    if (!turma) return res.status(404).json({ error: 'Turma não encontrada' });
+    if (req.user.role !== 'admin' && turma.professorId !== req.user.id) {
+      return res.status(403).json({ error: 'Sem permissão para deletar esta turma' });
+    }
+    // Remover turmaId dos alunos
+    const users = await db.getUsers();
+    for (const u of users) {
+      if (u.turmaId === turmaId) {
+        await db.updateUser(u.id, { turmaId: null });
+      }
+    }
+    await db.deleteTurma(turmaId);
+    res.json({ message: 'Turma deletada com sucesso' });
+  } catch (error) {
+    console.error('Erro ao deletar turma:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Obter detalhes de turma com alunos
+app.get('/api/turmas/:id', authenticateToken, async (req, res) => {
+  try {
+    const turmaId = parseInt(req.params.id);
+    const turma = await db.getTurmaById(turmaId);
+    if (!turma) return res.status(404).json({ error: 'Turma não encontrada' });
+
+    const users = await db.getUsers();
+    const course = await db.getCourseById(turma.courseId);
+    const prof = users.find(u => u.id === turma.professorId);
+    const alunos = (turma.alunoIds || []).map(aId => {
+      const u = users.find(usr => usr.id === aId);
+      return u ? { id: u.id, username: u.username, email: u.email, avatarUrl: u.avatarUrl } : null;
+    }).filter(Boolean);
+
+    res.json({
+      ...turma,
+      professorName: prof ? prof.username : 'Desconhecido',
+      courseName: course ? course.name : 'Desconhecido',
+      alunos
+    });
+  } catch (error) {
+    console.error('Erro ao obter turma:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Adicionar aluno à turma (professor/admin)
+app.post('/api/turmas/:id/alunos', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
+  try {
+    const turmaId = parseInt(req.params.id);
+    const { userId } = req.body;
+    const turma = await db.getTurmaById(turmaId);
+    if (!turma) return res.status(404).json({ error: 'Turma não encontrada' });
+    const user = await db.getUserById(userId);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+    if (!(turma.alunoIds || []).includes(userId)) {
+      const newAlunoIds = [...(turma.alunoIds || []), userId];
+      await db.updateTurma(turmaId, { alunoIds: newAlunoIds });
+    }
+    await db.updateUser(userId, { turmaId });
+    res.json({ message: 'Aluno adicionado à turma' });
+  } catch (error) {
+    console.error('Erro ao adicionar aluno:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Remover aluno da turma (professor/admin)
+app.delete('/api/turmas/:id/alunos/:userId', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
+  try {
+    const turmaId = parseInt(req.params.id);
+    const userId = parseInt(req.params.userId);
+    const turma = await db.getTurmaById(turmaId);
+    if (!turma) return res.status(404).json({ error: 'Turma não encontrada' });
+
+    const newAlunoIds = (turma.alunoIds || []).filter(id => id !== userId);
+    await db.updateTurma(turmaId, { alunoIds: newAlunoIds });
+    await db.updateUser(userId, { turmaId: null });
+    res.json({ message: 'Aluno removido da turma' });
+  } catch (error) {
+    console.error('Erro ao remover aluno:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// ==================== DASHBOARD DO PROFESSOR ====================
+
+app.get('/api/professor/dashboard', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
+  try {
+    const profId = req.user.id;
+    const turmas = await db.getTurmas();
+    const myTurmas = turmas.filter(t => t.professorId === profId || req.user.role === 'admin');
+    const users = await db.getUsers();
+    const scores = await db.getScores();
+    const quizzes = await db.getQuizzes();
+    const questions = await db.getQuestions();
+
+    const turmasData = myTurmas.map(turma => {
+      const alunos = (turma.alunoIds || []).map(aId => {
+        const u = users.find(usr => usr.id === aId);
+        if (!u) return null;
+        const alunoScores = scores.filter(s => s.userId === aId);
+        const avgScore = alunoScores.length > 0
+          ? (alunoScores.reduce((sum, s) => sum + parseFloat(s.percentage || 0), 0) / alunoScores.length).toFixed(1)
+          : 0;
+        return {
+          id: u.id, username: u.username, email: u.email, avatarUrl: u.avatarUrl,
+          totalAttempts: alunoScores.length, averageScore: parseFloat(avgScore)
+        };
+      }).filter(Boolean);
+
+      const turmaScores = scores.filter(s => (turma.alunoIds || []).includes(s.userId));
+      const avgTurmaScore = turmaScores.length > 0
+        ? (turmaScores.reduce((sum, s) => sum + parseFloat(s.percentage || 0), 0) / turmaScores.length).toFixed(1)
+        : 0;
+
+      // Desempenho por quiz na turma
+      const turmaQuizzes = quizzes.filter(q => q.turmaId === turma.id || q.courseId === turma.courseId);
+      const quizPerformance = turmaQuizzes.map(q => {
+        const qScores = turmaScores.filter(s => s.quizId === q.id || (s.courseId === q.courseId));
+        return {
+          quizId: q.id, quizName: q.name,
+          attempts: qScores.length,
+          avgScore: qScores.length > 0
+            ? (qScores.reduce((sum, s) => sum + parseFloat(s.percentage || 0), 0) / qScores.length).toFixed(1) : 0
+        };
+      });
+
+      // Ranking competitivo da turma
+      const ranking = alunos
+        .sort((a, b) => b.averageScore - a.averageScore)
+        .map((a, i) => ({ ...a, rank: i + 1 }));
+
+      return {
+        id: turma.id, name: turma.name, courseId: turma.courseId,
+        totalAlunos: alunos.length, averageScore: parseFloat(avgTurmaScore),
+        totalAttempts: turmaScores.length,
+        alunos: ranking, quizPerformance
+      };
+    });
+
+    res.json({
+      turmas: turmasData,
+      totalTurmas: myTurmas.length,
+      totalAlunos: myTurmas.reduce((sum, t) => sum + (t.alunoIds || []).length, 0),
+      totalQuizzes: quizzes.filter(q => q.createdBy === profId).length,
+      totalQuestions: questions.filter(q => q.createdBy === profId).length
+    });
+  } catch (error) {
+    console.error('Erro no dashboard do professor:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Professor pode criar quiz
+app.post('/api/professor/quizzes', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
+  try {
+    const { name, description, courseId, turmaId, questionIds } = req.body;
+    if (!name || !courseId) return res.status(400).json({ error: 'Nome e curso são obrigatórios' });
+
+    const course = await db.getCourseById(courseId);
+    if (!course) return res.status(404).json({ error: 'Curso não encontrado' });
+
+    if (turmaId) {
+      const turma = await db.getTurmaById(turmaId);
+      if (!turma) return res.status(404).json({ error: 'Turma não encontrada' });
+    }
+
+    const validQuestionIds = questionIds || [];
+    const questions = await db.getQuestions();
+    const invalidQs = validQuestionIds.filter(qId => !questions.find(q => String(q.id) === String(qId) && q.courseId === courseId));
+    if (invalidQs.length > 0) return res.status(400).json({ error: 'Questões inválidas', invalidQs });
+
+    const nextId = await db.getNextId('quizzes');
+    const quiz = {
+      id: nextId, name, description: description || '', courseId,
+      turmaId: turmaId || null, questionIds: validQuestionIds,
+      createdBy: req.user.id, createdAt: new Date().toISOString()
+    };
+    await db.createQuiz(quiz);
+    res.status(201).json({ message: 'Quiz criado com sucesso', quiz });
+  } catch (error) {
+    console.error('Erro ao criar quiz (professor):', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Professor pode adicionar questão
+app.post('/api/professor/courses/:courseId/questions', authenticateToken, requireProfessorOrAdmin, async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.courseId);
+    let { id, capacidade, capacity, dificuldade, difficulty, context, contexto, contextImage, command, comando, options } = req.body;
+    const finalCapacity = capacidade || capacity || 'Geral';
+    const finalDifficulty = dificuldade || difficulty || 'Médio';
+    const finalContext = contexto || context || '';
+    const finalCommand = comando || command;
+    if (!finalContext || !finalCommand || !options || options.length === 0) {
+      return res.status(400).json({ error: 'Dados incompletos' });
+    }
+    const course = await db.getCourseById(courseId);
+    if (!course) return res.status(404).json({ error: 'Curso não encontrado' });
+    if (!id) id = await generateNextQuestionId(courseId);
+    const questions = await db.getQuestions();
+    if (questions.find(q => q.id === id && q.courseId === courseId)) {
+      return res.status(400).json({ error: 'ID de questão já existe neste curso' });
+    }
+    const question = {
+      id, courseId, capacity: finalCapacity, difficulty: finalDifficulty,
+      context: finalContext, contextImage: contextImage || null,
+      command: finalCommand, options: normalizeOptionsArray(options),
+      createdBy: req.user.id, createdAt: new Date().toISOString()
+    };
+    await db.createQuestion(question);
+    res.status(201).json({ message: 'Questão criada com sucesso', question });
+  } catch (error) {
+    console.error('Erro ao criar questão (professor):', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });

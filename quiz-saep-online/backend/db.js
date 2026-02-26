@@ -57,7 +57,8 @@ class Database {
       questions: [],
       quizzes: [],
       scores: [],
-      feedbacks: []
+      feedbacks: [],
+      turmas: []
     };
   }
 
@@ -462,6 +463,69 @@ class Database {
     return false;
   }
 
+  // ==================== TURMAS ====================
+
+  async getTurmas() {
+    if (this.firebase) {
+      const snapshot = await db.ref('turmas').once('value');
+      return snapshot.val() ? Object.values(snapshot.val()) : [];
+    }
+    return this.memory.turmas || [];
+  }
+
+  async getTurmaById(id) {
+    if (this.firebase) {
+      const snapshot = await db.ref(`turmas/${id}`).once('value');
+      return snapshot.val();
+    }
+    return (this.memory.turmas || []).find(t => t.id === id);
+  }
+
+  async createTurma(turma) {
+    if (this.firebase) {
+      await db.ref(`turmas/${turma.id}`).set(turma);
+      return turma;
+    }
+    if (!this.memory.turmas) this.memory.turmas = [];
+    this.memory.turmas.push(turma);
+    return turma;
+  }
+
+  async updateTurma(id, updates) {
+    if (this.firebase) {
+      await db.ref(`turmas/${id}`).update(updates);
+      const snapshot = await db.ref(`turmas/${id}`).once('value');
+      return snapshot.val();
+    }
+    const index = (this.memory.turmas || []).findIndex(t => t.id === id);
+    if (index !== -1) {
+      this.memory.turmas[index] = { ...this.memory.turmas[index], ...updates };
+      return this.memory.turmas[index];
+    }
+    return null;
+  }
+
+  async deleteTurma(id) {
+    if (this.firebase) {
+      await db.ref(`turmas/${id}`).remove();
+      return true;
+    }
+    const index = (this.memory.turmas || []).findIndex(t => t.id === id);
+    if (index !== -1) {
+      this.memory.turmas.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
+  async getTurmasByProfessor(professorId) {
+    if (this.firebase) {
+      const snapshot = await db.ref('turmas').orderByChild('professorId').equalTo(professorId).once('value');
+      return snapshot.val() ? Object.values(snapshot.val()) : [];
+    }
+    return (this.memory.turmas || []).filter(t => t.professorId === professorId);
+  }
+
   // ==================== GAMIFICATION ====================
 
   async getGamificationProfile(userId) {
@@ -530,6 +594,22 @@ class Database {
 
   isFirebaseEnabled() {
     return this.firebase !== null;
+  }
+
+  async resetAll() {
+    if (this.firebase) {
+      await db.ref('/').set(null);
+    }
+    this.memory = {
+      users: [],
+      courses: [],
+      questions: [],
+      quizzes: [],
+      scores: [],
+      feedbacks: [],
+      turmas: []
+    };
+    return true;
   }
 }
 

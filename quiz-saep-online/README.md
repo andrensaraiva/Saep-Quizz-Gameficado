@@ -1,8 +1,18 @@
 # 🎮 Quiz SAEP Online — Plataforma Gamificada de Avaliação
 
-Sistema completo de quiz online gamificado com **XP, níveis, conquistas**, múltiplos cursos, ranking, IA generativa, painel administrativo e correção automática.
+<div align="center">
 
-**🌐 Produção:** [saep-quizz-gameficado.onrender.com](https://saep-quizz-gameficado.onrender.com)
+[![Status](https://img.shields.io/badge/status-em%20produção-brightgreen)]()
+[![Node](https://img.shields.io/badge/Node.js-18+-green)]()
+[![License](https://img.shields.io/badge/license-MIT-blue)]()
+[![Firebase](https://img.shields.io/badge/Firebase-Realtime%20DB-orange)]()
+[![Roles](https://img.shields.io/badge/roles-admin%20│%20professor%20│%20aluno-purple)]()
+
+**Plataforma completa de quiz educacional gamificado com IA, geração de simulados em lote, turmas, painel de professor e admin, ranking competitivo e deploy Render.**
+
+[Demo](https://saep-quizz-gameficado.onrender.com) · [Instalação](#-instalação) · [API](#-api-endpoints) · [Deploy](#-deploy)
+
+</div>
 
 ---
 
@@ -25,24 +35,50 @@ Sistema completo de quiz online gamificado com **XP, níveis, conquistas**, múl
 
 ## 🔭 Visão Geral
 
-O **Quiz SAEP Online** é uma plataforma educacional gamificada desenvolvida para o **SAEP (Sistema de Avaliação da Educação Profissional)**. Os alunos respondem quizzes, ganham XP, sobem de nível, desbloqueiam conquistas e competem no ranking — tudo com feedback detalhado e questões geradas por IA.
+Plataforma web gamificada para avaliações no padrão **SAEP** (Sistema de Avaliação da Educação Profissional), com **três papéis de usuário** (admin, professor, aluno), sistema de XP, conquistas, ranking competitivo por turma, geração de **simulados com IA** em lote, e painel de professor com gráficos.
 
-### Fluxo do Usuário
+### Papéis do Sistema
+
+| Papel | Acesso | Principais Ações |
+|-------|--------|-------------------|
+| **Admin** | `admin.html` | CRUD total, gerenciar usuários/roles, turmas, simulados IA, relatórios, exportação |
+| **Professor** | `professor.html` | Criar quizzes/questões, gerenciar turmas, gerar simulados IA, dashboard com gráficos |
+| **Aluno** | `index.html` | Responder quizzes, perfil com avatar e turma, ranking, revisão com IA |
+
+### Fluxo do Aluno
 
 ```
-Aluno acessa → Escolhe curso/quiz → Responde questões → Recebe nota + XP + conquistas
-                                                         ↓
-                                              Revisão detalhada das erradas
-                                                         ↓
-                                              IA gera questões similares para treino
+1. Cadastro/Login → Perfil com avatar, turma e gamificação
+2. Seleção de Curso → Filtro por tema
+3. Escolha do Quiz → Card com detalhes
+4. Respondendo → Barra de progresso + combo
+5. Resultado → Nota + XP + conquistas + confetti
+6. Revisão → Questões erradas com justificativas
+7. IA Auxiliar → Gerar questão similar para praticar
+8. Ranking → Competir com colegas da turma
+```
+
+### Fluxo do Professor
+
+```
+1. Login (role: professor) → Dashboard com gráficos Chart.js
+2. Ranking da Turma → Top 3 com 🥇🥈🥉
+3. Gerenciar Turmas → Criar e excluir turmas
+4. Criar Quizzes → Montar a partir de questões do curso
+5. Adicionar Questões → CRUD + importação JSON
+6. Gerar Simulado IA → Wizard 3 etapas (configurar → gerar → revisar/editar)
 ```
 
 ### Fluxo do Admin
 
 ```
-Admin acessa painel → Gerencia cursos/quizzes/questões → Gera questões com IA
-                    → Visualiza relatórios e rankings  → Exporta dados CSV
-                    → Gerencia usuários e feedbacks    → Responde feedbacks
+1. Login (role: admin) → Dashboard com 8 cards + gráfico Chart.js
+2. Gerenciar Tudo → Cursos, quizzes, questões, turmas, usuários
+3. Atribuir Roles → Promover aluno ↔ professor ↔ admin
+4. Gerar Simulado IA → Wizard 3 etapas com revisão completa
+5. Relatórios → Taxa de acerto por questão
+6. Exportar → CSV de usuários, pontuações, turmas, questões
+7. Feedbacks → Visualizar e responder
 ```
 
 ---
@@ -50,162 +86,211 @@ Admin acessa painel → Gerencia cursos/quizzes/questões → Gera questões com
 ## 🏗 Arquitetura
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    FRONTEND                          │
-│  index.html + styles.css + app.js + gamification.*   │
-│  admin.html + admin-styles.css + admin.js            │
-│  (Vanilla HTML/CSS/JS — sem frameworks)              │
-└──────────────────────┬──────────────────────────────┘
-                       │ Fetch API (REST JSON)
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│                  BACKEND (Express.js)                 │
-│  server.js (~2980 linhas) + db.js (abstração DB)     │
-│                                                       │
-│  Middlewares: CORS, JWT Auth, Rate Limiting, Admin    │
-│  Integração: Google Gemini + OpenAI + Pollinations   │
-└──────────────────────┬──────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│              BANCO DE DADOS                           │
-│  Firebase Realtime Database (produção)                │
-│  ou In-Memory Arrays (desenvolvimento/fallback)       │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│                FRONTEND (SPA)                    │
+│  HTML + CSS + JS Vanilla + Chart.js 4.4          │
+│  index.html │ admin.html │ professor.html        │
+├──────────────────────────────────────────────────┤
+│            REST API (Express.js)                 │
+│  Auth │ Courses │ Quizzes │ Scores │ Turmas │ AI │
+├──────────────────────────────────────────────────┤
+│                DATABASE                          │
+│  Firebase Realtime DB │ In-Memory fallback       │
+├──────────────────────────────────────────────────┤
+│              AI PROVIDERS                        │
+│  Google Gemini │ OpenAI │ Pollinations           │
+└──────────────────────────────────────────────────┘
 ```
+
+**Comunicação:** Frontend ↔ Backend via `fetch()` com JWT Bearer token (7 dias). Firebase admin SDK no backend.
 
 ### Estrutura de Pastas
 
 ```
 quiz-saep-online/
-├── frontend/
-│   ├── index.html            # SPA principal do quiz
-│   ├── styles.css            # Estilos gerais (~1700 linhas)
-│   ├── app.js                # Lógica do quiz (~1711 linhas)
-│   ├── gamification.js       # Módulo de gamificação (~508 linhas)
-│   ├── gamification.css      # Estilos de gamificação
-│   ├── admin.html            # Painel administrativo
-│   ├── admin-styles.css      # Estilos do admin
-│   └── admin.js              # Lógica administrativa
-│
 ├── backend/
-│   ├── server.js             # API Express completa (~2980 linhas)
-│   ├── db.js                 # Abstração Firebase/Memória (~535 linhas)
-│   ├── package.json          # Dependências Node.js
-│   └── .env                  # Variáveis de ambiente (não versionado)
+│   ├── server.js          # Servidor Express (~3.700 linhas)
+│   ├── db.js              # Abstração de banco (Firebase/memória)
+│   ├── package.json       # Dependências Node.js
+│   └── .env               # Variáveis de ambiente (criar manualmente)
+│
+├── frontend/
+│   ├── index.html         # Página do aluno (quiz + perfil + gamificação)
+│   ├── admin.html         # Painel administrativo completo
+│   ├── professor.html     # Painel do professor (dashboard + CRUD + simulado)
+│   ├── app.js             # JavaScript do quiz do aluno
+│   ├── admin.js           # JavaScript do admin (~3.100 linhas)
+│   ├── professor.js       # JavaScript do professor (~700 linhas)
+│   ├── styles.css         # Estilos do quiz
+│   ├── admin-styles.css   # Estilos do admin e professor
+│   ├── gamification.css   # Estilos de gamificação
+│   └── gamification.js    # Lógica de gamificação
 │
 ├── shared/
-│   └── questions.json        # Questões originais (22 questões)
+│   └── questions.json     # Backup de questões
 │
-├── init-first-course.js      # Script de inicialização
-├── render.yaml               # Configuração de deploy no Render
-├── editor-questoes.html      # Editor visual de questões
-└── README.md                 # Este arquivo
+├── render.yaml            # Config de deploy Render
+├── init-first-course.js   # Script de seed inicial
+├── editor-questoes.html   # Editor visual de questões
+└── README.md              # Este arquivo
 ```
 
 ---
 
 ## ✨ Funcionalidades
 
+### 👥 Sistema de Papéis (Roles)
+
+| Recurso | Descrição |
+|---------|-----------|
+| **3 papéis** | `admin`, `professor`, `user` (aluno) |
+| **Atribuição de role** | Admin pode alterar o papel de qualquer usuário |
+| **Middleware de acesso** | Rotas protegidas por `requireAdmin`, `requireProfessorOrAdmin`, `requireAuth` |
+| **Seed automático** | Sistema cria automaticamente admin, professor e aluno de exemplo |
+| **Detecção de painel** | Alunos veem botão para painel do professor (se role adequado) |
+
+### 🏫 Sistema de Turmas
+
+| Recurso | Descrição |
+|---------|-----------|
+| **CRUD de turmas** | Criar, listar, editar, excluir turmas |
+| **Alunos por turma** | Cada aluno pode ser associado a uma turma no perfil |
+| **Turmas do professor** | Professores veem apenas suas turmas |
+| **Gestão admin** | Admin gerencia todas as turmas do sistema |
+| **Ranking por turma** | Classificação competitiva dentro de cada turma |
+| **Exportação** | Exportar turmas em CSV |
+
 ### 🎮 Gamificação Completa
 
 | Recurso | Descrição |
 |---------|-----------|
-| **XP (Experiência)** | Ganha XP por resposta correta. Bônus por combo, velocidade e nota alta |
-| **Níveis** | Sistema de 50 níveis com progressão exponencial (Calouro → Lendário) |
-| **Conquistas** | 15+ conquistas desbloqueáveis (Primeiro Quiz, Combo x5, Perfeição, etc.) |
-| **Combos** | Respostas consecutivas corretas multiplicam XP (2x, 3x, 4x, 5x) |
-| **Leaderboard XP** | Ranking separado por XP total e nível |
-| **Animações** | Confetti ao subir de nível, toasts animados para conquistas |
-| **Painel de XP** | Barra de progresso ao vivo durante e após o quiz |
+| **Sistema de XP** | Ganhe XP ao completar quizzes (base + combo + velocidade) |
+| **Níveis 1-50** | Progressão com XP crescente (100 × nível × 1.5) |
+| **Combo System** | Multiplicador por respostas consecutivas corretas (max 5x) |
+| **Conquistas** | 10+ conquistas desbloqueáveis (Primeira Vitória, Combo Master, etc) |
+| **Confetti** | Animação especial ao subir de nível |
+| **XP Summary** | Card detalhado com breakdown do XP ganho |
+| **Bônus Perfeição** | XP extra por 100% de acertos |
+| **Bônus Velocidade** | XP extra por completar rápido |
 
 ### 📝 Sistema de Quiz
 
-- **Múltiplos cursos** independentes com rankings separados
-- **Quizzes configuráveis** com seleção de questões por quiz
-- **Embaralhamento** automático de questões e alternativas
-- **Timer/cronômetro** durante a prova
-- **Correção automática** com feedback detalhado por questão
-- **Revisão de erradas** com explicações e justificativas
-- **IA gera questões similares** para praticar erros (Google Gemini)
-- **Imagens** opcionais no contexto e nas alternativas (Pollinations)
-- **Aviso de questões não respondidas** antes de finalizar
-- **Modal de confirmação** customizado (não usa `confirm()` nativo)
+| Recurso | Descrição |
+|---------|-----------|
+| **Múltiplos cursos** | Organização por curso/disciplina |
+| **Embaralhamento** | Questões e alternativas randomizadas (Fisher-Yates) |
+| **Cronômetro** | Tempo de conclusão registrado |
+| **Barra de progresso** | Visual de questões respondidas |
+| **Confirmação** | Modal antes de finalizar (avisa não respondidas) |
+| **Revisão detalhada** | Mostra erros com justificativas por alternativa |
+| **Imagens** | Suporte a imagens no contexto e alternativas |
+| **Tags** | Categorização por capacidade e competência |
 
 ### 👤 Autenticação e Perfil
 
-- Cadastro e login com **JWT** (tokens de 24h)
-- Senhas criptografadas com **bcrypt** (10 rounds)
-- Sistema de **roles**: `user` e `admin`
-- Perfil com **histórico completo** de tentativas
-- Verificação automática de token ao carregar a página
+| Recurso | Descrição |
+|---------|-----------|
+| **Registro/Login** | Sistema completo com validações |
+| **JWT** | Token de 7 dias com verificação automática |
+| **Perfil** | Avatar URL, turma, histórico de tentativas, XP, nível |
+| **Seletor de turma** | Aluno escolhe sua turma no perfil |
+| **Papéis (roles)** | `admin`, `professor`, `user` com permissões distintas |
+| **Acesso condicional** | Botão para painel do professor visível apenas para roles adequados |
 
 ### 🏆 Ranking Avançado
 
-- Ranking **por curso** (filtro por dropdown)
-- Filtros por **período**: hoje, semana, mês, todos
-- Ordenado por **percentual** (empate: menor tempo vence)
-- Medalhas visuais: 🥇 🥈 🥉 para top 3
-- Leaderboard separado de **XP e nível** (gamificação)
+| Recurso | Descrição |
+|---------|-----------|
+| **Ranking geral** | Filtro por curso e período |
+| **Ranking por turma** | Competição entre alunos da mesma turma |
+| **Top 3** | Medalhas 🥇🥈🥉 para os primeiros |
+| **Leaderboard XP** | Ranking separado por experiência |
+| **Múltiplos filtros** | Geral, semanal, mensal |
 
-### 🛡️ Painel Administrativo
+### 🛡️ Painel Administrativo (`admin.html`)
 
-- **Dashboard** com estatísticas gerais (cursos, questões, usuários, tentativas)
-- **CRUD de cursos** (criar, editar, excluir)
-- **CRUD de quizzes** (criar com seleção de questões, editar, excluir)
-- **CRUD de questões** — individual ou **importação em lote via JSON**
-- **Edição de questões** existentes (PUT endpoint)
-- **Geração de questões com IA** (Gemini/OpenAI) com preview antes de salvar
-- **Gerenciamento de usuários** (promover admin, excluir)
-- **Relatórios por curso** (taxa de acerto por questão, top 10, análise)
-- **Exportação CSV** (usuários, pontuações, cursos)
-- **Sistema de feedback** — alunos enviam, admin visualiza e responde
-- Resultados anônimos (alunos sem login)
+| Recurso | Descrição |
+|---------|-----------|
+| **Dashboard** | 8 cards estatísticos + gráfico Chart.js com visão geral |
+| **CRUD Cursos** | Criar, editar, excluir cursos |
+| **CRUD Questões** | Criar, editar, excluir + importação JSON em lote |
+| **CRUD Quizzes** | Criar, editar, excluir + busca de questões |
+| **Gerenciar Turmas** | CRUD completo de turmas |
+| **Gerenciar Usuários** | Listar, alterar role (dropdown admin/professor/user), excluir |
+| **Gerar Simulado IA** | Wizard 3 etapas com revisão e edição por questão |
+| **Relatórios** | Taxa de acerto por questão em cada curso |
+| **Feedbacks** | Visualizar, responder, excluir feedbacks |
+| **Exportação** | CSV de usuários, pontuações, turmas e questões |
+
+### 👨‍🏫 Painel do Professor (`professor.html`)
+
+| Recurso | Descrição |
+|---------|-----------|
+| **Dashboard** | Gráfico Chart.js com desempenho dos alunos |
+| **Ranking da Turma** | Top 3 com medalhas 🥇🥈🥉, tabela completa |
+| **Criar Quizzes** | Montar quizzes selecionando questões do curso |
+| **Adicionar Questões** | CRUD de questões nos cursos do professor |
+| **Gerenciar Turmas** | Criar e excluir turmas associadas ao professor |
+| **Gerar Simulado IA** | Mesmo wizard 3 etapas com vínculo à turma |
 
 ### 🤖 Inteligência Artificial
 
-- **Geração de questões** completas via Google Gemini ou OpenAI
-- **Questões similares** para treino — aluno clica após errar e IA gera nova questão
-- **Pollinations** integrado para gerar imagens automaticamente (sem API key)
-- Configurável via variáveis de ambiente (`GEMINI_API_KEY`, `OPENAI_API_KEY`)
-- Rate limiting específico para IA: 10 req/min
+| Recurso | Descrição |
+|---------|-----------|
+| **Gerar questão similar** | Aluno gera questão parecida com a que errou |
+| **Gerar questão (admin/professor)** | Gerar questão individual com IA + imagens |
+| **🆕 Gerar Simulado completo** | Gerar de 1 a 20 questões em lote com IA |
+| **Wizard 3 etapas** | 1) Configurar (curso, provider, qtd) → 2) Gerar (barra de progresso) → 3) Revisar |
+| **Tema por questão** | Escolher capacidade, competência, dificuldade e conteúdo para cada questão |
+| **Aplicar tema padrão** | Definir tema e aplicar para todas as questões de uma vez |
+| **Editar questão gerada** | Editar enunciado, alternativas, justificativas e imagens |
+| **Regenerar individual** | Regenerar uma questão específica mantendo as outras |
+| **Excluir individual** | Remover questão do simulado antes de salvar |
+| **Salvar simulado** | Salva todas as questões no curso + cria quiz automaticamente |
+| **Múltiplos providers** | Google Gemini (gratuito), OpenAI |
+| **Imagens IA** | Pollinations.ai para imagens de contexto e alternativas |
 
 ### 🔔 Sistema de Notificações (Toast)
 
-- Substituiu todos os `alert()` nativos do navegador
-- 4 tipos visuais: **success** (verde), **error** (vermelho), **warning** (amarelo), **info** (azul)
-- Animações de entrada/saída com barra de progresso
-- Auto-dismiss configurável (3-5 segundos)
-- Posicionado no canto superior direito, responsivo
+| Recurso | Descrição |
+|---------|-----------|
+| **4 tipos** | Sucesso, erro, aviso, info |
+| **Auto-dismiss** | Desaparecem após 5 segundos |
+| **Stack** | Múltiplas notificações empilhadas |
+| **Animações** | Slide-in e fade-out |
 
 ### ♿ Acessibilidade
 
-- **Skip navigation** (link "Pular para conteúdo")
-- **ARIA landmarks** em todas as seções (`role="banner"`, `role="main"`, etc.)
-- Modais com `role="dialog"` e `aria-modal="true"`
-- Todos os inputs de formulário com `<label>` associado
-- `focus-visible` com outline personalizado para navegação por teclado
-- `autocomplete` nos campos de login/cadastro
-- Barra de progresso do quiz com `role="progressbar"` e `aria-valuenow`
-- Fechamento de modais por **Escape** e **clique no backdrop**
+| Recurso | Descrição |
+|---------|-----------|
+| **ARIA Labels** | Em todos os elementos interativos |
+| **Teclado** | Navegação por Tab + Enter/Space |
+| **Contraste** | Cores acessíveis (WCAG AA) |
+| **Focus visible** | Indicadores de foco visíveis |
+| **Screen readers** | Textos alternativos em imagens |
+| **Semântico** | Tags HTML5 semânticas |
+| **Responsivo** | Mobile-first com media queries |
 
 ### 📊 Feedback e Analytics
 
-- Formulário de feedback (sugestão, bug, elogio, outro)
-- Admin pode **responder** feedbacks (status atualizado automaticamente)
-- Relatórios detalhados por curso com identificação de questões difíceis
+| Recurso | Descrição |
+|---------|-----------|
+| **Enviar feedback** | Formulário com tipo e mensagem |
+| **Taxa de acerto** | Por questão, curso e período |
+| **Analytics** | Desempenho por capacidade e competência |
 
 ---
 
 ## 🛠 Tecnologias
 
 ### Backend
+
 | Tecnologia | Uso |
 |-----------|-----|
 | **Node.js 18+** | Runtime JavaScript |
 | **Express.js 4** | Framework HTTP/REST |
 | **Firebase Admin SDK** | Banco de dados Realtime Database |
-| **jsonwebtoken** | Autenticação JWT |
+| **jsonwebtoken** | Autenticação JWT (tokens de 7 dias) |
 | **bcryptjs** | Hash de senhas |
 | **express-rate-limit** | Limitação de requisições |
 | **cors** | Controle de origens permitidas |
@@ -215,18 +300,21 @@ quiz-saep-online/
 | **dotenv** | Variáveis de ambiente |
 
 ### Frontend
+
 | Tecnologia | Uso |
 |-----------|-----|
 | **HTML5 Semântico** | Estrutura com ARIA labels |
 | **CSS3** | Flexbox, Grid, variáveis custom, animações |
 | **JavaScript ES6+** | Módulos, async/await, Fetch API |
-| **Vanilla (sem frameworks)** | Zero dependências no navegador |
+| **Chart.js 4.4** | Gráficos no dashboard do admin e professor |
+| **Vanilla (sem frameworks)** | Zero dependências pesadas no navegador |
 
 ---
 
 ## 🚀 Instalação
 
 ### Pré-requisitos
+
 - **Node.js** 18 ou superior
 - **NPM** (incluso no Node.js)
 - **Git** (para clonar)
@@ -268,33 +356,35 @@ node server.js
 ```
 
 Saída esperada:
+
 ```
 🚀 Servidor rodando na porta 3000
 📁 Frontend servido de: .../frontend
 🔥 Firebase conectado com sucesso!
+🌱 Seed: Admin criado — admin@quiz.com / admin123
+🌱 Seed: Professor criado — professor@quiz.com / prof123
+🌱 Seed: Aluno criado — aluno@quiz.com / aluno123
+🌱 Seed: Turma "Turma A - Jogos Digitais" criada
+🌱 Seed: Curso e questões inicializados
 ```
 
-### Passo 4 — Inicializar dados
-
-Em outro terminal:
-
-```powershell
-node init-first-course.js
-```
-
-Isso cria:
-- Usuário admin (`admin` / `admin123`)
-- Curso "Programação de Jogos Digitais"
-- 22 questões iniciais
-
-### Passo 5 — Acessar
+### Passo 4 — Acessar
 
 | URL | Descrição |
 |-----|-----------|
 | `http://localhost:3000` | Interface do quiz (alunos) |
 | `http://localhost:3000/admin.html` | Painel administrativo |
+| `http://localhost:3000/professor.html` | Painel do professor |
 
-**Login admin:** `admin` / `admin123`
+### Credenciais de Seed
+
+| Papel | Email | Senha |
+|-------|-------|-------|
+| **Admin** | `admin@quiz.com` | `admin123` |
+| **Professor** | `professor@quiz.com` | `prof123` |
+| **Aluno** | `aluno@quiz.com` | `aluno123` |
+
+> O seed é executado automaticamente ao iniciar o servidor. Se os usuários já existem, não duplica.
 
 ---
 
@@ -325,7 +415,7 @@ O módulo `db.js` abstrai o banco de dados com duas implementações:
 - **Firebase Realtime Database** — usado quando as variáveis `FIREBASE_*` estão configuradas. Dados persistentes. IDs gerados com Firebase transactions para evitar race conditions.
 - **In-Memory** — fallback automático. Perfeito para desenvolvimento local. Dados vivem apenas na memória do processo.
 
-Ambas expõem a mesma API: `getUsers()`, `createUser()`, `getCourses()`, `getQuestions()`, etc.
+Ambas expõem a mesma API: `getUsers()`, `createUser()`, `getCourses()`, `getQuestions()`, `getTurmas()`, `createTurma()`, etc.
 
 ---
 
@@ -340,6 +430,7 @@ Quando a página carrega:
 4. Verifica token JWT no `localStorage` → se válido, restaura sessão
 5. Carrega cursos e quizzes via API
 6. Carrega perfil de gamificação (se logado)
+7. Exibe botão de painel do professor (se role professor/admin)
 
 ### 2. Seleção e Início do Quiz
 
@@ -386,35 +477,71 @@ Quando a página carrega:
 
 ### 6. Ranking e Perfil
 
-- **Ranking**: filtrável por curso e período. Top 3 com medalhas.
-- **Perfil**: histórico de todas as tentativas com nota, tempo e curso.
+- **Ranking geral**: filtrável por curso e período. Top 3 com medalhas.
+- **Ranking por turma**: competição entre alunos da mesma turma.
+- **Perfil**: avatar, turma, histórico de todas as tentativas com nota, tempo e curso.
 - **Leaderboard XP**: ranking separado ordenado por XP e nível.
 
-### 7. Painel Admin
+### 7. Geração de Simulado (IA)
+
+O wizard de simulado está disponível para **admin** e **professor**:
+
+1. **Etapa 1 — Configuração:**
+   - Selecionar curso e provider de IA (Gemini/OpenAI)
+   - Escolher quantidade de questões (1-20)
+   - Configurar tema padrão (capacidade, competência, dificuldade, conteúdo)
+   - Aplicar tema padrão ou personalizar cada questão individualmente
+   - Opcionalmente incluir imagens de contexto e alternativas
+
+2. **Etapa 2 — Geração:**
+   - Barra de progresso mostra geração em tempo real
+   - Cada questão é gerada sequencialmente com 1s de intervalo
+   - Erros são contabilizados sem interromper o processo
+
+3. **Etapa 3 — Revisão:**
+   - Listar todas as questões geradas com enunciado e alternativas
+   - **Editar** qualquer questão (enunciado, alternativas, justificativas, imagens)
+   - **Regenerar** uma questão específica com as mesmas especificações
+   - **Excluir** questões indesejadas
+   - Definir nome e descrição do simulado
+   - **Salvar** — adiciona questões ao curso e cria quiz automaticamente
+
+### 8. Painel do Professor
+
+Acessível em `/professor.html` (requer role `professor` ou `admin`):
+- **Dashboard** com gráfico Chart.js
+- **Ranking da turma** com medalhas 🥇🥈🥉
+- **CRUD de cursos/quizzes/questões** com escopo do professor
+- **Gerenciamento de turmas** — criar e excluir
+- **Gerar simulado IA** com mesmo wizard do admin + vínculo à turma
+
+### 9. Painel Admin
 
 Acessível em `/admin.html` (requer role `admin`):
-- Dashboard com contadores e atividades recentes
-- CRUD completo de cursos, quizzes e questões
-- Importação em lote de questões via JSON
-- Geração de questões com IA (Gemini/OpenAI)
-- Gerenciamento de usuários (promover, excluir)
-- Relatórios por curso com taxa de acerto por questão
-- Visualização e resposta de feedbacks
-- Exportação de dados em CSV
+- **Dashboard** com 8 cards estatísticos + gráfico Chart.js visão geral
+- **CRUD completo** de cursos, quizzes, questões e turmas
+- **Gerenciar usuários** — listar, alterar role (dropdown), excluir
+- **Gerar simulado IA** — wizard 3 etapas
+- **Importação em lote** de questões via JSON
+- **Relatórios** — taxa de acerto por questão em cada curso
+- **Feedbacks** — visualizar, responder e excluir
+- **Exportação CSV** — usuários, pontuações, turmas e questões
 
 ---
 
 ## 📡 API Endpoints
 
 ### Autenticação
+
 | Método | Rota | Auth | Rate Limit | Descrição |
 |--------|------|:----:|:----------:|-----------|
 | POST | `/api/auth/register` | — | 20/15min | Cadastrar usuário |
-| POST | `/api/auth/login` | — | 20/15min | Login (retorna JWT) |
+| POST | `/api/auth/login` | — | 20/15min | Login (retorna JWT 7 dias) |
 | GET | `/api/auth/verify` | JWT | — | Verificar token |
 | POST | `/api/auth/create-admin` | ADMIN_SECRET | — | Criar admin |
 
 ### Cursos
+
 | Método | Rota | Auth | Descrição |
 |--------|------|:----:|-----------|
 | GET | `/api/courses` | — | Listar todos os cursos |
@@ -423,6 +550,7 @@ Acessível em `/admin.html` (requer role `admin`):
 | DELETE | `/api/courses/:id` | Admin | Excluir curso + questões |
 
 ### Questões
+
 | Método | Rota | Auth | Descrição |
 |--------|------|:----:|-----------|
 | GET | `/api/courses/:id/questions` | — | Listar questões do curso |
@@ -433,6 +561,7 @@ Acessível em `/admin.html` (requer role `admin`):
 | GET | `/api/courses/:id/next-question-id` | Admin | Próximo ID disponível |
 
 ### Quizzes
+
 | Método | Rota | Auth | Descrição |
 |--------|------|:----:|-----------|
 | GET | `/api/quizzes` | — | Listar quizzes |
@@ -442,7 +571,17 @@ Acessível em `/admin.html` (requer role `admin`):
 | DELETE | `/api/quizzes/:id` | Admin | Excluir quiz |
 | GET | `/api/courses/:id/quizzes` | — | Quizzes de um curso |
 
+### Turmas
+
+| Método | Rota | Auth | Descrição |
+|--------|------|:----:|-----------|
+| GET | `/api/turmas` | JWT | Listar turmas |
+| POST | `/api/turmas` | Prof/Admin | Criar turma |
+| PUT | `/api/turmas/:id` | Prof/Admin | Editar turma |
+| DELETE | `/api/turmas/:id` | Prof/Admin | Excluir turma |
+
 ### Pontuações e Ranking
+
 | Método | Rota | Auth | Descrição |
 |--------|------|:----:|-----------|
 | POST | `/api/scores` | JWT | Salvar pontuação |
@@ -452,6 +591,7 @@ Acessível em `/admin.html` (requer role `admin`):
 | GET | `/api/stats` | — | Estatísticas gerais |
 
 ### Gamificação
+
 | Método | Rota | Auth | Descrição |
 |--------|------|:----:|-----------|
 | GET | `/api/gamification/profile` | JWT | Perfil XP/nível/conquistas |
@@ -459,25 +599,53 @@ Acessível em `/admin.html` (requer role `admin`):
 | GET | `/api/gamification/leaderboard` | — | Ranking XP |
 | GET | `/api/gamification/achievements` | — | Lista de conquistas |
 
+### Perfil
+
+| Método | Rota | Auth | Descrição |
+|--------|------|:----:|-----------|
+| GET | `/api/profile` | JWT | Obter perfil completo |
+| PUT | `/api/profile` | JWT | Atualizar perfil (avatar, turma) |
+
 ### IA
+
 | Método | Rota | Auth | Rate Limit | Descrição |
 |--------|------|:----:|:----------:|-----------|
-| POST | `/api/ai/generate-similar-question` | — | 10/min | Gerar questão similar |
-| POST | `/api/ai/generate-question` | Admin | — | Gerar questão (admin) |
-| GET | `/api/ai/status` | Admin | — | Status das APIs de IA |
+| POST | `/api/ai/generate-similar-question` | — | 10/min | Gerar questão similar (aluno) |
+| POST | `/api/ai/generate-question` | Prof/Admin | — | Gerar questão individual |
+| POST | `/api/ai/generate-simulado` | Prof/Admin | — | **Gerar simulado em lote (1-20 questões)** |
+| GET | `/api/ai/status` | Prof/Admin | — | Status das APIs de IA |
+
+### Professor
+
+| Método | Rota | Auth | Descrição |
+|--------|------|:----:|-----------|
+| GET | `/api/professor/dashboard` | Prof/Admin | Dashboard com estatísticas |
+| GET | `/api/professor/turmas` | Prof/Admin | Turmas do professor |
+| POST | `/api/professor/turmas` | Prof/Admin | Criar turma |
+| DELETE | `/api/professor/turmas/:id` | Prof/Admin | Excluir turma |
+| GET | `/api/professor/courses/:id/questions` | Prof/Admin | Questões do curso |
+| POST | `/api/professor/courses/:id/questions` | Prof/Admin | Adicionar questão |
+| PUT | `/api/professor/courses/:cid/questions/:qid` | Prof/Admin | Editar questão |
+| DELETE | `/api/professor/courses/:cid/questions/:qid` | Prof/Admin | Excluir questão |
+| POST | `/api/professor/quizzes` | Prof/Admin | Criar quiz |
 
 ### Administração
+
 | Método | Rota | Auth | Descrição |
 |--------|------|:----:|-----------|
 | GET | `/api/admin/dashboard` | Admin | Estatísticas gerais |
 | GET | `/api/admin/users` | Admin | Listar usuários |
-| PUT | `/api/admin/users/:id/role` | Admin | Alterar role |
+| PUT | `/api/admin/users/:id/role` | Admin | Alterar role (admin/professor/user) |
 | DELETE | `/api/admin/users/:id` | Admin | Excluir usuário |
 | GET | `/api/admin/reports/course/:id` | Admin | Relatório do curso |
-| GET | `/api/admin/export/:type` | Admin | Exportar CSV |
+| GET | `/api/admin/export/:type` | Admin | Exportar CSV (users/scores/turmas/questions) |
 | GET | `/api/admin/anonymous-results` | Admin | Resultados anônimos |
+| GET | `/api/admin/turmas` | Admin | Listar todas as turmas |
+| DELETE | `/api/admin/turmas/:id` | Admin | Excluir turma |
+| POST | `/api/admin/reset-all` | Admin | Resetar todos os dados |
 
 ### Feedback
+
 | Método | Rota | Auth | Descrição |
 |--------|------|:----:|-----------|
 | POST | `/api/feedback` | — | Enviar feedback |
@@ -486,10 +654,12 @@ Acessível em `/admin.html` (requer role `admin`):
 | DELETE | `/api/admin/feedbacks/:id` | Admin | Excluir feedback |
 
 ### Utilitários
+
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | GET | `/api/health` | Health check (status do servidor e DB) |
 | GET | `/api/debug/courses` | Debug de cursos (admin only) |
+| POST | `/api/seed` | Executar seed manual |
 
 ---
 
@@ -501,6 +671,7 @@ Acessível em `/admin.html` (requer role `admin`):
 {
   "id": "Q25",
   "capacidade": "C3 - Aplicação",
+  "habilidade": "Implementar lógica de programação",
   "context": "Contextualização antes da pergunta (opcional).",
   "contextImage": "https://image.pollinations.ai/prompt/contexto",
   "command": "Qual instrução JavaScript exibe uma mensagem no console?",
@@ -524,7 +695,7 @@ Acessível em `/admin.html` (requer role `admin`):
 **Regras:**
 - `id`, `command`, `options` são obrigatórios
 - Exatamente **UMA** opção deve ter `"correct": true`
-- `capacidade`, `context`, `contextImage`, `image`, `justification`, `explanation`, `tags` são opcionais
+- `capacidade`, `habilidade`, `context`, `contextImage`, `image`, `justification`, `explanation`, `tags` são opcionais
 - O sistema embaralha automaticamente as alternativas
 
 ### Importação em Lote
@@ -538,6 +709,35 @@ Envie um array JSON para `POST /api/courses/:id/questions/import`:
 ]
 ```
 
+### Simulado (Especificação de Geração)
+
+Envie para `POST /api/ai/generate-simulado`:
+
+```json
+{
+  "courseId": "curso-1",
+  "provider": "gemini",
+  "includeContextImages": true,
+  "includeOptionImages": false,
+  "questions": [
+    {
+      "capacity": "C3 - Aplicação",
+      "skill": "Implementar lógica de programação",
+      "difficulty": "média",
+      "content": "Variáveis e tipos de dados"
+    },
+    {
+      "capacity": "C2 - Compreensão",
+      "skill": "Entender conceitos de POO",
+      "difficulty": "fácil",
+      "content": "Classes e objetos"
+    }
+  ]
+}
+```
+
+Retorna array de questões geradas no formato padrão, prontas para revisão e salvamento.
+
 ---
 
 ## 🔒 Segurança
@@ -546,16 +746,17 @@ Envie um array JSON para `POST /api/courses/:id/questions/import`:
 
 | Medida | Detalhes |
 |--------|---------|
-| **JWT Authentication** | Tokens de 24h, verificação em todas as rotas protegidas |
+| **JWT Authentication** | Tokens de 7 dias, verificação em todas as rotas protegidas |
 | **Bcrypt** | Hash de senhas com 10 salt rounds |
 | **Rate Limiting** | Auth: 20 req/15min · IA: 10 req/min · Geral: 100 req/min |
 | **CORS** | Whitelist de origens (Render, localhost). Origens não autorizadas são bloqueadas |
-| **Role-based Access** | Middleware `requireAdmin` para rotas administrativas |
+| **Role-based Access** | Middleware `requireAdmin`, `requireProfessorOrAdmin`, `requireAuth` |
 | **Request Body Limit** | Máximo 1MB por requisição JSON |
 | **JWT Secret Warning** | Log de erro se secret padrão usado em produção |
 | **XSS Sanitization** | Função `sanitizeHtml()` para limpar inputs no frontend |
 | **Firebase Transactions** | `getNextId()` usa transactions para evitar IDs duplicados |
 | **Debug Route Protection** | `/api/debug/courses` requer autenticação de admin |
+| **Simulado Limit** | Máximo 20 questões por geração de simulado |
 
 ### Recomendações para Produção
 
@@ -609,33 +810,47 @@ GEMINI_MODEL=gemini-2.5-flash
 ## 🐛 Resolução de Problemas
 
 ### "Cannot find module"
+
 ```powershell
 cd backend
 npm install
 ```
 
 ### "JWT_SECRET is not defined"
+
 Crie `backend/.env` com `JWT_SECRET=seu_valor`
 
 ### "Port 3000 already in use"
+
 ```powershell
 netstat -ano | findstr :3000
 taskkill /PID <PID> /F
 ```
 
 ### "Origem não permitida pelo CORS"
+
 Adicione seu domínio à lista `allowedOrigins` em `server.js`
 
 ### Dados perdidos ao reiniciar
+
 Configure Firebase. Sem ele, o sistema usa memória (dados voláteis).
 
 ### IA não gera questões
-Verifique `GEMINI_API_KEY` no `.env`. Teste com `GET /api/ai/status` (admin).
+
+Verifique `GEMINI_API_KEY` no `.env`. Teste com `GET /api/ai/status` (requer role professor ou admin).
 
 ### Erro ao importar questões
+
 - JSON deve ser um **array** válido
 - Cada questão precisa de `id`, `command`, `options`
 - Exatamente **UMA** opção com `"correct": true`
+
+### Simulado não gera
+
+- Verifique se a API de IA (Gemini/OpenAI) está configurada
+- Máximo 20 questões por simulado
+- Cada questão é gerada sequencialmente com 1s de intervalo
+- Erros individuais são reportados sem parar o processo
 
 ---
 

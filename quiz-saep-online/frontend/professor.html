@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0d1117">
+    <title>Painel do Professor - Quiz Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="admin-body">
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <header class="admin-header" style="background: linear-gradient(135deg, #1e3a5f 0%, #0d1117 100%);">
+        <div class="container header-content">
+            <h1>👨‍🏫 Painel do Professor</h1>
+            <nav>
+                <span id="prof-username"></span>
+                <button onclick="backToMain()" class="btn-secondary">← Voltar ao Quiz</button>
+                <button onclick="logout()" class="btn-danger">Sair</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" onclick="showProfSection('prof-dashboard')">
+                    <span class="icon">📊</span> Dashboard
+                </a>
+                <a href="#" class="nav-item" onclick="showProfSection('prof-turmas')">
+                    <span class="icon">🏫</span> Minhas Turmas
+                </a>
+                <a href="#" class="nav-item" onclick="showProfSection('prof-quizzes')">
+                    <span class="icon">📝</span> Criar Quiz
+                </a>
+                <a href="#" class="nav-item" onclick="showProfSection('prof-questions')">
+                    <span class="icon">❓</span> Criar Questão
+                </a>
+            </nav>
+        </aside>
+
+        <main class="admin-content">
+            <!-- Dashboard -->
+            <section id="prof-dashboard-section" class="admin-section">
+                <h2>📊 Dashboard do Professor</h2>
+                <div class="stats-grid-admin">
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">🏫</div>
+                        <div class="stat-value-admin" id="prof-total-turmas">0</div>
+                        <div class="stat-label-admin">Minhas Turmas</div>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">👥</div>
+                        <div class="stat-value-admin" id="prof-total-alunos">0</div>
+                        <div class="stat-label-admin">Total de Alunos</div>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">📝</div>
+                        <div class="stat-value-admin" id="prof-total-quizzes">0</div>
+                        <div class="stat-label-admin">Quizzes Criados</div>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon-admin">❓</div>
+                        <div class="stat-value-admin" id="prof-total-questions">0</div>
+                        <div class="stat-label-admin">Questões Criadas</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid" style="margin-top: 20px;">
+                    <div class="dashboard-card" style="grid-column: 1 / -1;">
+                        <h3>📈 Desempenho Médio por Turma</h3>
+                        <div style="position: relative; height: 300px; width: 100%;">
+                            <canvas id="turma-performance-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="prof-turmas-detail" style="margin-top: 20px;"></div>
+            </section>
+
+            <!-- Turmas -->
+            <section id="prof-turmas-section" class="admin-section" style="display:none;">
+                <div class="section-header">
+                    <h2>🏫 Minhas Turmas</h2>
+                    <button onclick="showCreateTurmaModal()" class="btn-primary">+ Nova Turma</button>
+                </div>
+                <div id="prof-turmas-list"></div>
+            </section>
+
+            <!-- Criar Quiz -->
+            <section id="prof-quizzes-section" class="admin-section" style="display:none;">
+                <div class="section-header">
+                    <h2>📝 Criar Quiz</h2>
+                    <button type="button" onclick="showProfSimuladoWizard()" class="btn-success">🤖 Gerar Simulado com IA</button>
+                </div>
+                <div class="dashboard-card">
+                    <form onsubmit="handleCreateQuiz(event)">
+                        <div class="form-group">
+                            <label>Nome do Quiz:</label>
+                            <input type="text" id="quiz-name" class="form-control" placeholder="Ex: Avaliação - Módulo 1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Descrição:</label>
+                            <textarea id="quiz-description" class="form-control" rows="2" placeholder="Descrição do quiz"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Curso:</label>
+                            <select id="quiz-course" class="form-control" onchange="loadCourseQuestions()" required>
+                                <option value="">Selecione um curso...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Turma (opcional):</label>
+                            <select id="quiz-turma" class="form-control">
+                                <option value="">Todas (sem turma específica)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Selecione as Questões:</label>
+                            <div id="quiz-questions-list" style="max-height: 300px; overflow-y: auto; border: 1px solid #333; border-radius: 8px; padding: 10px;">
+                                <p style="color: #94a3b8;">Selecione um curso primeiro</p>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary btn-large">Criar Quiz</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Criar Questão -->
+            <section id="prof-questions-section" class="admin-section" style="display:none;">
+                <div class="section-header">
+                    <h2>❓ Criar Questão</h2>
+                </div>
+                <div class="dashboard-card">
+                    <form onsubmit="handleCreateQuestion(event)">
+                        <div class="form-group">
+                            <label>Curso:</label>
+                            <select id="question-course" class="form-control" required>
+                                <option value="">Selecione um curso...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Capacidade:</label>
+                            <input type="text" id="question-capacity" class="form-control" placeholder="Ex: Lógica de Programação" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Dificuldade:</label>
+                            <select id="question-difficulty" class="form-control">
+                                <option value="Fácil">Fácil</option>
+                                <option value="Médio" selected>Médio</option>
+                                <option value="Difícil">Difícil</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Contexto:</label>
+                            <textarea id="question-context" class="form-control" rows="3" placeholder="Descreva o cenário/contexto da questão..." required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Comando (Pergunta):</label>
+                            <input type="text" id="question-command" class="form-control" placeholder="Qual é a pergunta?" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Alternativas:</label>
+                            <div id="question-options">
+                                <div class="option-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+                                    <span style="font-weight:bold;color:#60a5fa;">A)</span>
+                                    <input type="text" class="form-control option-text" placeholder="Texto da alternativa A" required style="flex:1;">
+                                    <label style="color:#4ade80;white-space:nowrap;"><input type="radio" name="correct-option" value="0" checked> Correta</label>
+                                </div>
+                                <div class="option-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+                                    <span style="font-weight:bold;color:#60a5fa;">B)</span>
+                                    <input type="text" class="form-control option-text" placeholder="Texto da alternativa B" required style="flex:1;">
+                                    <label style="color:#4ade80;white-space:nowrap;"><input type="radio" name="correct-option" value="1"> Correta</label>
+                                </div>
+                                <div class="option-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+                                    <span style="font-weight:bold;color:#60a5fa;">C)</span>
+                                    <input type="text" class="form-control option-text" placeholder="Texto da alternativa C" required style="flex:1;">
+                                    <label style="color:#4ade80;white-space:nowrap;"><input type="radio" name="correct-option" value="2"> Correta</label>
+                                </div>
+                                <div class="option-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+                                    <span style="font-weight:bold;color:#60a5fa;">D)</span>
+                                    <input type="text" class="form-control option-text" placeholder="Texto da alternativa D" required style="flex:1;">
+                                    <label style="color:#4ade80;white-space:nowrap;"><input type="radio" name="correct-option" value="3"> Correta</label>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary btn-large">Criar Questão</button>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Criar Turma -->
+    <div id="create-turma-modal" class="modal" role="dialog" aria-modal="true">
+        <div class="modal-content">
+            <button class="close" onclick="closeModal('create-turma-modal')">&times;</button>
+            <h2>🏫 Criar Nova Turma</h2>
+            <form onsubmit="handleCreateTurma(event)">
+                <div class="form-group">
+                    <label>Nome da Turma:</label>
+                    <input type="text" id="turma-name" class="form-control" placeholder="Ex: Turma B - 2026" required>
+                </div>
+                <div class="form-group">
+                    <label>Descrição:</label>
+                    <textarea id="turma-description" class="form-control" rows="2" placeholder="Descrição da turma"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Curso:</label>
+                    <select id="turma-course" class="form-control" required>
+                        <option value="">Selecione um curso...</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary btn-large">Criar Turma</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Ver Turma -->
+    <div id="view-turma-modal" class="modal" role="dialog" aria-modal="true">
+        <div class="modal-content modal-content--wide">
+            <button class="close" onclick="closeModal('view-turma-modal')">&times;</button>
+            <h2 id="view-turma-title">Detalhes da Turma</h2>
+            <div id="view-turma-content"></div>
+        </div>
+    </div>
+
+    <!-- Modal: Gerador de Simulado com IA (Professor) -->
+    <div id="prof-simulado-wizard-modal" class="modal">
+        <div class="modal-content" style="max-width:900px;width:95%;">
+            <span class="close" onclick="closeModal('prof-simulado-wizard-modal')">&times;</span>
+            <h2>🤖 Gerador de Simulado Completo com IA</h2>
+
+            <div class="info-box" style="margin-bottom:18px;">
+                <h4>💡 Como funciona:</h4>
+                <p>1. Escolha o curso e a quantidade de questões.<br>
+                   2. Defina o tema/capacidade de cada questão.<br>
+                   3. A IA gera todas as questões no padrão SAEP.<br>
+                   4. Revise, edite, exclua ou regenere cada questão individualmente.<br>
+                   5. Aprove e salve o simulado completo.</p>
+            </div>
+
+            <!-- STEP 1: Config -->
+            <div id="prof-sim-step-config">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                    <div class="form-group" style="margin:0;">
+                        <label>Curso:</label>
+                        <select id="prof-sim-course" class="form-select" onchange="loadProfSimCapacities()">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label>Provedor de IA:</label>
+                        <select id="prof-sim-provider" class="form-select">
+                            <option value="gemini">Google Gemini</option>
+                            <option value="chatgpt">ChatGPT</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
+                    <div class="form-group" style="margin:0;">
+                        <label>Quantidade:</label>
+                        <input type="number" id="prof-sim-count" min="1" max="20" value="5" class="form-select" style="width:100%;">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label>🖼️ Imagem Contexto:</label>
+                        <select id="prof-sim-context-images" class="form-select">
+                            <option value="false">Não</option>
+                            <option value="true">Sim</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label>🖼️ Imagem Alternativas:</label>
+                        <select id="prof-sim-option-images" class="form-select">
+                            <option value="false">Não</option>
+                            <option value="true">Sim</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr style="border-color:#334155;margin:18px 0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h3 style="margin:0;">📋 Temas de Cada Questão</h3>
+                    <button type="button" onclick="applyProfDefaultThemeToAll()" class="btn-secondary" style="font-size:0.85rem;">Aplicar padrão a todas</button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;background:#1e293b;padding:12px;border-radius:10px;">
+                    <div class="form-group" style="margin:0;"><label style="font-size:0.8rem;">Capacidade padrão:</label><select id="prof-sim-default-cap" class="form-select" onchange="loadProfSimDefaultSkills()"><option value="">Selecione...</option></select></div>
+                    <div class="form-group" style="margin:0;"><label style="font-size:0.8rem;">Habilidade padrão:</label><select id="prof-sim-default-skill" class="form-select"><option value="">Selecione...</option></select></div>
+                    <div class="form-group" style="margin:0;"><label style="font-size:0.8rem;">Dificuldade padrão:</label><select id="prof-sim-default-diff" class="form-select"><option value="fácil">Fácil</option><option value="médio" selected>Médio</option><option value="difícil">Difícil</option></select></div>
+                </div>
+                <div id="prof-sim-questions-config" style="max-height:400px;overflow-y:auto;border:1px solid #334155;border-radius:10px;padding:12px;background:#0d1117;">
+                    <p style="color:#94a3b8;text-align:center;">Selecione um curso e defina a quantidade de questões.</p>
+                </div>
+                <div style="margin-top:18px;display:flex;gap:12px;justify-content:flex-end;">
+                    <button type="button" onclick="closeModal('prof-simulado-wizard-modal')" class="btn-secondary">Cancelar</button>
+                    <button type="button" onclick="startProfSimuladoGeneration()" class="btn-large btn-success" id="prof-sim-generate-btn">🤖 Gerar Simulado</button>
+                </div>
+            </div>
+
+            <!-- STEP 2: Progress -->
+            <div id="prof-sim-step-progress" style="display:none;">
+                <div style="text-align:center;padding:30px 0;">
+                    <div style="font-size:3rem;margin-bottom:16px;">⏳</div>
+                    <h3 id="prof-sim-progress-title">Gerando questões...</h3>
+                    <div style="width:100%;background:#1e293b;border-radius:10px;height:24px;overflow:hidden;margin:16px 0;">
+                        <div id="prof-sim-progress-bar" style="height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:10px;width:0%;transition:width 0.5s ease;"></div>
+                    </div>
+                    <p id="prof-sim-progress-detail" style="color:#94a3b8;">Aguarde...</p>
+                </div>
+            </div>
+
+            <!-- STEP 3: Review -->
+            <div id="prof-sim-step-review" style="display:none;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                    <h3 style="margin:0;">📝 Revisar Questões</h3>
+                    <span id="prof-sim-review-count" style="color:#94a3b8;font-size:0.9rem;"></span>
+                </div>
+                <div id="prof-sim-review-list" style="max-height:500px;overflow-y:auto;"></div>
+                <div style="margin-top:18px;">
+                    <div class="form-group"><label>Nome do Simulado:</label><input type="text" id="prof-sim-quiz-name" required placeholder="Ex: Simulado SAEP - Jogos Digitais" class="form-select" style="width:100%;"></div>
+                    <div class="form-group"><label>Descrição:</label><textarea id="prof-sim-quiz-desc" rows="2" placeholder="Descrição..." style="width:100%;"></textarea></div>
+                    <div class="form-group"><label>Turma (opcional):</label><select id="prof-sim-turma" class="form-select"><option value="">Todas</option></select></div>
+                </div>
+                <div style="margin-top:14px;display:flex;gap:12px;justify-content:flex-end;">
+                    <button type="button" onclick="document.getElementById('prof-sim-step-review').style.display='none';document.getElementById('prof-sim-step-config').style.display='block';" class="btn-secondary">← Voltar</button>
+                    <button type="button" onclick="saveProfSimulado()" class="btn-large btn-primary" id="prof-sim-save-btn">✅ Salvar Simulado</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Editar Questão do Simulado (Professor) -->
+    <div id="prof-sim-edit-modal" class="modal">
+        <div class="modal-content" style="max-width:800px;">
+            <span class="close" onclick="closeModal('prof-sim-edit-modal')">&times;</span>
+            <h2>✏️ Editar Questão</h2>
+            <div class="form-group"><label>Contexto:</label><textarea id="prof-sim-edit-context" rows="4" style="width:100%;"></textarea></div>
+            <div class="form-group"><label>Comando:</label><input type="text" id="prof-sim-edit-command" style="width:100%;"></div>
+            <div class="form-group"><label>Imagem de Contexto:</label><input type="text" id="prof-sim-edit-img" style="width:100%;" placeholder="https://..."></div>
+            <div id="prof-sim-edit-opts"></div>
+            <div style="margin-top:16px;display:flex;gap:12px;justify-content:flex-end;">
+                <button type="button" onclick="closeModal('prof-sim-edit-modal')" class="btn-secondary">Cancelar</button>
+                <button type="button" onclick="saveProfSimEditedQuestion()" class="btn-primary">💾 Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="professor.js"></script>
+</body>
+</html>

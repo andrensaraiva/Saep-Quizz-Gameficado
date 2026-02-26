@@ -347,6 +347,7 @@ function updateUserInterface() {
     const userInfo = document.getElementById('user-info');
     const profileBtn = document.getElementById('profile-btn');
     const adminPanelBtn = document.getElementById('admin-panel-btn');
+    const professorPanelBtn = document.getElementById('professor-panel-btn');
     
     if (currentUser) {
         authButtons.style.display = 'none';
@@ -356,6 +357,9 @@ function updateUserInterface() {
 
         if (adminPanelBtn) {
             adminPanelBtn.style.display = currentUser.role === 'admin' ? 'block' : 'none';
+        }
+        if (professorPanelBtn) {
+            professorPanelBtn.style.display = (currentUser.role === 'professor' || currentUser.role === 'admin') ? 'block' : 'none';
         }
 
         // Atualizar gamificação
@@ -367,6 +371,9 @@ function updateUserInterface() {
 
         if (adminPanelBtn) {
             adminPanelBtn.style.display = 'none';
+        }
+        if (professorPanelBtn) {
+            professorPanelBtn.style.display = 'none';
         }
 
         // Esconder XP bar
@@ -1457,12 +1464,88 @@ async function showProfile() {
     document.getElementById('profile-email').textContent = currentUser.email;
     document.getElementById('profile-avatar-text').textContent = currentUser.username.charAt(0).toUpperCase();
     
+    // Role labels
+    const roleLabels = { admin: '👑 Administrador', professor: '👨‍🏫 Professor', user: '👨‍🎓 Aluno' };
+    const roleEl = document.getElementById('profile-role');
+    if (roleEl) roleEl.textContent = roleLabels[currentUser.role] || currentUser.role;
+
+    // Avatar
+    const avatarImg = document.getElementById('profile-avatar-img');
+    const avatarText = document.getElementById('profile-avatar-text');
+    if (currentUser.avatarUrl) {
+        avatarImg.src = currentUser.avatarUrl;
+        avatarImg.style.display = 'block';
+        avatarText.style.display = 'none';
+    } else {
+        avatarImg.style.display = 'none';
+        avatarText.style.display = 'flex';
+    }
+
+    // Edit fields
+    const editAvatarUrl = document.getElementById('edit-avatar-url');
+    if (editAvatarUrl) editAvatarUrl.value = currentUser.avatarUrl || '';
+
+    // Load and populate turmas
+    await loadProfileTurmas();
+    
     // Carregar e renderizar perfil gamificado
     await Gamification.loadProfile();
     Gamification.renderGamifiedProfile('gamification-profile-section');
 
     // Carregar histórico
     await loadUserHistory();
+}
+
+async function loadProfileTurmas() {
+    try {
+        const res = await fetch(`${API_URL}/turmas`, {
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const sel = document.getElementById('edit-turma');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Nenhuma turma</option>';
+        (data.turmas || []).forEach(t => {
+            const selected = currentUser.turmaId === t.id ? 'selected' : '';
+            sel.innerHTML += `<option value="${t.id}" ${selected}>${t.name} (${t.courseName})</option>`;
+        });
+
+        // Show current turma
+        const turmaEl = document.getElementById('profile-turma');
+        if (turmaEl) {
+            const curr = (data.turmas || []).find(t => t.id === currentUser.turmaId);
+            turmaEl.textContent = curr ? `🏫 ${curr.name}` : '🏫 Sem turma';
+        }
+    } catch (e) { console.error('Erro ao carregar turmas:', e); }
+}
+
+async function saveProfile() {
+    const avatarUrl = document.getElementById('edit-avatar-url').value.trim();
+    const turmaIdRaw = document.getElementById('edit-turma').value;
+    const turmaId = turmaIdRaw ? parseInt(turmaIdRaw) : null;
+
+    const btn = document.getElementById('save-profile-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+
+    try {
+        const res = await fetch(`${API_URL}/profile`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}` },
+            body: JSON.stringify({ avatarUrl: avatarUrl || null, turmaId })
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Erro ao salvar');
+
+        // Update currentUser with new data
+        currentUser = { ...currentUser, ...result.user };
+        Toast.success('Perfil atualizado com sucesso!');
+        showProfile(); // Refresh
+    } catch (e) {
+        Toast.error(e.message || 'Erro ao salvar perfil');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Salvar Alterações'; }
+    }
 }
 
 async function loadUserHistory() {
@@ -1664,6 +1747,10 @@ window.onclick = function(event) {
 
 function openAdminPanel() {
     window.location.href = 'admin.html';
+}
+
+function openProfessorPanel() {
+    window.location.href = 'professor.html';
 }
 
 // ==================== FEEDBACK ====================
