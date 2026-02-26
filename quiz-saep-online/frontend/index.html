@@ -255,6 +255,20 @@
         </div>
     </main>
 
+    <!-- Modal Login Obrigatório -->
+    <div id="login-required-modal" class="modal" role="dialog" aria-modal="true" aria-label="Login necessário">
+        <div class="modal-content" style="max-width: 450px; text-align: center;">
+            <button class="close" onclick="closeModal('login-required-modal')" aria-label="Fechar modal">&times;</button>
+            <div style="font-size: 4rem; margin-bottom: 0.5rem;">🔒</div>
+            <h2 style="margin-bottom: 0.5rem;">Login Necessário</h2>
+            <p style="color: #666; margin-bottom: 1.5rem; font-size: 1.05rem;">Para iniciar um quiz, você precisa estar logado. Crie sua conta gratuitamente ou faça login para continuar.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button onclick="closeModal('login-required-modal'); showAuthModal('login')" class="btn-large btn-primary" style="min-width: 150px;">🔑 Fazer Login</button>
+                <button onclick="closeModal('login-required-modal'); showAuthModal('register')" class="btn-large btn-secondary" style="min-width: 150px;">📝 Criar Conta</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de Autenticação -->
     <div id="auth-modal" class="modal" role="dialog" aria-modal="true" aria-label="Autenticação">
         <div class="modal-content">

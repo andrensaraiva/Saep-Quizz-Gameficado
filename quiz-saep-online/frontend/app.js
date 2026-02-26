@@ -495,6 +495,12 @@ function backToMenu() {
 // ==================== QUIZ ====================
 
 async function startQuiz() {
+    // Verificar se está logado antes de iniciar
+    if (!currentUser || !currentToken) {
+        showLoginRequiredModal();
+        return;
+    }
+
     const quizId = parseInt(document.getElementById('quiz-select').value);
     
     if (!quizId) {
@@ -1715,10 +1721,24 @@ function filterQuizzes() {
 }
 
 function selectQuiz(quizId) {
+    // Verificar se está logado antes de iniciar
+    if (!currentUser || !currentToken) {
+        showLoginRequiredModal();
+        return;
+    }
     // Iniciar o quiz selecionado
     currentQuiz = allQuizzesData.find(q => q.id === quizId);
     if (currentQuiz) {
         startQuizById(quizId);
+    }
+}
+
+function showLoginRequiredModal() {
+    const modal = document.getElementById('login-required-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
     }
 }
 
