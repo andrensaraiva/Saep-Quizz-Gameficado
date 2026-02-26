@@ -879,4 +879,80 @@
     .level-up-icon {
         font-size: 3.5rem;
     }
+
+    /* Quiz progress bar on mobile */
+    .quiz-gamified-progress {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .quiz-progress-bar-container {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .quiz-score-live {
+        font-size: 0.8rem;
+    }
+}
+
+/* ==================== SMALL PHONES GAMIFICATION ==================== */
+@media (max-width: 420px) {
+    .xp-bar-header {
+        max-width: 130px;
+        padding: 3px 6px;
+        gap: 4px;
+    }
+
+    .level-badge {
+        width: 24px;
+        height: 24px;
+        font-size: 0.65rem;
+    }
+
+    .combo-container {
+        top: 56px;
+        right: 4px;
+    }
+
+    .combo-indicator {
+        padding: 4px 8px;
+        min-width: 60px;
+    }
+
+    .combo-count {
+        font-size: 1.1rem;
+    }
+
+    .gp-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .achievements-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .achievement-notification {
+        max-width: 96%;
+    }
+
+    .xp-total-earned {
+        font-size: 1.3rem;
+    }
+
+    .xp-breakdown {
+        grid-template-columns: 1fr;
+    }
+
+    .level-up-title {
+        font-size: 1.3rem;
+    }
+
+    .level-up-level {
+        font-size: 2rem;
+    }
+
+    .level-up-icon {
+        font-size: 2.5rem;
+    }
 }

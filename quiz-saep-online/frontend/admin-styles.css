@@ -1017,6 +1017,12 @@
         overflow-x: auto;
         gap: 0;
         padding: 0 8px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .sidebar-nav::-webkit-scrollbar {
+        display: none;
     }
 
     .nav-item {
@@ -1025,6 +1031,9 @@
         border-bottom: 2px solid transparent;
         padding: 8px 14px;
         font-size: 0.82rem;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
     }
 
     .nav-item.active,
@@ -1042,6 +1051,12 @@
     }
 
     .admin-content {
+        padding: 1.25rem 1rem;
+    }
+
+    .modal-admin .modal-content,
+    .admin-body .modal-content {
+        width: 96%;
         padding: 1.25rem 1rem;
     }
 }
@@ -1079,6 +1094,8 @@
     .button-group-horizontal button,
     .button-group-horizontal select {
         width: 100%;
+        min-height: 44px;
+        font-size: 16px; /* Prevents iOS zoom */
     }
 
     .admin-header .header-content {
@@ -1090,6 +1107,19 @@
         font-size: 1.05rem;
     }
 
+    .admin-header nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
+    }
+
+    .admin-header nav button {
+        padding: 0.4rem 0.65rem;
+        font-size: 0.78rem;
+        min-height: 38px;
+    }
+
     .course-card {
         flex-direction: column;
         align-items: flex-start;
@@ -1098,6 +1128,77 @@
     .course-actions {
         width: 100%;
         justify-content: flex-end;
+    }
+
+    /* Form inputs touch-friendly size */
+    .admin-content input,
+    .admin-content select,
+    .admin-content textarea {
+        font-size: 16px; /* Prevents iOS zoom */
+    }
+
+    .data-table {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .data-table table {
+        min-width: 500px;
+    }
+}
+
+/* ==================== SMALL PHONES ==================== */
+@media (max-width: 420px) {
+    .admin-content {
+        padding: 1rem 0.6rem;
+    }
+
+    .admin-header h1 {
+        font-size: 0.95rem;
+    }
+
+    .admin-header nav button {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.72rem;
+    }
+
+    .stats-grid-admin {
+        gap: 0.35rem;
+    }
+
+    .stat-card-admin {
+        padding: 0.7rem 0.35rem;
+    }
+
+    .stat-value-admin {
+        font-size: 1.2rem;
+    }
+
+    .stat-label-admin {
+        font-size: 0.65rem;
+    }
+
+    .sidebar-nav {
+        padding: 0 4px;
+    }
+
+    .nav-item {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+
+    .modal-admin .modal-content,
+    .admin-body .modal-content {
+        width: 98%;
+        padding: 1rem 0.75rem;
+    }
+
+    .course-card {
+        padding: 1rem;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
     }
 }
 

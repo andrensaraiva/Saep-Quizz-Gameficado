@@ -93,9 +93,12 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
-    padding-bottom: 60px;
+    padding-bottom: env(safe-area-inset-bottom, 60px);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: contain;
 }
 
 /* Subtle mesh gradient overlay */
@@ -1098,8 +1101,64 @@ header h1::first-letter {
         padding: 0 0.75rem;
     }
 
+    header {
+        padding: 0.5rem 0;
+        margin-bottom: 1rem;
+    }
+
+    .header-content {
+        gap: 8px;
+    }
+
+    header h1 {
+        font-size: 1.1rem;
+    }
+
+    #user-nav {
+        justify-content: center;
+        width: 100%;
+        gap: 0.35rem;
+    }
+
+    #user-nav .btn-secondary,
+    #user-nav .btn-success,
+    #user-nav .btn-primary,
+    #user-nav .btn-danger {
+        padding: 0.45rem 0.6rem;
+        font-size: 0.75rem;
+        min-height: 38px;
+    }
+
+    #username-display {
+        font-size: 0.8rem;
+        margin-right: 0.3rem;
+    }
+
     .menu-card, .report-card, .ranking-card, .profile-card {
         padding: 1.25rem;
+        border-radius: var(--radius-md);
+    }
+
+    .menu-header {
+        margin-bottom: 1.25rem;
+    }
+
+    .menu-title {
+        font-size: 1.7rem !important;
+    }
+
+    .menu-subtitle {
+        font-size: 0.9rem !important;
+    }
+
+    .menu-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .menu-actions .btn-large {
+        width: 100%;
+        max-width: 320px;
     }
 
     .button-wrapper {
@@ -1109,6 +1168,7 @@ header h1::first-letter {
     .button-wrapper .btn-large {
         flex: auto;
         width: 100%;
+        min-height: 48px;
     }
 
     .quiz-header {
@@ -1117,6 +1177,36 @@ header h1::first-letter {
         padding: 0.85rem 1rem;
     }
 
+    /* Question blocks */
+    .question-block {
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .question-block h4 {
+        font-size: 1rem;
+    }
+
+    .command {
+        font-size: 0.95rem;
+    }
+
+    /* Options — larger touch targets */
+    .options-container .option-card {
+        padding: 1rem 1rem;
+        min-height: 48px;
+    }
+
+    .options-container .option-card input[type="radio"] {
+        transform: scale(1.3);
+        margin-top: 0.2rem;
+    }
+
+    .option-text {
+        font-size: 0.92rem;
+    }
+
+    /* Stats */
     .stats-grid {
         grid-template-columns: repeat(3, 1fr);
         gap: 0.5rem;
@@ -1130,47 +1220,11 @@ header h1::first-letter {
         font-size: 1.3rem;
     }
 
-    .profile-info {
-        flex-direction: column;
-        text-align: center;
+    .stat-label {
+        font-size: 0.7rem;
     }
 
-    .ranking-table {
-        font-size: 0.85rem;
-    }
-
-    .ranking-table th,
-    .ranking-table td {
-        padding: 0.5rem 0.6rem;
-    }
-
-    header h1 {
-        font-size: 1.15rem;
-    }
-
-    #user-nav {
-        justify-content: center;
-        width: 100%;
-    }
-
-    #user-nav .btn-secondary,
-    #user-nav .btn-success,
-    #user-nav .btn-primary,
-    #user-nav .btn-danger {
-        padding: 0.4rem 0.65rem;
-        font-size: 0.78rem;
-    }
-
-    .modal-content {
-        padding: 1.5rem 1.25rem;
-        width: 95%;
-        margin: 12px auto;
-    }
-
-    .modal-content--wide {
-        padding: 1.5rem 1.25rem;
-    }
-
+    /* Score */
     .score-circle {
         width: 140px;
         height: 140px;
@@ -1180,14 +1234,315 @@ header h1::first-letter {
         font-size: 2.2rem;
     }
 
-    .menu-actions {
+    /* Profile */
+    .profile-info {
         flex-direction: column;
-        align-items: center;
+        text-align: center;
     }
 
-    .menu-actions .btn-large {
+    /* Ranking */
+    .ranking-table {
+        font-size: 0.85rem;
+    }
+
+    .ranking-table th,
+    .ranking-table td {
+        padding: 0.5rem 0.6rem;
+    }
+
+    /* Filters */
+    .filters-container {
+        padding: 0.75rem 1rem;
+    }
+
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-select {
+        font-size: 16px; /* Prevents iOS zoom */
+    }
+
+    /* Quiz cards */
+    #quizzes-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .quiz-card__name {
+        font-size: 1.05rem;
+    }
+
+    .quiz-card__desc {
+        font-size: 0.85rem;
+    }
+
+    .quiz-card__btn {
+        padding: 0.85rem;
+        font-size: 0.95rem;
+        min-height: 48px;
+    }
+
+    /* Modal */
+    .modal {
+        padding: 16px 10px;
+    }
+
+    .modal-content {
+        padding: 1.5rem 1.15rem;
+        width: 96%;
+        margin: 8px auto;
+        max-height: 92vh;
+    }
+
+    .modal-content--wide {
+        padding: 1.5rem 1.15rem;
+    }
+
+    .modal-content h2 {
+        font-size: 1.1rem;
+    }
+
+    .modal-content input {
+        font-size: 16px; /* Prevents iOS zoom */
+        padding: 0.85rem;
+    }
+
+    /* Form groups */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 16px; /* Prevents iOS zoom */
+    }
+
+    /* Buttons touch-friendly */
+    .btn-large,
+    .btn-primary,
+    .btn-secondary,
+    .btn-success,
+    .btn-danger {
+        min-height: 44px;
+    }
+
+    .btn-large {
+        min-height: 48px;
+    }
+
+    /* Confirm modal */
+    .confirm-actions {
+        flex-direction: column;
+    }
+
+    .confirm-actions button {
         width: 100%;
-        max-width: 300px;
+    }
+
+    /* Review cards */
+    .review-card {
+        padding: 1.15rem;
+    }
+
+    .review-card__number {
+        width: 34px;
+        height: 34px;
+        font-size: 0.95rem;
+    }
+
+    .answer-box {
+        padding: 1rem;
+    }
+
+    /* Help modal */
+    .help-hero {
+        padding: 1rem;
+    }
+
+    .help-section {
+        margin-bottom: 1.25rem;
+    }
+
+    /* Back to top */
+    .back-to-top {
+        bottom: 16px;
+        right: 16px;
+        width: 42px;
+        height: 42px;
+    }
+
+    /* Capacity stats */
+    .capacity-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+}
+
+/* ==================== SMALL PHONES ==================== */
+@media (max-width: 420px) {
+    .container {
+        padding: 0 0.5rem;
+    }
+
+    header h1 {
+        font-size: 0.95rem;
+    }
+
+    #user-nav {
+        gap: 0.25rem;
+    }
+
+    #user-nav .btn-secondary,
+    #user-nav .btn-success,
+    #user-nav .btn-primary,
+    #user-nav .btn-danger {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.7rem;
+    }
+
+    .menu-title {
+        font-size: 1.4rem !important;
+    }
+
+    .menu-subtitle {
+        font-size: 0.82rem !important;
+    }
+
+    .menu-card, .report-card, .ranking-card, .profile-card {
+        padding: 1rem;
+    }
+
+    .menu-card h2,
+    .report-card h2,
+    .ranking-card h2,
+    .profile-card h2 {
+        font-size: 1.2rem;
+    }
+
+    .question-block {
+        padding: 1rem;
+    }
+
+    .question-block h4 {
+        font-size: 0.9rem;
+    }
+
+    .command {
+        font-size: 0.88rem;
+    }
+
+    .context {
+        padding: 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    .options-container .option-card {
+        padding: 0.9rem 0.85rem;
+        gap: 0.6rem;
+    }
+
+    .option-text {
+        font-size: 0.85rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stat-card {
+        padding: 0.75rem 0.4rem;
+    }
+
+    .stat-icon {
+        font-size: 1.3rem;
+    }
+
+    .stat-value {
+        font-size: 1.15rem;
+    }
+
+    .score-circle {
+        width: 120px;
+        height: 120px;
+    }
+
+    .percentage {
+        font-size: 1.8rem;
+    }
+
+    .score-text {
+        font-size: 0.75rem;
+    }
+
+    .modal-content {
+        padding: 1.25rem 1rem;
+        width: 98%;
+    }
+
+    .modal-content h2 {
+        font-size: 1rem;
+    }
+
+    .ranking-filters {
+        gap: 0.3rem;
+    }
+
+    .filter-btn {
+        padding: 0.45rem 0.75rem;
+        font-size: 0.78rem;
+    }
+
+    .ranking-table th,
+    .ranking-table td {
+        padding: 0.4rem;
+        font-size: 0.8rem;
+    }
+
+    .timer {
+        font-size: 1.1rem;
+    }
+
+    .progress-info {
+        font-size: 0.82rem;
+    }
+
+    .quiz-card__header {
+        padding: 1rem;
+    }
+
+    .quiz-card__meta {
+        padding: 0.6rem 1rem;
+    }
+
+    .quiz-card__stat {
+        font-size: 0.7rem;
+        padding: 3px 7px;
+    }
+
+    .quiz-card__btn {
+        margin: 0 1rem 1rem;
+        width: calc(100% - 2rem);
+    }
+
+    .help-list {
+        font-size: 0.9rem;
+    }
+
+    .info-box li {
+        font-size: 0.82rem;
+    }
+
+    /* Review cards on tiny phones */
+    .review-card__header {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ai-cta__inner {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .ai-cta__btn {
+        width: 100%;
     }
 }
 
@@ -1831,14 +2186,15 @@ textarea:focus-visible {
     .toast-container {
         top: auto;
         bottom: 16px;
-        right: 12px;
-        left: 12px;
+        right: 10px;
+        left: 10px;
         max-width: none;
     }
 
     .toast {
         font-size: 0.85rem;
         padding: 12px 14px;
+        min-height: 48px;
     }
 
     .back-to-top {
@@ -1862,6 +2218,27 @@ textarea:focus-visible {
 
     .filters-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 420px) {
+    .toast-container {
+        right: 6px;
+        left: 6px;
+        bottom: 10px;
+    }
+
+    .toast {
+        font-size: 0.82rem;
+        padding: 10px 12px;
+    }
+
+    .back-to-top {
+        bottom: 12px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
     }
 }
 
