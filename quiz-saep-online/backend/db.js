@@ -207,10 +207,10 @@ class Database {
 
   async getQuestionById(courseId, questionId) {
     if (this.firebase) {
-      // Buscar por ID composto
-      const snapshot = await db.ref('questions').once('value');
-      const questions = snapshot.val() ? Object.values(snapshot.val()) : [];
-      return questions.find(q => q.id === questionId && q.courseId === courseId);
+      // Buscar diretamente pela chave composta
+      const key = `${courseId}_${questionId}`;
+      const snapshot = await db.ref(`questions/${key}`).once('value');
+      return snapshot.val();
     }
     return this.memory.questions.find(q => q.id === questionId && q.courseId === courseId);
   }
@@ -462,17 +462,69 @@ class Database {
     return false;
   }
 
+  // ==================== GAMIFICATION ====================
+
+  async getGamificationProfile(userId) {
+    if (this.firebase) {
+      const snapshot = await db.ref(`gamification/${userId}`).once('value');
+      return snapshot.val();
+    }
+    if (!this.memory.gamification) this.memory.gamification = {};
+    return this.memory.gamification[userId] || null;
+  }
+
+  async saveGamificationProfile(userId, profile) {
+    if (this.firebase) {
+      await db.ref(`gamification/${userId}`).set(profile);
+      return profile;
+    }
+    if (!this.memory.gamification) this.memory.gamification = {};
+    this.memory.gamification[userId] = profile;
+    return profile;
+  }
+
+  async updateGamificationProfile(userId, updates) {
+    if (this.firebase) {
+      await db.ref(`gamification/${userId}`).update(updates);
+      const snapshot = await db.ref(`gamification/${userId}`).once('value');
+      return snapshot.val();
+    }
+    if (!this.memory.gamification) this.memory.gamification = {};
+    if (this.memory.gamification[userId]) {
+      this.memory.gamification[userId] = { ...this.memory.gamification[userId], ...updates };
+    }
+    return this.memory.gamification[userId] || null;
+  }
+
+  async getAllGamificationProfiles() {
+    if (this.firebase) {
+      const snapshot = await db.ref('gamification').once('value');
+      return snapshot.val() ? Object.values(snapshot.val()) : [];
+    }
+    if (!this.memory.gamification) this.memory.gamification = {};
+    return Object.values(this.memory.gamification);
+  }
+
   // ==================== HELPERS ====================
   
   async getNextId(collection) {
     if (this.firebase) {
+      // Usar transação para evitar IDs duplicados
+      const ref = db.ref(`_counters/${collection}`);
+      const result = await ref.transaction((current) => {
+        return (current || 0) + 1;
+      });
+      if (result.committed) {
+        return result.snapshot.val();
+      }
+      // Fallback: método antigo
       const snapshot = await db.ref(collection).once('value');
       const items = snapshot.val() ? Object.values(snapshot.val()) : [];
       if (items.length === 0) return 1;
       return Math.max(...items.map(item => item.id || 0)) + 1;
     }
     const items = this.memory[collection];
-    if (items.length === 0) return 1;
+    if (!items || items.length === 0) return 1;
     return Math.max(...items.map(item => item.id || 0)) + 1;
   }
 

@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 // Importar módulo de banco de dados (Firebase ou memória)
@@ -16,6 +17,35 @@ const OpenAI = require('openai');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_default_nao_usar_em_producao';
+
+// Segurança: alertar sobre JWT_SECRET padrão em produção
+if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'secret_default_nao_usar_em_producao') {
+  console.error('⛔ ALERTA DE SEGURANÇA: JWT_SECRET padrão em produção! Defina JWT_SECRET no .env');
+}
+
+// ==================== RATE LIMITING ====================
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 20, // máximo 20 tentativas por IP
+  message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minuto
+  max: 10, // máximo 10 requisições por minuto
+  message: { error: 'Muitas requisições para IA. Aguarde um momento.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // Constantes de API Keys
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -52,7 +82,8 @@ const corsOptions = {
     if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
-      callback(null, true); // Permitir todas as origens por enquanto
+      console.warn(`⚠️ CORS: Origem bloqueada: ${origin}`);
+      callback(new Error('Origem não permitida pelo CORS'));
     }
   },
   credentials: true,
@@ -62,7 +93,8 @@ const corsOptions = {
 
 // Middleware
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
+app.use(generalLimiter);
 
 // Servir arquivos estáticos do frontend
 const frontendPath = path.join(__dirname, '../frontend');
@@ -529,7 +561,7 @@ const authenticateToken = (req, res, next) => {
 // ==================== ROTAS DE AUTENTICAÇÃO ====================
 
 // Registrar novo usuário
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
@@ -581,7 +613,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -684,8 +716,8 @@ app.post('/api/auth/create-admin', async (req, res) => {
 
 // ==================== ROTAS DE CURSOS ====================
 
-// Rota de debug para verificar status dos cursos (pode remover após deploy)
-app.get('/api/debug/courses', async (req, res) => {
+// Rota de debug para verificar status dos cursos (protegida - apenas admin)
+app.get('/api/debug/courses', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const courses = await db.getCourses();
     const questions = await db.getQuestions();
@@ -1020,6 +1052,42 @@ app.delete('/api/courses/:courseId/questions/:questionId', authenticateToken, re
     res.json({ message: 'Questão deletada com sucesso' });
   } catch (error) {
     console.error('Erro ao deletar questão:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Editar questão (apenas admin)
+app.put('/api/courses/:courseId/questions/:questionId', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.courseId);
+    const questionId = req.params.questionId;
+    const { capacidade, capacity, dificuldade, difficulty, context, contexto, contextImage, command, comando, options } = req.body;
+
+    const questions = await db.getQuestions();
+    const question = questions.find(q => q.id === questionId && q.courseId === courseId);
+    if (!question) {
+      return res.status(404).json({ error: 'Questão não encontrada' });
+    }
+
+    const updates = {
+      capacity: capacidade || capacity || question.capacity || question.capacidade,
+      difficulty: dificuldade || difficulty || question.difficulty,
+      context: contexto || context !== undefined ? (contexto || context) : question.context,
+      contextImage: contextImage !== undefined ? contextImage : question.contextImage,
+      command: comando || command || question.command,
+      options: options ? normalizeOptionsArray(options) : question.options,
+      updatedBy: req.user.id,
+      updatedAt: new Date().toISOString()
+    };
+
+    // Deletar a questão antiga e criar atualizada
+    await db.deleteQuestion(courseId, questionId);
+    const updatedQuestion = { ...question, ...updates };
+    await db.createQuestion(updatedQuestion);
+
+    res.json({ message: 'Questão atualizada com sucesso', question: updatedQuestion });
+  } catch (error) {
+    console.error('Erro ao editar questão:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -1686,8 +1754,8 @@ app.get('/api/admin/export/:type', authenticateToken, requireAdmin, async (req, 
 
 // ==================== ROTAS DE IA ====================
 
-// Gerar questão similar para prática (sem autenticação)
-app.post('/api/ai/generate-similar-question', async (req, res) => {
+// Gerar questão similar para prática (com rate limiting)
+app.post('/api/ai/generate-similar-question', aiLimiter, async (req, res) => {
     try {
         const { capacity, originalCommand, courseId } = req.body;
 
@@ -2471,9 +2539,9 @@ app.get('/api/admin/feedbacks', authenticateToken, requireAdmin, async (req, res
 app.put('/api/admin/feedbacks/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const feedbackId = parseInt(req.params.id);
-    const { status } = req.body;
+    const { status, reply } = req.body;
     
-    if (!['novo', 'lido', 'respondido'].includes(status)) {
+    if (status && !['novo', 'lido', 'respondido'].includes(status)) {
       return res.status(400).json({ error: 'Status inválido' });
     }
     
@@ -2483,13 +2551,20 @@ app.put('/api/admin/feedbacks/:id', authenticateToken, requireAdmin, async (req,
     }
     
     const updates = {
-      status,
       updatedAt: new Date().toISOString()
     };
     
+    if (status) updates.status = status;
+    if (reply !== undefined) {
+      updates.reply = reply;
+      updates.repliedAt = new Date().toISOString();
+      updates.repliedBy = req.user.username;
+      if (!status) updates.status = 'respondido';
+    }
+    
     const updatedFeedback = await db.updateFeedback(feedbackId, updates);
     
-    res.json({ message: 'Status atualizado com sucesso', feedback: updatedFeedback });
+    res.json({ message: 'Feedback atualizado com sucesso', feedback: updatedFeedback });
   } catch (error) {
     console.error('Erro ao atualizar feedback:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -2515,18 +2590,373 @@ app.delete('/api/admin/feedbacks/:id', authenticateToken, requireAdmin, async (r
   }
 });
 
+// ==================== GAMIFICAÇÃO ====================
+
+// Configuração de XP e Níveis
+const GAMIFICATION_CONFIG = {
+  xpPerCorrectAnswer: 10,
+  xpPerQuizCompletion: 25,
+  xpBonusPerfectScore: 100,
+  xpBonusSpeed: 50, // completar em menos de 5 min
+  xpBonusStreak: 5, // por cada dia de streak
+  comboMultiplierMax: 5,
+  levelThresholds: [
+    0, 100, 250, 500, 800, 1200, 1700, 2300, 3000, 3800,
+    4700, 5700, 6800, 8000, 9300, 10700, 12200, 13800, 15500, 17300,
+    19200, 21200, 23300, 25500, 27800, 30200, 32700, 35300, 38000, 40800
+  ]
+};
+
+const ACHIEVEMENTS = [
+  { id: 'first_quiz', name: 'Primeiro Passo', description: 'Complete seu primeiro quiz', icon: '🎯', xpReward: 50 },
+  { id: 'perfect_score', name: 'Perfeição', description: 'Acerte 100% em um quiz', icon: '💎', xpReward: 150 },
+  { id: 'speed_demon', name: 'Relâmpago', description: 'Complete um quiz em menos de 3 minutos', icon: '⚡', xpReward: 75 },
+  { id: 'combo_5', name: 'Combo Master', description: 'Acerte 5 questões consecutivas', icon: '🔥', xpReward: 50 },
+  { id: 'combo_10', name: 'Imparável', description: 'Acerte 10 questões consecutivas', icon: '💥', xpReward: 100 },
+  { id: 'quizzes_5', name: 'Dedicado', description: 'Complete 5 quizzes', icon: '📚', xpReward: 75 },
+  { id: 'quizzes_10', name: 'Estudioso', description: 'Complete 10 quizzes', icon: '🎓', xpReward: 150 },
+  { id: 'quizzes_25', name: 'Mestre do Quiz', description: 'Complete 25 quizzes', icon: '👑', xpReward: 300 },
+  { id: 'streak_3', name: 'Consistente', description: 'Mantenha um streak de 3 dias', icon: '🔥', xpReward: 50 },
+  { id: 'streak_7', name: 'Semana Perfeita', description: 'Mantenha um streak de 7 dias', icon: '🌟', xpReward: 150 },
+  { id: 'streak_30', name: 'Lendário', description: 'Mantenha um streak de 30 dias', icon: '🏆', xpReward: 500 },
+  { id: 'score_above_90', name: 'Excelência', description: 'Pontuação acima de 90% em 3 quizzes', icon: '⭐', xpReward: 100 },
+  { id: 'night_owl', name: 'Coruja Noturna', description: 'Complete um quiz após meia-noite', icon: '🦉', xpReward: 30 },
+  { id: 'early_bird', name: 'Madrugador', description: 'Complete um quiz antes das 7h', icon: '🐦', xpReward: 30 },
+  { id: 'level_5', name: 'Jogador Veterano', description: 'Alcance o nível 5', icon: '🏅', xpReward: 100 },
+  { id: 'level_10', name: 'Lenda Viva', description: 'Alcance o nível 10', icon: '🌈', xpReward: 250 },
+  { id: 'xp_1000', name: 'Milhar de XP', description: 'Acumule 1000 XP', icon: '💰', xpReward: 50 },
+  { id: 'xp_5000', name: 'Rico em XP', description: 'Acumule 5000 XP', icon: '💎', xpReward: 100 }
+];
+
+function calculateLevel(xp) {
+  const thresholds = GAMIFICATION_CONFIG.levelThresholds;
+  for (let i = thresholds.length - 1; i >= 0; i--) {
+    if (xp >= thresholds[i]) return i + 1;
+  }
+  return 1;
+}
+
+function getXpForNextLevel(level) {
+  const thresholds = GAMIFICATION_CONFIG.levelThresholds;
+  if (level >= thresholds.length) return thresholds[thresholds.length - 1] + 1000;
+  return thresholds[level]; // level is 1-based, thresholds[level] is next level threshold
+}
+
+function createDefaultProfile(userId) {
+  return {
+    userId,
+    xp: 0,
+    level: 1,
+    totalQuizzes: 0,
+    totalCorrect: 0,
+    totalQuestions: 0,
+    perfectScores: 0,
+    bestCombo: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    lastQuizDate: null,
+    achievements: [],
+    highScores: {},  // quizId -> best percentage
+    quizzesAbove90: 0,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function checkAchievements(profile, quizResult) {
+  const newAchievements = [];
+  const existingIds = profile.achievements.map(a => a.id);
+
+  function tryUnlock(id) {
+    if (!existingIds.includes(id)) {
+      const achievement = ACHIEVEMENTS.find(a => a.id === id);
+      if (achievement) {
+        newAchievements.push({ ...achievement, unlockedAt: new Date().toISOString() });
+        existingIds.push(id);
+      }
+    }
+  }
+
+  // First quiz
+  if (profile.totalQuizzes >= 1) tryUnlock('first_quiz');
+
+  // Perfect score
+  if (quizResult && quizResult.percentage >= 100) tryUnlock('perfect_score');
+
+  // Speed demon (< 3 min)
+  if (quizResult && quizResult.timeSpent < 180) tryUnlock('speed_demon');
+
+  // Combo achievements
+  if (quizResult && quizResult.maxCombo >= 5) tryUnlock('combo_5');
+  if (quizResult && quizResult.maxCombo >= 10) tryUnlock('combo_10');
+  if (profile.bestCombo >= 5) tryUnlock('combo_5');
+  if (profile.bestCombo >= 10) tryUnlock('combo_10');
+
+  // Quiz count achievements
+  if (profile.totalQuizzes >= 5) tryUnlock('quizzes_5');
+  if (profile.totalQuizzes >= 10) tryUnlock('quizzes_10');
+  if (profile.totalQuizzes >= 25) tryUnlock('quizzes_25');
+
+  // Streak achievements
+  if (profile.currentStreak >= 3) tryUnlock('streak_3');
+  if (profile.currentStreak >= 7) tryUnlock('streak_7');
+  if (profile.currentStreak >= 30) tryUnlock('streak_30');
+
+  // Score above 90
+  if (profile.quizzesAbove90 >= 3) tryUnlock('score_above_90');
+
+  // Time-based achievements
+  if (quizResult) {
+    const hour = new Date().getHours();
+    if (hour >= 0 && hour < 5) tryUnlock('night_owl');
+    if (hour >= 4 && hour < 7) tryUnlock('early_bird');
+  }
+
+  // Level achievements
+  if (profile.level >= 5) tryUnlock('level_5');
+  if (profile.level >= 10) tryUnlock('level_10');
+
+  // XP achievements
+  if (profile.xp >= 1000) tryUnlock('xp_1000');
+  if (profile.xp >= 5000) tryUnlock('xp_5000');
+
+  return newAchievements;
+}
+
+// Obter perfil de gamificação do usuário
+app.get('/api/gamification/profile', authenticateToken, async (req, res) => {
+  try {
+    let profile = await db.getGamificationProfile(req.user.id);
+    if (!profile) {
+      profile = createDefaultProfile(req.user.id);
+      await db.saveGamificationProfile(req.user.id, profile);
+    }
+
+    const nextLevelXp = getXpForNextLevel(profile.level);
+    const currentLevelXp = GAMIFICATION_CONFIG.levelThresholds[profile.level - 1] || 0;
+
+    res.json({
+      profile,
+      levelProgress: {
+        currentXp: profile.xp,
+        currentLevelXp,
+        nextLevelXp,
+        progressPercent: nextLevelXp > currentLevelXp
+          ? Math.min(100, ((profile.xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100)
+          : 100
+      },
+      allAchievements: ACHIEVEMENTS,
+      config: GAMIFICATION_CONFIG
+    });
+  } catch (error) {
+    console.error('Erro ao obter perfil de gamificação:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Submeter resultado de quiz com gamificação
+app.post('/api/gamification/submit-quiz', authenticateToken, async (req, res) => {
+  try {
+    const { courseId, quizId, score, totalQuestions, timeSpent, maxCombo, answersDetail } = req.body;
+
+    if (score === undefined || !totalQuestions) {
+      return res.status(400).json({ error: 'Dados incompletos' });
+    }
+
+    const percentage = (score / totalQuestions) * 100;
+
+    // Obter ou criar perfil
+    let profile = await db.getGamificationProfile(req.user.id);
+    if (!profile) {
+      profile = createDefaultProfile(req.user.id);
+    }
+
+    // Calcular XP ganho
+    let xpGained = 0;
+    const xpBreakdown = {};
+
+    // XP por resposta certa
+    const correctXp = score * GAMIFICATION_CONFIG.xpPerCorrectAnswer;
+    xpGained += correctXp;
+    xpBreakdown.correctAnswers = correctXp;
+
+    // XP por completar quiz
+    xpGained += GAMIFICATION_CONFIG.xpPerQuizCompletion;
+    xpBreakdown.completion = GAMIFICATION_CONFIG.xpPerQuizCompletion;
+
+    // Bônus por score perfeito
+    if (percentage >= 100) {
+      xpGained += GAMIFICATION_CONFIG.xpBonusPerfectScore;
+      xpBreakdown.perfectScore = GAMIFICATION_CONFIG.xpBonusPerfectScore;
+      profile.perfectScores = (profile.perfectScores || 0) + 1;
+    }
+
+    // Bônus por velocidade (< 5 min)
+    if (timeSpent && timeSpent < 300) {
+      xpGained += GAMIFICATION_CONFIG.xpBonusSpeed;
+      xpBreakdown.speedBonus = GAMIFICATION_CONFIG.xpBonusSpeed;
+    }
+
+    // Bônus por combo
+    const comboBonus = Math.min(maxCombo || 0, GAMIFICATION_CONFIG.comboMultiplierMax) * 5;
+    if (comboBonus > 0) {
+      xpGained += comboBonus;
+      xpBreakdown.comboBonus = comboBonus;
+    }
+
+    // Atualizar streak
+    const today = new Date().toISOString().split('T')[0];
+    const lastDate = profile.lastQuizDate ? profile.lastQuizDate.split('T')[0] : null;
+
+    if (lastDate !== today) {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      if (lastDate === yesterday) {
+        profile.currentStreak = (profile.currentStreak || 0) + 1;
+      } else if (lastDate !== today) {
+        profile.currentStreak = 1;
+      }
+
+      // Bônus por streak
+      const streakBonus = profile.currentStreak * GAMIFICATION_CONFIG.xpBonusStreak;
+      if (streakBonus > 0) {
+        xpGained += streakBonus;
+        xpBreakdown.streakBonus = streakBonus;
+      }
+    }
+
+    if (profile.currentStreak > (profile.longestStreak || 0)) {
+      profile.longestStreak = profile.currentStreak;
+    }
+
+    // Atualizar perfil
+    const oldLevel = profile.level;
+    profile.xp = (profile.xp || 0) + xpGained;
+    profile.level = calculateLevel(profile.xp);
+    profile.totalQuizzes = (profile.totalQuizzes || 0) + 1;
+    profile.totalCorrect = (profile.totalCorrect || 0) + score;
+    profile.totalQuestions = (profile.totalQuestions || 0) + totalQuestions;
+    profile.bestCombo = Math.max(profile.bestCombo || 0, maxCombo || 0);
+    profile.lastQuizDate = new Date().toISOString();
+
+    if (percentage >= 90) {
+      profile.quizzesAbove90 = (profile.quizzesAbove90 || 0) + 1;
+    }
+
+    // Melhor pontuação por quiz
+    if (quizId) {
+      if (!profile.highScores) profile.highScores = {};
+      const prevBest = profile.highScores[quizId] || 0;
+      if (percentage > prevBest) {
+        profile.highScores[quizId] = percentage;
+      }
+    }
+
+    profile.updatedAt = new Date().toISOString();
+
+    // Verificar conquistas
+    const quizResult = { percentage, timeSpent, maxCombo: maxCombo || 0 };
+    const newAchievements = checkAchievements(profile, quizResult);
+
+    // Adicionar XP de conquistas
+    let achievementXp = 0;
+    newAchievements.forEach(a => {
+      achievementXp += a.xpReward;
+      profile.achievements.push(a);
+    });
+    if (achievementXp > 0) {
+      profile.xp += achievementXp;
+      profile.level = calculateLevel(profile.xp);
+      xpBreakdown.achievements = achievementXp;
+    }
+
+    const totalXpGained = xpGained + achievementXp;
+    const leveledUp = profile.level > oldLevel;
+
+    // Salvar
+    await db.saveGamificationProfile(req.user.id, profile);
+
+    // Calcular progresso do nível
+    const nextLevelXp = getXpForNextLevel(profile.level);
+    const currentLevelXp = GAMIFICATION_CONFIG.levelThresholds[profile.level - 1] || 0;
+
+    res.json({
+      xpGained: totalXpGained,
+      xpBreakdown,
+      newAchievements,
+      leveledUp,
+      oldLevel,
+      newLevel: profile.level,
+      profile,
+      levelProgress: {
+        currentXp: profile.xp,
+        currentLevelXp,
+        nextLevelXp,
+        progressPercent: nextLevelXp > currentLevelXp
+          ? Math.min(100, ((profile.xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100)
+          : 100
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao submeter quiz com gamificação:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Leaderboard de gamificação (por XP/nível)
+app.get('/api/gamification/leaderboard', async (req, res) => {
+  try {
+    const profiles = await db.getAllGamificationProfiles();
+    const users = await db.getUsers();
+
+    const leaderboard = profiles
+      .map(p => {
+        const user = users.find(u => u.id === p.userId);
+        return {
+          userId: p.userId,
+          username: user ? user.username : 'Desconhecido',
+          level: p.level || 1,
+          xp: p.xp || 0,
+          totalQuizzes: p.totalQuizzes || 0,
+          perfectScores: p.perfectScores || 0,
+          longestStreak: p.longestStreak || 0,
+          achievementCount: (p.achievements || []).length
+        };
+      })
+      .sort((a, b) => b.xp - a.xp)
+      .map((entry, index) => ({ ...entry, rank: index + 1 }));
+
+    res.json({ leaderboard });
+  } catch (error) {
+    console.error('Erro ao obter leaderboard:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Obter todas as conquistas disponíveis
+app.get('/api/gamification/achievements', (req, res) => {
+  res.json({ achievements: ACHIEVEMENTS });
+});
+
 // ==================== ROTA DE TESTE ====================
 
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Servidor rodando!',
-    environment: process.env.NODE_ENV || 'development',
-    port: PORT,
-    users: users.length,
-    courses: courses.length,
-    questions: questions.length
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    const usersCount = (await db.getUsers()).length;
+    const coursesCount = (await db.getCourses()).length;
+    const questionsCount = (await db.getQuestions()).length;
+    res.json({ 
+      status: 'OK', 
+      message: 'Servidor rodando!',
+      environment: process.env.NODE_ENV || 'development',
+      port: PORT,
+      users: usersCount,
+      courses: coursesCount,
+      questions: questionsCount,
+      firebase: db.isFirebaseEnabled(),
+      uptime: Math.floor(process.uptime()) + 's'
+    });
+  } catch (error) {
+    res.json({ status: 'OK', message: 'Servidor rodando!', port: PORT });
+  }
 });
 
 // Servir o index.html para qualquer rota não reconhecida (SPA routing)

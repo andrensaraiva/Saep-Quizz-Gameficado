@@ -5,15 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiz SAEP - Programação de Jogos Digitais</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="gamification.css">
 </head>
 <body>
+    <!-- Skip Navigation -->
+    <a href="#main-content" class="skip-nav">Pular para o conteúdo principal</a>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
     <!-- Cabeçalho -->
-    <header>
+    <header role="banner">
         <div class="container header-content">
             <h1>🎮 Quiz SAEP</h1>
-            <nav id="user-nav">
-                <button onclick="showStudentHelp()" class="btn-success" style="margin-right: 10px;">❓ Ajuda</button>
-                <button onclick="showFeedbackModal()" class="btn-secondary" style="margin-right: 10px;">💬 Enviar Feedback</button>
+            <div id="gamification-xp-bar"></div>
+            <nav id="user-nav" aria-label="Navegação do usuário">
+                <button onclick="showStudentHelp()" class="btn-success" aria-label="Ajuda">❓ Ajuda</button>
+                <button onclick="showFeedbackModal()" class="btn-secondary" aria-label="Enviar feedback">💬 Enviar Feedback</button>
                 <div id="auth-buttons">
                     <button onclick="showAuthModal('login')" class="btn-secondary">Login</button>
                     <button onclick="showAuthModal('register')" class="btn-primary">Cadastrar</button>
@@ -28,174 +36,205 @@
         </div>
     </header>
 
-    <!-- Menu Principal -->
-    <div id="main-menu" class="container">
-        <div class="menu-header" style="text-align: center; margin-bottom: 40px;">
-            <h1 style="font-size: 2.5rem; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                🎮 Quiz SAEP Online
-            </h1>
-            <p style="font-size: 1.2rem; color: #64748b; margin: 0;">Escolha um quiz e teste seus conhecimentos!</p>
-        </div>
-
-        <!-- Filtros -->
-        <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1e293b;">🎯 Filtrar por Curso:</label>
-                    <select id="course-filter" onchange="filterQuizzes()" style="width: 100%; padding: 10px; border-radius: 6px; border: 2px solid #e2e8f0;">
-                        <option value="">Todos os Cursos</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1e293b;">📊 Ordenar por:</label>
-                    <select id="sort-filter" onchange="filterQuizzes()" style="width: 100%; padding: 10px; border-radius: 6px; border: 2px solid #e2e8f0;">
-                        <option value="recent">Mais Recentes</option>
-                        <option value="questions-desc">Mais Questões</option>
-                        <option value="questions-asc">Menos Questões</option>
-                        <option value="name">Nome (A-Z)</option>
-                    </select>
-                </div>
+    <!-- Main Content -->
+    <main id="main-content">
+        <!-- Menu Principal -->
+        <div id="main-menu" class="container" role="region" aria-label="Menu principal">
+            <div class="menu-header">
+                <h2 class="menu-title">🎮 Quiz SAEP Online</h2>
+                <p class="menu-subtitle">Escolha um quiz e teste seus conhecimentos!</p>
             </div>
-        </div>
 
-        <!-- Grid de Quizzes -->
-        <div id="quizzes-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; margin-bottom: 30px;">
-            <!-- Quizzes serão carregados aqui -->
-        </div>
-
-        <!-- Botões Secundários -->
-        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 40px;">
-            <button onclick="showRanking()" class="btn-large btn-secondary">
-                <span class="icon">🏆</span> Ver Ranking
-            </button>
-            <button onclick="showProfile()" class="btn-large btn-secondary" id="profile-btn" style="display: none;">
-                <span class="icon">📊</span> Meu Perfil
-            </button>
-            <button onclick="showStudentHelp()" class="btn-large btn-secondary">
-                <span class="icon">❓</span> Ajuda
-            </button>
-        </div>
-    </div>
-
-    <!-- Container do Quiz -->
-    <div id="quiz-container" style="display: none;" class="container">
-        <div class="quiz-header">
-            <div class="timer">
-                <span class="icon">⏱️</span>
-                <span id="timer-display">00:00</span>
-            </div>
-            <div class="progress-info">
-                Questão <span id="current-question">1</span> de <span id="total-questions-display">22</span>
-            </div>
-        </div>
-
-        <form id="quiz-form"></form>
-
-        <div class="button-wrapper">
-            <button id="submit-btn" class="btn-large btn-primary">✓ Verificar Respostas</button>
-            <button id="back-btn" onclick="backToMenu()" type="button" class="btn-large btn-danger">← Voltar ao Menu</button>
-        </div>
-    </div>
-
-    <!-- Container do Relatório -->
-    <div id="report-container" style="display: none;" class="container">
-        <div class="report-card">
-            <h2>📊 Relatório de Desempenho</h2>
-            
-            <div class="score-summary">
-                <div class="score-circle">
-                    <div class="percentage" id="percentage-display">0%</div>
-                    <div class="score-text" id="score-text"></div>
+            <!-- Filtros -->
+            <div class="filters-container">
+                <div class="filters-grid">
+                    <div>
+                        <label for="course-filter" class="filter-label">🎯 Filtrar por Curso:</label>
+                        <select id="course-filter" onchange="filterQuizzes()" class="filter-select">
+                            <option value="">Todos os Cursos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="sort-filter" class="filter-label">📊 Ordenar por:</label>
+                        <select id="sort-filter" onchange="filterQuizzes()" class="filter-select">
+                            <option value="recent">Mais Recentes</option>
+                            <option value="questions-desc">Mais Questões</option>
+                            <option value="questions-asc">Menos Questões</option>
+                            <option value="name">Nome (A-Z)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">⏱️</div>
-                    <div class="stat-value" id="time-spent">00:00</div>
-                    <div class="stat-label">Tempo gasto</div>
+            <!-- Grid de Quizzes -->
+            <div id="quizzes-grid" class="quizzes-grid" role="list" aria-label="Lista de quizzes disponíveis">
+                <!-- Quizzes serão carregados aqui -->
+            </div>
+
+            <!-- Botões Secundários -->
+            <div class="menu-actions">
+                <button onclick="showRanking()" class="btn-large btn-secondary">
+                    <span class="icon">🏆</span> Ver Ranking
+                </button>
+                <button onclick="showProfile()" class="btn-large btn-secondary" id="profile-btn" style="display: none;">
+                    <span class="icon">📊</span> Meu Perfil
+                </button>
+                <button onclick="showStudentHelp()" class="btn-large btn-secondary">
+                    <span class="icon">❓</span> Ajuda
+                </button>
+            </div>
+        </div>
+
+        <!-- Container do Quiz -->
+        <div id="quiz-container" style="display: none;" class="container" role="region" aria-label="Quiz">
+            <!-- Gamified Progress Bar -->
+            <div class="quiz-gamified-progress">
+                <div class="quiz-progress-bar-container">
+                    <div class="quiz-progress-bar-fill" id="quiz-progress-fill" style="width: 0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon">✓</div>
-                    <div class="stat-value" id="correct-count">0</div>
-                    <div class="stat-label">Acertos</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">✗</div>
-                    <div class="stat-value" id="wrong-count">0</div>
-                    <div class="stat-label">Erros</div>
+                <div class="quiz-progress-text" id="quiz-progress-text">0%</div>
+                <div class="quiz-score-live" aria-live="polite">
+                    ✓ <span id="quiz-live-score">0/0</span>
                 </div>
             </div>
 
-            <div id="capacity-stats" class="capacity-stats"></div>
-
-            <div id="save-score-section" style="display: none;">
-                <button onclick="saveScore()" class="btn-large btn-success">💾 Salvar no Ranking</button>
+            <div class="quiz-header">
+                <div class="timer" aria-label="Cronômetro">
+                    <span class="icon">⏱️</span>
+                    <span id="timer-display">00:00</span>
+                </div>
+                <div class="progress-info" aria-live="polite">
+                    Questão <span id="current-question">1</span> de <span id="total-questions-display">22</span>
+                </div>
             </div>
 
-            <div id="wrong-questions-list"></div>
-
-            <!-- Seção detalhada de respostas erradas -->
-            <div id="wrong-answers-detail" class="wrong-answers-detail"></div>
+            <form id="quiz-form" aria-label="Formulário do quiz"></form>
 
             <div class="button-wrapper">
-                <button onclick="retryQuiz()" class="btn-large btn-primary">🔄 Refazer Quiz</button>
+                <button id="submit-btn" class="btn-large btn-primary">✓ Verificar Respostas</button>
+                <button id="back-btn" onclick="backToMenu()" type="button" class="btn-large btn-danger">← Voltar ao Menu</button>
+            </div>
+        </div>
+
+        <!-- Container do Relatório -->
+        <div id="report-container" style="display: none;" class="container" role="region" aria-label="Relatório de desempenho">
+            <div class="report-card">
+                <h2>📊 Relatório de Desempenho</h2>
+                
+                <div class="score-summary">
+                    <div class="score-circle">
+                        <div class="percentage" id="percentage-display">0%</div>
+                        <div class="score-text" id="score-text"></div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">⏱️</div>
+                        <div class="stat-value" id="time-spent">00:00</div>
+                        <div class="stat-label">Tempo gasto</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✓</div>
+                        <div class="stat-value" id="correct-count">0</div>
+                        <div class="stat-label">Acertos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✗</div>
+                        <div class="stat-value" id="wrong-count">0</div>
+                        <div class="stat-label">Erros</div>
+                    </div>
+                </div>
+
+                <div id="capacity-stats" class="capacity-stats"></div>
+
+                <!-- XP Summary (gamification) -->
+                <div id="xp-summary-container"></div>
+
+                <div id="save-score-section" style="display: none;">
+                    <button onclick="saveScore()" class="btn-large btn-success" id="save-score-btn">💾 Salvar no Ranking</button>
+                </div>
+
+                <div id="wrong-questions-list"></div>
+
+                <!-- Seção detalhada de respostas erradas -->
+                <div id="wrong-answers-detail" class="wrong-answers-detail"></div>
+
+                <div class="button-wrapper">
+                    <button onclick="retryQuiz()" class="btn-large btn-primary">🔄 Refazer Quiz</button>
+                    <button onclick="backToMenu()" class="btn-large btn-secondary">← Menu Principal</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Container do Ranking -->
+        <div id="ranking-container" style="display: none;" class="container" role="region" aria-label="Ranking">
+            <div class="ranking-card">
+                <h2>🏆 Ranking Global</h2>
+                
+                <div class="ranking-filters" role="tablist" aria-label="Filtros de período">
+                    <button onclick="loadRanking('all')" class="filter-btn active" data-period="all" role="tab" aria-selected="true">Todos os Tempos</button>
+                    <button onclick="loadRanking('month')" class="filter-btn" data-period="month" role="tab" aria-selected="false">Este Mês</button>
+                    <button onclick="loadRanking('week')" class="filter-btn" data-period="week" role="tab" aria-selected="false">Esta Semana</button>
+                    <button onclick="loadRanking('today')" class="filter-btn" data-period="today" role="tab" aria-selected="false">Hoje</button>
+                </div>
+
+                <!-- Toggle entre ranking clássico e gamificado -->
+                <div class="ranking-toggle">
+                    <button onclick="showClassicRanking()" class="filter-btn active" id="btn-ranking-classic">📊 Clássico</button>
+                    <button onclick="showGamifiedRanking()" class="filter-btn" id="btn-ranking-gamified">🎮 Gamificado</button>
+                </div>
+
+                <div id="ranking-list"></div>
+                <div id="gamified-leaderboard" style="display: none;"></div>
+
                 <button onclick="backToMenu()" class="btn-large btn-secondary">← Menu Principal</button>
             </div>
         </div>
-    </div>
 
-    <!-- Container do Ranking -->
-    <div id="ranking-container" style="display: none;" class="container">
-        <div class="ranking-card">
-            <h2>🏆 Ranking Global</h2>
-            
-            <div class="ranking-filters">
-                <button onclick="loadRanking('all')" class="filter-btn active" data-period="all">Todos os Tempos</button>
-                <button onclick="loadRanking('month')" class="filter-btn" data-period="month">Este Mês</button>
-                <button onclick="loadRanking('week')" class="filter-btn" data-period="week">Esta Semana</button>
-                <button onclick="loadRanking('today')" class="filter-btn" data-period="today">Hoje</button>
-            </div>
+        <!-- Container do Perfil -->
+        <div id="profile-container" style="display: none;" class="container" role="region" aria-label="Perfil do usuário">
+            <div class="profile-card">
+                <h2>👤 Meu Perfil</h2>
 
-            <div id="ranking-list"></div>
-
-            <button onclick="backToMenu()" class="btn-large btn-secondary">← Menu Principal</button>
-        </div>
-    </div>
-
-    <!-- Container do Perfil -->
-    <div id="profile-container" style="display: none;" class="container">
-        <div class="profile-card">
-            <h2>👤 Meu Perfil</h2>
-            
-            <div class="profile-info">
-                <div class="profile-avatar">
-                    <span id="profile-avatar-text"></span>
+                <!-- Gamification Profile -->
+                <div id="gamification-profile-section"></div>
+                
+                <div class="profile-info">
+                    <div class="profile-avatar">
+                        <span id="profile-avatar-text"></span>
+                    </div>
+                    <div class="profile-details">
+                        <h3 id="profile-username"></h3>
+                        <p id="profile-email"></p>
+                    </div>
                 </div>
-                <div class="profile-details">
-                    <h3 id="profile-username"></h3>
-                    <p id="profile-email"></p>
-                </div>
+
+                <h3>📈 Histórico de Tentativas</h3>
+                <div id="history-list"></div>
+
+                <button onclick="backToMenu()" class="btn-large btn-secondary">← Menu Principal</button>
             </div>
-
-            <h3>📈 Histórico de Tentativas</h3>
-            <div id="history-list"></div>
-
-            <button onclick="backToMenu()" class="btn-large btn-secondary">← Menu Principal</button>
         </div>
-    </div>
+    </main>
 
     <!-- Modal de Autenticação -->
-    <div id="auth-modal" class="modal">
+    <div id="auth-modal" class="modal" role="dialog" aria-modal="true" aria-label="Autenticação">
         <div class="modal-content">
-            <span class="close" onclick="closeAuthModal()">&times;</span>
+            <button class="close" onclick="closeAuthModal()" aria-label="Fechar modal">&times;</button>
             
             <div id="login-form" style="display: none;">
                 <h2>Login</h2>
                 <form onsubmit="handleLogin(event)">
-                    <input type="email" id="login-email" placeholder="Email" required>
-                    <input type="password" id="login-password" placeholder="Senha" required>
-                    <button type="submit" class="btn-large btn-primary">Entrar</button>
+                    <div class="form-group">
+                        <label for="login-email">Email:</label>
+                        <input type="email" id="login-email" placeholder="Email" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Senha:</label>
+                        <input type="password" id="login-password" placeholder="Senha" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn-large btn-primary" id="login-submit-btn">Entrar</button>
                 </form>
                 <p class="switch-auth">Não tem conta? <a href="#" onclick="showAuthModal('register')">Cadastre-se</a></p>
             </div>
@@ -203,10 +242,19 @@
             <div id="register-form" style="display: none;">
                 <h2>Cadastro</h2>
                 <form onsubmit="handleRegister(event)">
-                    <input type="text" id="register-username" placeholder="Nome de usuário" required>
-                    <input type="email" id="register-email" placeholder="Email" required>
-                    <input type="password" id="register-password" placeholder="Senha (mín. 6 caracteres)" required>
-                    <button type="submit" class="btn-large btn-primary">Cadastrar</button>
+                    <div class="form-group">
+                        <label for="register-username">Nome de usuário:</label>
+                        <input type="text" id="register-username" placeholder="Nome de usuário" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email:</label>
+                        <input type="email" id="register-email" placeholder="Email" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Senha:</label>
+                        <input type="password" id="register-password" placeholder="Senha (mín. 6 caracteres)" required autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="btn-large btn-primary" id="register-submit-btn">Cadastrar</button>
                 </form>
                 <p class="switch-auth">Já tem conta? <a href="#" onclick="showAuthModal('login')">Faça login</a></p>
             </div>
@@ -214,19 +262,19 @@
     </div>
 
     <!-- Modal: Ajuda para Alunos -->
-    <div id="student-help-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('student-help-modal')">&times;</span>
-            <h2 style="color: #667eea;">📚 Ajuda - Como Usar o Quiz SAEP</h2>
+    <div id="student-help-modal" class="modal" role="dialog" aria-modal="true" aria-label="Ajuda">
+        <div class="modal-content modal-content--wide">
+            <button class="close" onclick="closeModal('student-help-modal')" aria-label="Fechar ajuda">&times;</button>
+            <h2 class="help-title">📚 Ajuda - Como Usar o Quiz SAEP</h2>
             
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
-                <h3 style="margin: 0 0 10px 0;">🎯 Bem-vindo ao Quiz SAEP!</h3>
-                <p style="margin: 0; opacity: 0.95;">Aprenda a usar todas as funcionalidades do sistema para testar seus conhecimentos.</p>
+            <div class="help-hero">
+                <h3>🎯 Bem-vindo ao Quiz SAEP!</h3>
+                <p>Aprenda a usar todas as funcionalidades do sistema para testar seus conhecimentos.</p>
             </div>
 
-            <div style="margin-bottom: 30px;">
-                <h3 style="color: #667eea; margin-bottom: 15px;">👤 1. Como se Cadastrar</h3>
-                <ol style="line-height: 1.8;">
+            <section class="help-section">
+                <h3 class="help-section-title">👤 1. Como se Cadastrar</h3>
+                <ol class="help-list">
                     <li>Clique no botão <strong>"Cadastrar"</strong> no canto superior direito</li>
                     <li>Preencha:
                         <ul>
@@ -238,14 +286,14 @@
                     <li>Clique em <strong>"Cadastrar"</strong></li>
                     <li>Faça login com suas credenciais</li>
                 </ol>
-                <div style="background: #d1fae5; border-left: 4px solid #10b981; padding: 12px; border-radius: 6px; margin-top: 15px;">
+                <div class="help-tip help-tip--success">
                     <strong>✅ Pronto!</strong> Agora você pode fazer quizzes e acompanhar seu progresso.
                 </div>
-            </div>
+            </section>
 
-            <div style="margin-bottom: 30px;">
-                <h3 style="color: #667eea; margin-bottom: 15px;">✏️ 2. Como Fazer um Quiz</h3>
-                <ol style="line-height: 1.8;">
+            <section class="help-section">
+                <h3 class="help-section-title">✏️ 2. Como Fazer um Quiz</h3>
+                <ol class="help-list">
                     <li><strong>Faça login</strong> no sistema</li>
                     <li>Na tela inicial, selecione um quiz no <strong>dropdown</strong></li>
                     <li>Veja quantas questões o quiz possui</li>
@@ -255,14 +303,14 @@
                     <li>Clique em <strong>"Enviar Respostas"</strong> ao terminar</li>
                     <li>Veja seu resultado e pontuação!</li>
                 </ol>
-                <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 12px; border-radius: 6px; margin-top: 15px;">
+                <div class="help-tip help-tip--info">
                     <strong>⏱️ Dica:</strong> O sistema cronometra automaticamente. Não há limite de tempo, mas sua velocidade conta no ranking!
                 </div>
-            </div>
+            </section>
 
-            <div style="margin-bottom: 30px;">
-                <h3 style="color: #667eea; margin-bottom: 15px;">🏆 3. Ranking e Perfil</h3>
-                <ul style="line-height: 1.8;">
+            <section class="help-section">
+                <h3 class="help-section-title">🏆 3. Ranking e Perfil</h3>
+                <ul class="help-list">
                     <li><strong>Ranking:</strong> Clique em "Ver Ranking" para ver sua posição comparada a outros alunos</li>
                     <li><strong>Perfil:</strong> Acesse "Meu Perfil" para ver:
                         <ul>
@@ -273,26 +321,26 @@
                         </ul>
                     </li>
                 </ul>
-            </div>
+            </section>
 
-            <div style="margin-bottom: 30px;">
-                <h3 style="color: #667eea; margin-bottom: 15px;">❓ 4. Durante o Quiz</h3>
-                <ul style="line-height: 1.8;">
+            <section class="help-section">
+                <h3 class="help-section-title">❓ 4. Durante o Quiz</h3>
+                <ul class="help-list">
                     <li>Leia o <strong>contexto</strong> quando houver (texto ou imagem)</li>
                     <li>Leia a <strong>pergunta</strong> com atenção</li>
                     <li>Analise todas as <strong>4 alternativas</strong> antes de responder</li>
                     <li>Algumas questões podem ter <strong>imagens</strong> nas alternativas</li>
                     <li>Você pode mudar sua resposta antes de enviar</li>
                 </ul>
-                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; border-radius: 6px; margin-top: 15px;">
+                <div class="help-tip help-tip--warning">
                     <strong>⚠️ Importante:</strong> Após clicar em "Enviar Respostas", você não poderá mais alterar suas escolhas!
                 </div>
-            </div>
+            </section>
 
-            <div style="margin-bottom: 30px;">
-                <h3 style="color: #667eea; margin-bottom: 15px;">📊 5. Depois do Quiz</h3>
+            <section class="help-section">
+                <h3 class="help-section-title">📊 5. Depois do Quiz</h3>
                 <p>Ao finalizar o quiz, você verá:</p>
-                <ul style="line-height: 1.8;">
+                <ul class="help-list">
                     <li><strong>Sua pontuação</strong> (quantas acertou de quantas)</li>
                     <li><strong>Tempo gasto</strong> para completar</li>
                     <li><strong>Revisão das respostas:</strong>
@@ -304,11 +352,11 @@
                     </li>
                     <li><strong>Sua posição no ranking</strong></li>
                 </ul>
-            </div>
+            </section>
 
-            <div style="background: #ede9fe; padding: 20px; border-radius: 12px; margin-top: 25px;">
-                <h3 style="color: #7c3aed; margin-top: 0;">💡 Dicas para um Bom Desempenho</h3>
-                <ul style="margin-bottom: 0; line-height: 1.8;">
+            <div class="help-tips-box">
+                <h3>💡 Dicas para um Bom Desempenho</h3>
+                <ul>
                     <li>Leia todas as alternativas antes de responder</li>
                     <li>Preste atenção em palavras como "EXCETO", "NÃO", "SEMPRE"</li>
                     <li>Se houver imagens, analise-as cuidadosamente</li>
@@ -318,8 +366,8 @@
                 </ul>
             </div>
 
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
-                <p style="color: #64748b; margin: 0;">
+            <div class="help-footer">
+                <p>
                     <strong>Precisa de mais ajuda?</strong><br>
                     Entre em contato com seu instrutor ou administrador do sistema.
                 </p>
@@ -328,14 +376,14 @@
     </div>
 
     <!-- Modal: Enviar Feedback -->
-    <div id="feedback-modal" class="modal">
+    <div id="feedback-modal" class="modal" role="dialog" aria-modal="true" aria-label="Enviar feedback">
         <div class="modal-content">
-            <span class="close" onclick="closeModal('feedback-modal')">&times;</span>
+            <button class="close" onclick="closeModal('feedback-modal')" aria-label="Fechar feedback">&times;</button>
             <h2>💬 Enviar Feedback ou Sugestão</h2>
             
-            <div class="info-box" style="margin-bottom: 20px;">
+            <div class="info-box">
                 <p>Sua opinião é muito importante para nós! Use este formulário para:</p>
-                <ul style="line-height: 1.8; margin-top: 10px;">
+                <ul class="help-list">
                     <li>⭐ Enviar sugestões de melhorias</li>
                     <li>🐞 Reportar bugs ou problemas</li>
                     <li>👍 Dar elogios ou feedback positivo</li>
@@ -345,18 +393,18 @@
 
             <form onsubmit="handleSendFeedback(event)">
                 <div class="form-group">
-                    <label>Seu Nome (opcional):</label>
+                    <label for="feedback-name">Seu Nome (opcional):</label>
                     <input type="text" id="feedback-name" placeholder="Digite seu nome ou deixe em branco para ser anônimo">
                 </div>
 
                 <div class="form-group">
-                    <label>Seu Email (opcional):</label>
+                    <label for="feedback-email">Seu Email (opcional):</label>
                     <input type="email" id="feedback-email" placeholder="seu@email.com">
-                    <small style="color: #64748b; font-size: 0.875rem;">Caso queira receber uma resposta</small>
+                    <small class="form-hint">Caso queira receber uma resposta</small>
                 </div>
 
                 <div class="form-group">
-                    <label>Tipo de Feedback:</label>
+                    <label for="feedback-type">Tipo de Feedback:</label>
                     <select id="feedback-type" class="form-select" required>
                         <option value="sugestao">💡 Sugestão</option>
                         <option value="bug">🐞 Bug/Problema</option>
@@ -366,15 +414,33 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Sua Mensagem: *</label>
+                    <label for="feedback-message">Sua Mensagem: *</label>
                     <textarea id="feedback-message" rows="6" placeholder="Descreva seu feedback, sugestão ou problema..." required></textarea>
                 </div>
 
-                <button type="submit" class="btn-large btn-primary">🚀 Enviar Feedback</button>
+                <button type="submit" class="btn-large btn-primary" id="feedback-submit-btn">🚀 Enviar Feedback</button>
             </form>
         </div>
     </div>
 
+    <!-- Modal de Confirmação (genérico) -->
+    <div id="confirm-modal" class="modal" role="alertdialog" aria-modal="true" aria-label="Confirmação">
+        <div class="modal-content modal-content--small">
+            <h2 id="confirm-modal-title">Confirmar</h2>
+            <p id="confirm-modal-message">Tem certeza?</p>
+            <div class="confirm-actions">
+                <button id="confirm-modal-yes" class="btn-primary">Sim</button>
+                <button id="confirm-modal-no" class="btn-secondary" onclick="closeModal('confirm-modal')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botão Voltar ao Topo -->
+    <button id="back-to-top" class="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Voltar ao topo" title="Voltar ao topo">
+        ↑
+    </button>
+
+    <script src="gamification.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

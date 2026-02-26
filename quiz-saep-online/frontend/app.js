@@ -26,6 +26,149 @@ const API_URL = (() => {
 
 console.log('🌐 API URL configurada:', API_URL);
 
+// ==================== TOAST NOTIFICATION SYSTEM ====================
+
+const Toast = {
+    container: null,
+
+    init() {
+        this.container = document.getElementById('toast-container');
+    },
+
+    show(message, type = 'info', duration = 4000) {
+        if (!this.container) this.init();
+
+        const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+        const toast = document.createElement('div');
+        toast.className = `toast toast--${type}`;
+        toast.style.setProperty('--toast-duration', `${duration}ms`);
+        toast.innerHTML = `
+            <span class="toast-icon">${icons[type] || icons.info}</span>
+            <span class="toast-message">${this.escapeHtml(message)}</span>
+            <button class="toast-close" onclick="Toast.dismiss(this.parentElement)" aria-label="Fechar notificação">&times;</button>
+        `;
+
+        this.container.appendChild(toast);
+
+        const timer = setTimeout(() => this.dismiss(toast), duration);
+        toast._timer = timer;
+
+        return toast;
+    },
+
+    dismiss(toast) {
+        if (!toast || toast._dismissed) return;
+        toast._dismissed = true;
+        clearTimeout(toast._timer);
+        toast.classList.add('toast--removing');
+        toast.addEventListener('animationend', () => toast.remove());
+    },
+
+    success(message, duration) { return this.show(message, 'success', duration); },
+    error(message, duration) { return this.show(message, 'error', duration); },
+    warning(message, duration) { return this.show(message, 'warning', duration); },
+    info(message, duration) { return this.show(message, 'info', duration); },
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+};
+
+// ==================== SANITIZAÇÃO XSS ====================
+
+function sanitizeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// ==================== CONFIRMATION MODAL ====================
+
+function showConfirmModal(title, message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirm-modal');
+        document.getElementById('confirm-modal-title').textContent = title;
+        document.getElementById('confirm-modal-message').textContent = message;
+        modal.style.display = 'block';
+
+        const yesBtn = document.getElementById('confirm-modal-yes');
+        const noBtn = document.getElementById('confirm-modal-no');
+
+        function cleanup() {
+            modal.style.display = 'none';
+            yesBtn.removeEventListener('click', onYes);
+            noBtn.removeEventListener('click', onNo);
+        }
+
+        function onYes() { cleanup(); resolve(true); }
+        function onNo() { cleanup(); resolve(false); }
+
+        yesBtn.addEventListener('click', onYes);
+        noBtn.addEventListener('click', onNo);
+
+        // Focus trap para acessibilidade
+        yesBtn.focus();
+    });
+}
+
+// ==================== LOADING BUTTON HELPERS ====================
+
+function setButtonLoading(btn, loading) {
+    if (!btn) return;
+    if (loading) {
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+        btn._originalText = btn.textContent;
+    } else {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+        if (btn._originalText) btn.textContent = btn._originalText;
+    }
+}
+
+// ==================== MODAL CLOSE HANDLERS ====================
+
+function initModalCloseHandlers() {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal').forEach(modal => {
+                if (modal.style.display === 'flex' || modal.style.display === 'block') {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    });
+    // Close buttons
+    document.querySelectorAll('.modal .close').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.closest('.modal').style.display = 'none';
+        });
+    });
+}
+
+// ==================== BACK TO TOP ====================
+
+function initBackToTop() {
+    const btn = document.getElementById('back-to-top');
+    if (!btn) return;
+    window.addEventListener('scroll', () => {
+        btn.classList.toggle('visible', window.scrollY > 300);
+    });
+}
+
 // Estado Global
 let quizData = [];
 let courses = [];
@@ -42,6 +185,11 @@ let currentResults = null;
 // ==================== INICIALIZAÇÃO ====================
 
 document.addEventListener('DOMContentLoaded', async function() {
+    // Inicializar sistemas
+    Toast.init();
+    initBackToTop();
+    initModalCloseHandlers();
+
     // Verificar se há token salvo
     const savedToken = localStorage.getItem('token');
     if (savedToken) {
@@ -51,7 +199,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     await loadCourses();
     await loadAvailableQuizzes();
-    await loadQuestions();
+    // Não carrega questões no init - lazy load quando necessário
+
+    // Carregar perfil de gamificação se logado
+    if (currentUser && currentToken) {
+        await Gamification.loadProfile();
+        Gamification.renderXpBar();
+    }
 });
 
 // ==================== AUTENTICAÇÃO ====================
@@ -81,7 +235,9 @@ async function handleLogin(event) {
     
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
+    const btn = document.getElementById('login-submit-btn');
     
+    setButtonLoading(btn, true);
     try {
         const response = await fetch(`${API_URL}/auth/login`, {
             method: 'POST',
@@ -92,7 +248,7 @@ async function handleLogin(event) {
         const data = await response.json();
         
         if (!response.ok) {
-            alert(data.error || 'Erro ao fazer login');
+            Toast.error(data.error || 'Erro ao fazer login');
             return;
         }
         
@@ -102,10 +258,12 @@ async function handleLogin(event) {
         
         updateUserInterface();
         closeAuthModal();
-        alert('Login realizado com sucesso!');
+        Toast.success('Login realizado com sucesso!');
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
+        Toast.error('Erro ao conectar com o servidor');
+    } finally {
+        setButtonLoading(btn, false);
     }
 }
 
@@ -115,7 +273,9 @@ async function handleRegister(event) {
     const username = document.getElementById('register-username').value;
     const email = document.getElementById('register-email').value;
     const password = document.getElementById('register-password').value;
+    const btn = document.getElementById('register-submit-btn');
     
+    setButtonLoading(btn, true);
     try {
         const response = await fetch(`${API_URL}/auth/register`, {
             method: 'POST',
@@ -126,7 +286,7 @@ async function handleRegister(event) {
         const data = await response.json();
         
         if (!response.ok) {
-            alert(data.error || 'Erro ao cadastrar');
+            Toast.error(data.error || 'Erro ao cadastrar');
             return;
         }
         
@@ -136,10 +296,12 @@ async function handleRegister(event) {
         
         updateUserInterface();
         closeAuthModal();
-        alert('Cadastro realizado com sucesso!');
+        Toast.success('Cadastro realizado com sucesso!');
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
+        Toast.error('Erro ao conectar com o servidor');
+    } finally {
+        setButtonLoading(btn, false);
     }
 }
 
@@ -185,6 +347,9 @@ function updateUserInterface() {
         if (adminPanelBtn) {
             adminPanelBtn.style.display = currentUser.role === 'admin' ? 'block' : 'none';
         }
+
+        // Atualizar gamificação
+        Gamification.loadProfile().then(() => Gamification.renderXpBar());
     } else {
         authButtons.style.display = 'flex';
         userInfo.style.display = 'none';
@@ -193,6 +358,9 @@ function updateUserInterface() {
         if (adminPanelBtn) {
             adminPanelBtn.style.display = 'none';
         }
+
+        // Esconder XP bar
+        Gamification.renderXpBar();
     }
 }
 
@@ -213,7 +381,7 @@ async function loadCourses() {
         updateCourseDetails();
     } catch (error) {
         console.error('Erro ao carregar cursos:', error);
-        alert('Erro ao carregar informações do curso. Verifique se o servidor está rodando e se há cursos cadastrados.');
+        Toast.error('Erro ao carregar cursos. Verifique se o servidor está rodando.');
         courses = [];
         currentCourse = null;
         updateCourseDetails();
@@ -239,7 +407,7 @@ async function loadQuestions(courseId = currentCourse ? currentCourse.id : null)
         updateQuestionCounters();
     } catch (error) {
         console.error('Erro ao carregar questões:', error);
-        alert('Erro ao carregar as questões. Verifique se o servidor está rodando e se o curso possui questões cadastradas.');
+        Toast.error('Erro ao carregar as questões. Verifique o servidor.');
         quizData = [];
         updateQuestionCounters();
     }
@@ -313,7 +481,7 @@ async function startQuiz() {
     const quizId = parseInt(document.getElementById('quiz-select').value);
     
     if (!quizId) {
-        alert('Por favor, selecione um quiz primeiro.');
+        Toast.warning('Por favor, selecione um quiz primeiro.');
         return;
     }
 
@@ -327,7 +495,7 @@ async function startQuizById(quizId) {
         const quizDetails = await response.json();
 
         if (!response.ok || !quizDetails.questions || quizDetails.questions.length === 0) {
-            alert('Este quiz não possui questões disponíveis.');
+            Toast.warning('Este quiz não possui questões disponíveis.');
             return;
         }
 
@@ -338,12 +506,15 @@ async function startQuizById(quizId) {
         document.getElementById('main-menu').style.display = 'none';
         document.getElementById('quiz-container').style.display = 'block';
         
+        // Reset gamification combo
+        Gamification.resetCombo();
+
         buildQuiz();
         startTimer();
 
     } catch (error) {
         console.error('Erro ao carregar quiz:', error);
-        alert('Erro ao carregar o quiz. Tente novamente.');
+        Toast.error('Erro ao carregar o quiz. Tente novamente.');
     }
 }
 
@@ -420,7 +591,20 @@ function updateTimer() {
 // ==================== VERIFICAR RESPOSTAS ====================
 
 document.getElementById('submit-btn').addEventListener('click', async function() {
-    if (!confirm('Deseja finalizar e verificar suas respostas?')) {
+    // Count unanswered questions
+    const totalQuestions = window.shuffledQuizData.length;
+    const answeredCount = window.shuffledQuizData.filter(q => 
+        document.querySelector(`input[name="${q.id}"]:checked`)
+    ).length;
+    const unanswered = totalQuestions - answeredCount;
+    
+    let confirmMsg = 'Deseja finalizar e verificar suas respostas?';
+    if (unanswered > 0) {
+        confirmMsg = `Você ainda tem ${unanswered} questão(ões) sem resposta.\n\n${confirmMsg}`;
+    }
+    
+    const confirmed = await showConfirmModal('Finalizar Quiz', confirmMsg);
+    if (!confirmed) {
         return;
     }
     
@@ -457,8 +641,12 @@ document.getElementById('submit-btn').addEventListener('click', async function()
             score++;
             capacityStats[q.capacidade].correct++;
             questionBlock.classList.add('correct');
+            // Gamification: track combo
+            Gamification.registerCorrectAnswer();
         } else {
             questionBlock.classList.add('incorrect');
+            // Gamification: break combo
+            Gamification.registerWrongAnswer();
             wrongQuestions.push({ number: index + 1, id: q.id });
 
             let feedbackHtml = `
@@ -524,13 +712,55 @@ document.getElementById('submit-btn').addEventListener('click', async function()
         timeSpent,
         answersDetail,
         capacityStats,
-        wrongQuestions
+        wrongQuestions,
+        maxCombo: Gamification.getMaxCombo()
     };
 
     // Enviar resultado automaticamente para o painel admin (mesmo sem login)
     await submitResultToAdmin();
 
+    // Gamificação: submeter resultado e mostrar XP
+    let gamificationResult = null;
+    if (currentUser && currentToken) {
+        gamificationResult = await Gamification.submitQuizResult({
+            courseId: currentCourse ? currentCourse.id : null,
+            quizId: currentQuiz ? currentQuiz.id : null,
+            score: currentResults.score,
+            totalQuestions: currentResults.totalQuestions,
+            timeSpent: currentResults.timeSpent,
+            answersDetail: currentResults.answersDetail
+        });
+    }
+    currentResults.gamificationResult = gamificationResult;
+
     showReport();
+
+    // Mostrar animações de gamificação após o relatório
+    if (gamificationResult) {
+        // Confetti se score >= 80%
+        const pct = (currentResults.score / currentResults.totalQuestions) * 100;
+        if (pct >= 80) {
+            Gamification.launchConfetti();
+        }
+
+        // Level up
+        if (gamificationResult.leveledUp) {
+            setTimeout(() => {
+                Gamification.showLevelUp(gamificationResult.oldLevel, gamificationResult.newLevel);
+            }, 1000);
+        }
+
+        // Conquistas
+        if (gamificationResult.newAchievements && gamificationResult.newAchievements.length > 0) {
+            const delay = gamificationResult.leveledUp ? 5500 : 1000;
+            setTimeout(() => {
+                Gamification.showAchievementsSequentially(gamificationResult.newAchievements);
+            }, delay);
+        }
+
+        // Atualizar XP bar no header
+        Gamification.renderXpBar();
+    }
 });
 
 function showReport() {
@@ -549,6 +779,18 @@ function showReport() {
 
     document.getElementById('correct-count').textContent = score;
     document.getElementById('wrong-count').textContent = totalQuestions - score;
+
+    // Renderizar XP Summary Card
+    const xpContainer = document.getElementById('xp-summary-container');
+    if (xpContainer) {
+        if (currentResults.gamificationResult) {
+            xpContainer.innerHTML = Gamification.renderXpSummary(currentResults.gamificationResult);
+        } else if (currentUser) {
+            xpContainer.innerHTML = '<p class="xp-login-prompt">Faça login para ganhar XP!</p>';
+        } else {
+            xpContainer.innerHTML = '';
+        }
+    }
 
     const capacityStatsHtml = Object.keys(capacityStats)
         .sort()
@@ -573,16 +815,12 @@ function showReport() {
     if (wrongQuestions.length > 0) {
         let wrongHtml = `
             <h3>❌ Questões para revisar:</h3>
-            <ul style="display: flex; flex-wrap: wrap; gap: 10px; list-style: none; padding: 0;">
+            <ul class="wrong-list">
         `;
         wrongQuestions.forEach(item => {
             wrongHtml += `
                 <li>
-                    <a href="#review-${item.id}" 
-                       class="review-link"
-                       style="display: inline-block; padding: 10px 16px; background: #fee2e2; color: #dc2626; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; border: 2px solid #fca5a5;"
-                       onmouseover="this.style.background='#dc2626'; this.style.color='white'"
-                       onmouseout="this.style.background='#fee2e2'; this.style.color='#dc2626'">
+                    <a href="#review-${item.id}" class="review-link">
                         Questão ${item.number}
                     </a>
                 </li>
@@ -619,7 +857,7 @@ function showReport() {
             });
         }, 100);
     } else {
-        wrongListEl.innerHTML = '<h3 style="color: var(--cor-correta);">🎉 Parabéns! Você acertou todas as questões!</h3>';
+        wrongListEl.innerHTML = '<h3 class="all-correct-msg">🎉 Parabéns! Você acertou todas as questões!</h3>';
         document.getElementById('wrong-answers-detail').innerHTML = '';
     }
 
@@ -642,9 +880,9 @@ function showWrongAnswersDetail(wrongQuestions) {
     }
 
     let html = `
-        <div style="margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-            <h2 style="margin: 0 0 10px 0; font-size: 1.8rem;">📚 Revisão Detalhada das Questões Erradas</h2>
-            <p style="margin: 0; opacity: 0.9; font-size: 1.1rem;">Entenda onde você errou e qual era a resposta correta</p>
+        <div class="review-header">
+            <h2>📚 Revisão Detalhada das Questões Erradas</h2>
+            <p>Entenda onde você errou e qual era a resposta correta</p>
         </div>
     `;
 
@@ -663,110 +901,77 @@ function showWrongAnswersDetail(wrongQuestions) {
         const correctOption = question.shuffledOptions[question.correctIndex];
 
         html += `
-            <div id="review-${item.id}" style="margin: 25px 0; padding: 25px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 5px solid #ef4444; scroll-margin-top: 100px;">
-                <div style="display: flex; align-items: start; gap: 15px; margin-bottom: 15px;">
-                    <div style="flex-shrink: 0; width: 45px; height: 45px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">
-                        ${item.number}
-                    </div>
-                    <div style="flex: 1;">
-                        <h3 style="margin: 0 0 10px 0; color: #1e293b; font-size: 1.2rem; line-height: 1.5;">${question.command}</h3>
-                        ${question.context ? `<p style="color: #64748b; font-size: 0.95rem; line-height: 1.6; margin: 10px 0; padding: 15px; background: #f8fafc; border-radius: 8px; border-left: 3px solid #94a3b8;"><strong>Contexto:</strong> ${question.context}</p>` : ''}
-                        ${question.contextImage ? `<img src="${question.contextImage}" alt="Contexto da questão" style="max-width: 100%; height: auto; border-radius: 8px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">` : ''}
+            <div id="review-${item.id}" class="review-card">
+                <div class="review-card__header">
+                    <div class="review-card__number">${item.number}</div>
+                    <div class="review-card__body">
+                        <h3 class="review-card__command">${question.command}</h3>
+                        ${question.context ? `<p class="review-card__context"><strong>Contexto:</strong> ${question.context}</p>` : ''}
+                        ${question.contextImage ? `<img src="${question.contextImage}" alt="Contexto da questão" class="review-card__img">` : ''}
                     </div>
                 </div>
 
                 <!-- SUA RESPOSTA (ERRADA) -->
                 ${userOption ? `
-                    <div style="padding: 20px; background: #fef2f2; border-radius: 10px; border: 2px solid #fca5a5; margin-bottom: 20px;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                            <span style="background: #dc2626; color: white; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.9rem;">
-                                ✗ SUA RESPOSTA
-                            </span>
-                            <span style="background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
-                                ${answerDetail.selectedOption}
-                            </span>
+                    <div class="answer-box answer-box--wrong">
+                        <div class="answer-box__labels">
+                            <span class="answer-box__badge answer-box__badge--wrong">✗ SUA RESPOSTA</span>
+                            <span class="answer-box__letter answer-box__letter--wrong">${answerDetail.selectedOption}</span>
                         </div>
-                        <p style="margin: 0 0 12px 0; font-size: 1.05rem; color: #1e293b; line-height: 1.6; font-weight: 500;">
-                            ${userOption.text}
-                        </p>
-                        ${userOption.image ? `
-                            <img src="${userOption.image}" alt="Imagem da alternativa selecionada" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        ` : ''}
+                        <p class="answer-box__text">${userOption.text}</p>
+                        ${userOption.image ? `<img src="${userOption.image}" alt="Imagem da alternativa selecionada" class="review-card__img">` : ''}
                         ${userOption.justification || userOption.explanation ? `
-                            <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px; border-left: 4px solid #dc2626;">
-                                <strong style="color: #dc2626; display: block; margin-bottom: 8px; font-size: 1rem;">
-                                    ⚠️ Por que está incorreta:
-                                </strong>
-                                <p style="margin: 0; color: #475569; line-height: 1.7; font-size: 0.95rem;">
-                                    ${userOption.justification || userOption.explanation}
-                                </p>
+                            <div class="explanation-block explanation-block--wrong">
+                                <strong class="explanation-block__title explanation-block__title--wrong">⚠️ Por que está incorreta:</strong>
+                                <p class="explanation-block__text">${userOption.justification || userOption.explanation}</p>
                             </div>
                         ` : ''}
                     </div>
                 ` : `
-                    <div style="padding: 20px; background: #fef2f2; border-radius: 10px; border: 2px solid #fca5a5; margin-bottom: 20px;">
-                        <p style="margin: 0; color: #dc2626; font-weight: 600; font-size: 1.05rem;">
-                            ⚠️ Você não respondeu esta questão
-                        </p>
+                    <div class="answer-box answer-box--wrong">
+                        <p class="answer-box__unanswered">⚠️ Você não respondeu esta questão</p>
                     </div>
                 `}
 
                 <!-- RESPOSTA CORRETA -->
-                <div style="padding: 20px; background: #f0fdf4; border-radius: 10px; border: 2px solid #86efac;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                        <span style="background: #16a34a; color: white; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.9rem;">
-                            ✓ RESPOSTA CORRETA
-                        </span>
-                        <span style="background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
-                            ${answerDetail.correctOption}
-                        </span>
+                <div class="answer-box answer-box--correct">
+                    <div class="answer-box__labels">
+                        <span class="answer-box__badge answer-box__badge--correct">✓ RESPOSTA CORRETA</span>
+                        <span class="answer-box__letter answer-box__letter--correct">${answerDetail.correctOption}</span>
                     </div>
-                    <p style="margin: 0 0 12px 0; font-size: 1.05rem; color: #1e293b; line-height: 1.6; font-weight: 500;">
-                        ${correctOption.text}
-                    </p>
-                    ${correctOption.image ? `
-                        <img src="${correctOption.image}" alt="Imagem da resposta correta" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    ` : ''}
+                    <p class="answer-box__text">${correctOption.text}</p>
+                    ${correctOption.image ? `<img src="${correctOption.image}" alt="Imagem da resposta correta" class="review-card__img">` : ''}
                     ${correctOption.explanation ? `
-                        <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px; border-left: 4px solid #16a34a;">
-                            <strong style="color: #16a34a; display: block; margin-bottom: 8px; font-size: 1rem;">
-                                💡 Explicação:
-                            </strong>
-                            <p style="margin: 0; color: #475569; line-height: 1.7; font-size: 0.95rem;">
-                                ${correctOption.explanation}
-                            </p>
+                        <div class="explanation-block explanation-block--correct">
+                            <strong class="explanation-block__title explanation-block__title--correct">💡 Explicação:</strong>
+                            <p class="explanation-block__text">${correctOption.explanation}</p>
                         </div>
                     ` : ''}
                 </div>
 
                 ${question.capacity ? `
-                    <div style="margin-top: 15px; display: inline-block; background: #ede9fe; color: #7c3aed; padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; font-weight: 600;">
-                        📚 ${question.capacity}
-                    </div>
+                    <div class="review-card__capacity">📚 ${question.capacity}</div>
                 ` : ''}
 
                 <!-- Botão para Gerar Questão Similar com IA -->
-                <div style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                        <div style="color: white;">
-                            <h4 style="margin: 0 0 5px 0; font-size: 1rem;">🤖 Quer praticar mais sobre este tema?</h4>
-                            <p style="margin: 0; font-size: 0.9rem; opacity: 0.95;">A IA pode gerar uma nova questão similar para você treinar!</p>
+                <div class="ai-cta">
+                    <div class="ai-cta__inner">
+                        <div class="ai-cta__text">
+                            <h4>🤖 Quer praticar mais sobre este tema?</h4>
+                            <p>A IA pode gerar uma nova questão similar para você treinar!</p>
                         </div>
-                        <button class="btn-secondary generate-similar-btn" 
+                        <button class="ai-cta__btn generate-similar-btn" 
                                 data-question-number="${item.number}"
                                 data-capacity="${question.capacity || ''}"
                                 data-command="${encodeURIComponent(question.command)}"
-                                data-question-id="${question.id}"
-                                style="background: white; color: #667eea; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s;"
-                                onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'"
-                                onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+                                data-question-id="${question.id}">
                             ✨ Gerar Nova Questão
                         </button>
                     </div>
                 </div>
 
                 <!-- Container para a questão gerada -->
-                <div id="ai-question-${item.number}" style="margin-top: 15px; display: none;"></div>
+                <div id="ai-question-${item.number}" class="ai-question-container"></div>
             </div>
         `;
     });
@@ -787,7 +992,12 @@ function showWrongAnswersDetail(wrongQuestions) {
 
 function retryQuiz() {
     currentResults = null;
-    startQuiz();
+    Gamification.resetCombo();
+    if (currentQuiz && currentQuiz.id) {
+        startQuizById(currentQuiz.id);
+    } else {
+        startQuiz();
+    }
 }
 
 // ==================== GERAR QUESTÃO SIMILAR COM IA ====================
@@ -802,9 +1012,9 @@ async function generateSimilarQuestion(questionNumber, capacity, originalCommand
     
     container.style.display = 'block';
     container.innerHTML = `
-        <div style="padding: 30px; background: #f8fafc; border-radius: 12px; text-align: center;">
-            <div class="loading-spinner" style="margin: 0 auto 15px;"></div>
-            <p style="color: #64748b; margin: 0;">A IA está criando uma questão similar para você praticar...</p>
+        <div class="ai-loading">
+            <div class="loading-spinner"></div>
+            <p>A IA está criando uma questão similar para você praticar...</p>
         </div>
     `;
 
@@ -836,9 +1046,9 @@ async function generateSimilarQuestion(questionNumber, capacity, originalCommand
     } catch (error) {
         console.error('Erro ao gerar questão:', error);
         container.innerHTML = `
-            <div style="padding: 20px; background: #fef2f2; border: 2px solid #fca5a5; border-radius: 12px; text-align: center;">
-                <p style="color: #dc2626; margin: 0; font-weight: 600;">❌ ${error.message}</p>
-                <p style="color: #64748b; margin: 10px 0 0 0; font-size: 0.9rem;">Tente novamente em alguns instantes.</p>
+            <div class="ai-error">
+                <p>❌ ${error.message}</p>
+                <p>Tente novamente em alguns instantes.</p>
             </div>
         `;
         
@@ -854,15 +1064,13 @@ function displayAIQuestion(container, question, questionNumber) {
     const optionsHtml = question.options.map((option, index) => {
         const letter = String.fromCharCode(65 + index);
         return `
-            <div class="quiz-option" style="margin-bottom: 12px; padding: 15px; background: white; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: all 0.2s;"
-                 onclick="selectAIOption('${questionId}', ${index}, ${option.correct})"
-                 onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#667eea'; this.style.background='#f8f9ff'; }"
-                 onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#e2e8f0'; this.style.background='white'; }">
-                <label style="display: flex; align-items: start; cursor: pointer; width: 100%;">
-                    <input type="radio" name="${questionId}" value="${index}" style="margin-right: 12px; margin-top: 4px; width: 20px; height: 20px; cursor: pointer; accent-color: #667eea;">
-                    <div style="flex: 1;">
-                        <strong style="color: #667eea; margin-right: 8px;">${letter})</strong>
-                        <span style="color: #1e293b;">${option.text}</span>
+            <div class="ai-option"
+                 onclick="selectAIOption('${questionId}', ${index}, ${option.correct})">
+                <label>
+                    <input type="radio" name="${questionId}" value="${index}">
+                    <div>
+                        <strong class="ai-option__letter">${letter})</strong>
+                        <span class="ai-option__text">${option.text}</span>
                     </div>
                 </label>
             </div>
@@ -870,40 +1078,34 @@ function displayAIQuestion(container, question, questionNumber) {
     }).join('');
 
     container.innerHTML = `
-        <div style="padding: 25px; background: linear-gradient(to bottom, #f0f9ff, white); border: 3px solid #667eea; border-radius: 12px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #e2e8f0;">
-                <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 1.1rem;">
-                    🤖 IA
-                </span>
+        <div class="ai-question-card">
+            <div class="ai-question-card__header">
+                <span class="ai-question-card__badge">🤖 IA</span>
                 <div>
-                    <h4 style="margin: 0; color: #1e293b; font-size: 1.1rem;">Questão Gerada para Prática</h4>
-                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.85rem;">Responda para verificar seu aprendizado</p>
+                    <h4>Questão Gerada para Prática</h4>
+                    <p>Responda para verificar seu aprendizado</p>
                 </div>
             </div>
 
             ${question.context ? `
-                <div style="padding: 15px; background: #f8fafc; border-left: 4px solid #94a3b8; border-radius: 6px; margin-bottom: 20px;">
-                    <strong style="color: #64748b; display: block; margin-bottom: 8px;">📖 Contexto:</strong>
-                    <p style="margin: 0; color: #475569; line-height: 1.6;">${question.context}</p>
+                <div class="ai-question-card__context">
+                    <strong>📖 Contexto:</strong>
+                    <p>${question.context}</p>
                 </div>
             ` : ''}
 
-            <div style="margin-bottom: 20px;">
-                <h5 style="color: #1e293b; font-size: 1.05rem; line-height: 1.6; margin-bottom: 15px;">${question.command}</h5>
+            <div class="ai-question-card__body">
+                <h5>${question.command}</h5>
                 ${optionsHtml}
             </div>
 
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button onclick="checkAIAnswer('${questionId}', ${questionNumber})" 
-                        class="btn-primary" 
-                        style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
-                        onmouseover="this.style.transform='scale(1.05)'"
-                        onmouseout="this.style.transform='scale(1)'">
+            <div class="ai-actions">
+                <button onclick="checkAIAnswer('${questionId}', ${questionNumber})" class="ai-verify-btn">
                     ✓ Verificar Resposta
                 </button>
             </div>
 
-            <div id="${questionId}-result" style="margin-top: 20px; display: none;"></div>
+            <div id="${questionId}-result" class="ai-result"></div>
         </div>
     `;
 
@@ -918,20 +1120,16 @@ function selectAIOption(questionId, optionIndex, isCorrect) {
     // Remover seleção anterior
     const allOptions = document.querySelectorAll(`input[name="${questionId}"]`);
     allOptions.forEach(input => {
-        const parent = input.closest('.quiz-option');
+        const parent = input.closest('.ai-option');
         parent.classList.remove('selected');
-        parent.style.borderColor = '#e2e8f0';
-        parent.style.background = 'white';
     });
 
     // Selecionar nova opção
     const selectedInput = document.querySelector(`input[name="${questionId}"][value="${optionIndex}"]`);
     if (selectedInput) {
         selectedInput.checked = true;
-        const parent = selectedInput.closest('.quiz-option');
+        const parent = selectedInput.closest('.ai-option');
         parent.classList.add('selected');
-        parent.style.borderColor = '#667eea';
-        parent.style.background = '#f0f9ff';
     }
 }
 
@@ -942,8 +1140,8 @@ function checkAIAnswer(questionId, questionNumber) {
     if (!selectedOption) {
         resultContainer.style.display = 'block';
         resultContainer.innerHTML = `
-            <div style="padding: 15px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; text-align: center;">
-                <p style="color: #92400e; margin: 0; font-weight: 600;">⚠️ Por favor, selecione uma resposta antes de verificar!</p>
+            <div class="ai-warning">
+                <p>⚠️ Por favor, selecione uma resposta antes de verificar!</p>
             </div>
         `;
         return;
@@ -958,54 +1156,46 @@ function checkAIAnswer(questionId, questionNumber) {
     // Marcar visualmente as opções
     const allOptions = document.querySelectorAll(`input[name="${questionId}"]`);
     allOptions.forEach((input, index) => {
-        const parent = input.closest('.quiz-option');
+        const parent = input.closest('.ai-option');
         const option = question.options[index];
         
         if (option.correct) {
-            parent.style.borderColor = '#16a34a';
-            parent.style.background = '#f0fdf4';
+            parent.classList.add('ai-correct');
         } else if (index === selectedIndex && !isCorrect) {
-            parent.style.borderColor = '#dc2626';
-            parent.style.background = '#fef2f2';
+            parent.classList.add('ai-wrong');
         }
         
         // Desabilitar todas as opções
         input.disabled = true;
-        parent.style.cursor = 'default';
+        parent.classList.add('disabled');
     });
 
     // Desabilitar botão de verificar
     event.target.disabled = true;
-    event.target.style.opacity = '0.6';
-    event.target.style.cursor = 'not-allowed';
 
     // Mostrar resultado
     resultContainer.style.display = 'block';
     resultContainer.innerHTML = `
-        <div style="padding: 25px; background: ${isCorrect ? '#f0fdf4' : '#fef2f2'}; border: 3px solid ${isCorrect ? '#16a34a' : '#dc2626'}; border-radius: 12px;">
-            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-                <div style="font-size: 3rem;">${isCorrect ? '🎉' : '📚'}</div>
+        <div class="ai-result-card ${isCorrect ? 'ai-result-card--correct' : 'ai-result-card--wrong'}">
+            <div class="ai-result-card__header">
+                <div class="ai-result-card__emoji">${isCorrect ? '🎉' : '📚'}</div>
                 <div>
-                    <h4 style="margin: 0; color: ${isCorrect ? '#16a34a' : '#dc2626'}; font-size: 1.3rem;">
-                        ${isCorrect ? 'Parabéns! Você acertou!' : 'Ops! Resposta incorreta'}
-                    </h4>
-                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.95rem;">
-                        ${isCorrect ? 'Você está progredindo muito bem!' : 'Continue estudando, você vai conseguir!'}
-                    </p>
+                    <h4>${isCorrect ? 'Parabéns! Você acertou!' : 'Ops! Resposta incorreta'}</h4>
+                    <p>${isCorrect ? 'Você está progredindo muito bem!' : 'Continue estudando, você vai conseguir!'}</p>
                 </div>
             </div>
 
             ${!isCorrect ? `
-                <div style="padding: 15px; background: white; border-radius: 8px; margin-bottom: 15px;">
-                    <strong style="color: #16a34a; display: block; margin-bottom: 8px;">✓ Resposta Correta:</strong>
-                    <p style="margin: 0; color: #1e293b; line-height: 1.6;">${correctOption.text}</p>
+                <div class="ai-result-correct-answer">
+                    <strong>✓ Resposta Correta:</strong>
+                    <p>${correctOption.text}</p>
                 </div>
             ` : ''}
 
             ${correctOption.explanation ? `
-                <div style="padding: 15px; background: white; border-radius: 8px; border-left: 4px solid ${isCorrect ? '#16a34a' : '#667eea'};">
-                    <strong style="color: #667eea; display: block; margin-bottom: 8px;">💡 Explicação:</strong>
-                    <p style="margin: 0; color: #475569; line-height: 1.7;">${correctOption.explanation}</p>
+                <div class="explanation-block ${isCorrect ? 'explanation-block--correct' : 'explanation-block--ai'}">
+                    <strong class="explanation-block__title explanation-block__title--ai">💡 Explicação:</strong>
+                    <p class="explanation-block__text">${correctOption.explanation}</p>
                 </div>
             ` : ''}
         </div>
@@ -1020,21 +1210,23 @@ function checkAIAnswer(questionId, questionNumber) {
 
 async function saveScore() {
     if (!currentUser || !currentToken) {
-        alert('Você precisa estar logado para salvar sua pontuação!');
+        Toast.warning('Você precisa estar logado para salvar sua pontuação!');
         showAuthModal('login');
         return;
     }
     
     if (!currentResults) {
-        alert('Nenhum resultado para salvar.');
+        Toast.warning('Nenhum resultado para salvar.');
         return;
     }
 
     if (!currentCourse) {
-        alert('Nenhum curso selecionado. Atualize a página e tente novamente.');
+        Toast.warning('Nenhum curso selecionado. Atualize a página.');
         return;
     }
     
+    const btn = document.getElementById('save-score-btn');
+    setButtonLoading(btn, true);
     try {
         const response = await fetch(`${API_URL}/scores`, {
             method: 'POST',
@@ -1054,15 +1246,17 @@ async function saveScore() {
         const data = await response.json();
         
         if (!response.ok) {
-            alert(data.error || 'Erro ao salvar pontuação');
+            Toast.error(data.error || 'Erro ao salvar pontuação');
             return;
         }
         
-        alert('✓ Pontuação salva com sucesso no ranking!');
+        Toast.success('Pontuação salva com sucesso no ranking!');
         document.getElementById('save-score-section').style.display = 'none';
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
+        Toast.error('Erro ao conectar com o servidor');
+    } finally {
+        setButtonLoading(btn, false);
     }
 }
 
@@ -1157,7 +1351,7 @@ async function loadRanking(period) {
         const data = await response.json();
         
         if (!response.ok) {
-            alert('Erro ao carregar ranking');
+            Toast.error('Erro ao carregar ranking');
             return;
         }
         
@@ -1165,7 +1359,7 @@ async function loadRanking(period) {
     } catch (error) {
         console.error('Erro:', error);
         document.getElementById('ranking-list').innerHTML = 
-            '<p style="text-align: center; color: var(--cor-errada);">Erro ao carregar ranking. Verifique se o servidor está rodando.</p>';
+            '<p class="status-msg status-msg--error">Erro ao carregar ranking. Verifique se o servidor está rodando.</p>';
     }
 }
 
@@ -1173,7 +1367,7 @@ function displayRanking(ranking) {
     const rankingList = document.getElementById('ranking-list');
     
     if (ranking.length === 0) {
-        rankingList.innerHTML = '<p style="text-align: center;">Nenhuma pontuação registrada ainda.</p>';
+        rankingList.innerHTML = '<p class="status-msg">Nenhuma pontuação registrada ainda.</p>';
         return;
     }
     
@@ -1217,11 +1411,30 @@ function displayRanking(ranking) {
     rankingList.innerHTML = html;
 }
 
+// ==================== RANKING TOGGLE (Clássico vs Gamificado) ====================
+
+function showClassicRanking() {
+    document.getElementById('ranking-list').style.display = 'block';
+    document.getElementById('gamified-leaderboard').style.display = 'none';
+    document.getElementById('btn-ranking-classic').classList.add('active');
+    document.getElementById('btn-ranking-gamified').classList.remove('active');
+    document.querySelector('.ranking-filters').style.display = 'flex';
+}
+
+function showGamifiedRanking() {
+    document.getElementById('ranking-list').style.display = 'none';
+    document.getElementById('gamified-leaderboard').style.display = 'block';
+    document.getElementById('btn-ranking-classic').classList.remove('active');
+    document.getElementById('btn-ranking-gamified').classList.add('active');
+    document.querySelector('.ranking-filters').style.display = 'none';
+    Gamification.renderGamifiedLeaderboard('gamified-leaderboard');
+}
+
 // ==================== PERFIL ====================
 
 async function showProfile() {
     if (!currentUser || !currentToken) {
-        alert('Você precisa estar logado para ver seu perfil!');
+        Toast.warning('Você precisa estar logado para ver seu perfil!');
         showAuthModal('login');
         return;
     }
@@ -1234,6 +1447,10 @@ async function showProfile() {
     document.getElementById('profile-email').textContent = currentUser.email;
     document.getElementById('profile-avatar-text').textContent = currentUser.username.charAt(0).toUpperCase();
     
+    // Carregar e renderizar perfil gamificado
+    await Gamification.loadProfile();
+    Gamification.renderGamifiedProfile('gamification-profile-section');
+
     // Carregar histórico
     await loadUserHistory();
 }
@@ -1247,7 +1464,7 @@ async function loadUserHistory() {
         const data = await response.json();
         
         if (!response.ok) {
-            alert('Erro ao carregar histórico');
+            Toast.error('Erro ao carregar histórico');
             return;
         }
         
@@ -1255,7 +1472,7 @@ async function loadUserHistory() {
     } catch (error) {
         console.error('Erro:', error);
         document.getElementById('history-list').innerHTML = 
-            '<p style="text-align: center; color: var(--cor-errada);">Erro ao carregar histórico.</p>';
+            '<p class="status-msg status-msg--error">Erro ao carregar histórico.</p>';
     }
 }
 
@@ -1263,7 +1480,7 @@ function displayHistory(scores) {
     const historyList = document.getElementById('history-list');
     
     if (scores.length === 0) {
-        historyList.innerHTML = '<p style="text-align: center;">Você ainda não fez nenhuma tentativa.</p>';
+        historyList.innerHTML = '<p class="status-msg">Você ainda não fez nenhuma tentativa.</p>';
         return;
     }
     
@@ -1314,7 +1531,7 @@ async function loadAvailableQuizzes() {
     } catch (error) {
         console.error('Erro ao carregar quizzes:', error);
         document.getElementById('quizzes-grid').innerHTML = 
-            '<p style="grid-column: 1/-1; text-align: center; color: #ef4444; padding: 40px;">Erro ao carregar quizzes</p>';
+            '<p class="quizzes-error">Erro ao carregar quizzes</p>';
     }
 }
 
@@ -1323,10 +1540,10 @@ function displayQuizzes(quizzesToShow) {
 
     if (quizzesToShow.length === 0) {
         grid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px;">
-                <div style="font-size: 4rem; margin-bottom: 20px;">📝</div>
-                <h3 style="color: #64748b; margin-bottom: 10px;">Nenhum quiz disponível</h3>
-                <p style="color: #94a3b8;">Aguarde até que o administrador crie novos quizzes.</p>
+            <div class="quizzes-empty">
+                <div class="quizzes-empty__icon">📝</div>
+                <h3>Nenhum quiz disponível</h3>
+                <p>Aguarde até que o administrador crie novos quizzes.</p>
             </div>
         `;
         return;
@@ -1339,54 +1556,32 @@ function displayQuizzes(quizzesToShow) {
         const difficultyLabel = questionCount < 15 ? 'Curto' : questionCount < 30 ? 'Médio' : 'Longo';
 
         return `
-            <div class="quiz-card" onclick="selectQuiz(${quiz.id})" style="
-                background: white;
-                border-radius: 12px;
-                padding: 24px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                cursor: pointer;
-                transition: all 0.3s ease;
-                border: 2px solid transparent;
-                position: relative;
-                overflow: hidden;
-            "
-            onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 20px rgba(102, 126, 234, 0.3)'; this.style.borderColor='#667eea';"
-            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'; this.style.borderColor='transparent';">
-                
-                <!-- Header com gradiente -->
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; margin: -24px -24px 20px -24px; border-radius: 12px 12px 0 0;">
-                    <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 5px;">📚 ${course ? course.name : 'Curso'}</div>
-                    <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; line-height: 1.3;">${quiz.name}</h3>
+            <div class="quiz-card" onclick="selectQuiz(${quiz.id})">
+                <div class="quiz-card__header">
+                    <div class="quiz-card__course">📚 ${course ? course.name : 'Curso'}</div>
+                    <h3 class="quiz-card__name">${quiz.name}</h3>
                 </div>
 
-                <!-- Descrição -->
                 ${quiz.description ? `
-                    <p style="color: #64748b; font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px; min-height: 45px;">
+                    <p class="quiz-card__desc">
                         ${quiz.description.substring(0, 100)}${quiz.description.length > 100 ? '...' : ''}
                     </p>
                 ` : `
-                    <p style="color: #94a3b8; font-size: 0.9rem; font-style: italic; margin-bottom: 20px; min-height: 45px;">
-                        Sem descrição
-                    </p>
+                    <p class="quiz-card__desc--empty">Sem descrição</p>
                 `}
 
-                <!-- Informações -->
-                <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f1f5f9; border-radius: 6px;">
-                        <span style="font-size: 1.2rem;">📝</span>
-                        <span style="font-weight: 600; color: #1e293b;">${questionCount}</span>
-                        <span style="color: #64748b; font-size: 0.85rem;">questões</span>
+                <div class="quiz-card__meta">
+                    <div class="quiz-card__stat">
+                        <span class="quiz-card__stat-icon">📝</span>
+                        <span class="quiz-card__stat-value">${questionCount}</span>
+                        <span class="quiz-card__stat-label">questões</span>
                     </div>
-                    <div style="background: ${difficultyColor}20; color: ${difficultyColor}; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">
+                    <div class="quiz-card__difficulty" style="background: ${difficultyColor}20; color: ${difficultyColor};">
                         ${difficultyLabel}
                     </div>
                 </div>
 
-                <!-- Botão -->
-                <button onclick="event.stopPropagation(); selectQuiz(${quiz.id})" 
-                        style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: all 0.2s;"
-                        onmouseover="this.style.transform='scale(1.05)'"
-                        onmouseout="this.style.transform='scale(1)'">
+                <button onclick="event.stopPropagation(); selectQuiz(${quiz.id})" class="quiz-card__btn">
                     ▶ Iniciar Quiz
                 </button>
             </div>
@@ -1476,10 +1671,12 @@ async function handleSendFeedback(event) {
     const message = document.getElementById('feedback-message').value.trim();
 
     if (!message) {
-        alert('Por favor, escreva uma mensagem.');
+        Toast.warning('Por favor, escreva uma mensagem.');
         return;
     }
 
+    const btn = document.getElementById('feedback-submit-btn');
+    setButtonLoading(btn, true);
     try {
         const response = await fetch(`${API_URL}/feedback`, {
             method: 'POST',
@@ -1492,11 +1689,11 @@ async function handleSendFeedback(event) {
         const data = await response.json();
 
         if (!response.ok) {
-            alert(data.error || 'Erro ao enviar feedback');
+            Toast.error(data.error || 'Erro ao enviar feedback');
             return;
         }
 
-        alert('✅ Feedback enviado com sucesso! Obrigado pela sua contribuição.');
+        Toast.success('Feedback enviado com sucesso! Obrigado pela sua contribuição.');
         closeModal('feedback-modal');
         
         // Limpar formulário
@@ -1506,6 +1703,8 @@ async function handleSendFeedback(event) {
         document.getElementById('feedback-message').value = '';
     } catch (error) {
         console.error('Erro ao enviar feedback:', error);
-        alert('Erro ao conectar com o servidor. Tente novamente mais tarde.');
+        Toast.error('Erro ao conectar com o servidor. Tente novamente mais tarde.');
+    } finally {
+        setButtonLoading(btn, false);
     }
 }
